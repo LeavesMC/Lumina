@@ -1,0 +1,44 @@
+name: Folia 破坏特性汇报 | Folia broken properties report
+description: 
+  报告 Folia 破坏的原版特性。
+  Report Folia broken vanilla properties.
+labels:
+  - folia broken properties
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请详细描述被破坏的原版特性。确保此特性**真的**遇到了**Folia**破坏，而非客户端Bug或插件导致。<br>
+        Please describe in detail the vanilla properties that were broken. Make sure this properties **actually broken**, not client-side bug or.<br>
+        如果您确定的话，就按照下面的模板填充信息，并提交反馈。
+        If you are sure, follow the template below to fill in the information and submit your feedback.<br>
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 预期的行为 Expected behavior
+      description: 你期望看到的情况是什么样。What you expected to see.
+      placeholder: e.g. 利用末地门可以复制重力方块
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 观测到的实际行为 Observed/Actual behavior
+      description: 你实际看到的。 What you actually saw.
+      placeholder: e.g. 末地门无法复制重力方块
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 Steps/models to reproduce
+      description:
+        这里应该有一个图片、视频或其他信息来展现你的问题。<br>
+        This may include a build schematic, a video, or detailed instructions to help reconstruct the issue.
+      placeholder: e.g. 建造一个刷沙机，尝试使用，但并没有额外的沙子被刷出
+    validations:
+      required: true
+  - type: textarea
+    id: other
+    attributes:
+      label: 更多详细信息。 The more information.
