@@ -679,6 +679,32 @@ index 0000000000000000000000000000000000000000..7e596a92b7663895f88661bd2d414eeb
 +        return "projectile";
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PurpurAlternativeKeepaliveConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PurpurAlternativeKeepaliveConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0707e3050aff6b14568ebca846182b9d7274431b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PurpurAlternativeKeepaliveConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.optimizations;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class PurpurAlternativeKeepaliveConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean useAlternateKeepAlive = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.OPTIMIZATIONS;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "alternative_keepalive_handling";
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimizations/SuffocationOptimizationConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/SuffocationOptimizationConfig.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..5bdcaf214476d38aecc7059ae252a67efd859475
