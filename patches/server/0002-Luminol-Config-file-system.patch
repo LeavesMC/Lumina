@@ -426,3 +426,65 @@ index 0000000000000000000000000000000000000000..502e9c2be1f94f411b9f2a0ea875e22b
 +        }
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cad64560d59bce67bdd4e661582c5a178c90ab5c
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
+@@ -0,0 +1,28 @@
++package org.leavesmc.lumina.config.modules.gameplay;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.HotReloadUnsupported;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class LeavesBladerenProtocolConfig implements IConfigModule {
++    @HotReloadUnsupported
++    @ConfigInfo(baseName = "enable_base_protocol")
++    public static boolean enableBaseProtocol = false;
++    @HotReloadUnsupported
++    @ConfigInfo(baseName = "enable_mspt_sync_protocol")
++    public static boolean msptSyncProtocol = false;
++    @HotReloadUnsupported
++    @ConfigInfo(baseName = "mspt_sync_interval")
++    public static int msptSyncTickInterval = 20;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.GAMEPLAY;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "leaves_bladeren_protocol";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesCarpetProtocolSupportConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesCarpetProtocolSupportConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..93428d0a33cc3da8843803d0054f20a7e22bfc25
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesCarpetProtocolSupportConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.gameplay;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.HotReloadUnsupported;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class LeavesCarpetProtocolSupportConfig implements IConfigModule {
++    @HotReloadUnsupported
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.GAMEPLAY;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "leaves_carpet_protocol";
++    }
++}
