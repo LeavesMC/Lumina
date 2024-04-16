@@ -130,7 +130,7 @@ allprojects {
             }
         }
     }
- }
+}
 
 publishing {
     if (project.hasProperty("publishDevBundle")) {
@@ -142,3 +142,12 @@ publishing {
     }
 }
 
+val createReobfLeavesclipJar = tasks.register("createReobfLeavesclipJar") {
+    group = "paperweight"
+    dependsOn("createReobfPaperclipJar")
+    doLast {
+        file("build/libs/lumina-paperclip-${project.version}-reobf.jar").renameTo(
+            file("build/libs/lumina-leavesclip-${project.version}-reobf.jar")
+        )
+    }
+}
