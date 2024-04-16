@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 06:58:52 +0000
+Subject: [PATCH] Luminol Prevent teleportAsync calling during moving event
+ being
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index e26718358629085085636d7f6ae8ff98a02fd487..c0bad7699504fcb6eff6bb9a294bc1af0dbe61c0 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -329,6 +329,10 @@ public class ServerPlayer extends Player {
+     public double lastEntitySpawnRadiusSquared = -1.0;
+     // Paper end - optimise chunk tick iteration
+ 
++    //Luminol start - Prevent teleportAsync calling during moving event being handled
++    public boolean handlingMoveEvent = false;
++    //Luminol end
++
+     public ServerPlayer(MinecraftServer server, ServerLevel world, GameProfile profile, ClientInformation clientOptions) {
+         super(world, world.getSharedSpawnPos(), world.getSharedSpawnAngle(), profile);
+         this.chatVisibility = ChatVisiblity.FULL;
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 3b2508dc6cd4f70b09dce3b7e745e6efabaaa74e..b3ff8ed6d0f0414c15b9d2e6a51a0e34c361f92a 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -675,7 +675,9 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+                     Location oldTo = to.clone();
+                     PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
++                    this.player.handlingMoveEvent = true; //Luminol - Prevent teleportAsync calling during moving event being handled
+                     this.cserver.getPluginManager().callEvent(event);
++                    this.player.handlingMoveEvent = false; //Luminol - Prevent teleportAsync calling during moving event being handled
+ 
+                     // If the event is cancelled we move the player back to their old location.
+                     if (event.isCancelled()) {
+@@ -1621,7 +1623,9 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+                                     Location oldTo = to.clone();
+                                     PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
++                                    this.player.handlingMoveEvent = true; //Luminol - Prevent teleportAsync calling during moving event being handled
+                                     this.cserver.getPluginManager().callEvent(event);
++                                    this.player.handlingMoveEvent = false; //Luminol - Prevent teleportAsync calling during moving event being handled
+ 
+                                     // If the event is cancelled we move the player back to their old location.
+                                     if (event.isCancelled()) {
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index d6b80c715efa5f9e9f7e624d30f0e39d407469bb..e56bf976a3969372e2f38ed594e7c547272d83bf 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4011,6 +4011,18 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                                        java.util.function.Consumer<Entity> teleportComplete) {
+         io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot teleport entity async");
+ 
++        //Luminol start - Prevent teleportAsync calling during moving event being handled
++        if (this instanceof ServerPlayer player && org.leavesmc.lumina.config.modules.fixes.FoliaTeleportAsyncFixConfig.enabled){
++            if (player.handlingMoveEvent){
++                if (org.leavesmc.lumina.config.modules.fixes.FoliaTeleportAsyncFixConfig.throwOnDetected){
++                    throw new IllegalStateException("Player " + player.getScoreboardName() + " is trying to teleport to " + pos + " during move event handling!");
++                }
++                MinecraftServer.LOGGER.warn("Player {} is trying to teleport to {} during move event handling!",player.getScoreboardName(),pos);
++                return false;
++            }
++        }
++        //Luminol end
++
+         if (!ServerLevel.isInSpawnableBounds(new BlockPos(io.papermc.paper.util.CoordinateUtils.getBlockX(pos), io.papermc.paper.util.CoordinateUtils.getBlockY(pos), io.papermc.paper.util.CoordinateUtils.getBlockZ(pos)))) {
+             return false;
+         }
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecart.java b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecart.java
+index d514ec1e4cbdc579c3a61533998437903afdc8b6..ed4cbc459bf5f4b7615c6e2ab0d99728d18f2598 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecart.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecart.java
+@@ -378,7 +378,21 @@ public abstract class AbstractMinecart extends VehicleEntity {
+             this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
+ 
+             if (!from.equals(to)) {
++                //Luminol start - Prevent teleportAsync calling during moving event being handled
++                for (Entity passenger : this.getPassengers()) {
++                    if (passenger instanceof net.minecraft.server.level.ServerPlayer player){
++                        player.handlingMoveEvent = true;
++                    }
++                }
++                //Luminol end
+                 this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, from, to));
++                //Luminol start - Prevent teleportAsync calling during moving event being handled
++                for (Entity passenger : this.getPassengers()) {
++                    if (passenger instanceof net.minecraft.server.level.ServerPlayer player){
++                        player.handlingMoveEvent = false;
++                    }
++                }
++                //Luminol end
+             }
+             // CraftBukkit end
+             if (this.getMinecartType() == AbstractMinecart.Type.RIDEABLE && this.getDeltaMovement().horizontalDistanceSqr() > 0.01D) {
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
+index db6aa75d642f4a7258f197933671907faf79c8f2..065d4c06e3fd93fb46595b9864b150ea2480f5fc 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/Boat.java
+@@ -377,8 +377,22 @@ public class Boat extends VehicleEntity implements VariantHolder<Boat.Type> {
+         server.getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
+ 
+         if (this.lastLocation != null && !this.lastLocation.equals(to)) {
++            //Luminol start - Prevent teleportAsync calling during moving event being handled
++            for (Entity passenger : this.getPassengers()) {
++                if (passenger instanceof net.minecraft.server.level.ServerPlayer player){
++                    player.handlingMoveEvent = true;
++                }
++            }
++            //Luminol end
+             VehicleMoveEvent event = new VehicleMoveEvent(vehicle, this.lastLocation, to);
+             server.getPluginManager().callEvent(event);
++            //Luminol start - Prevent teleportAsync calling during moving event being handled
++            for (Entity passenger : this.getPassengers()) {
++                if (passenger instanceof net.minecraft.server.level.ServerPlayer player){
++                    player.handlingMoveEvent = false;
++                }
++            }
++            //Luminol end
+         }
+         this.lastLocation = vehicle.getLocation();
+         // CraftBukkit end

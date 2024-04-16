@@ -4,6 +4,244 @@ Date: Thu, 11 Apr 2024 22:58:15 +0800
 Subject: [PATCH] Lumina server config and command
 
 
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7fc24053b2535be5f21f15793c7aaf3b38ac2f63
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaEntityMovingFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++    @ConfigInfo(baseName = "warn_on_detected")
++    public static boolean warnOnDetected = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.fix_high_velocity_issue";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..03ccf27e7d0dbd59654344be20f3bf47eeb112ed
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaSpectorTeleportationFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean fixSpectorTeleportFolia = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.fix_spector_teleportation";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab9ccc3ee94e435f24410b165876042128ec46b8
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaTeleportAsyncFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++    @ConfigInfo(baseName = "throw_on_detected")
++    public static boolean throwOnDetected = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.prevent_teleportasync_call_during_moving";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1fd3f895b338d281b28d7bb43a9da559524b1f5a
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class UnsafeTeleportationConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled", comments = "If you want to use sand duping,please turn on this")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "allow_unsafe_teleportation";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..52a6d931a2fcd44fe8c21b5935ed23f7caa2fc6b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class VanillaRandomSourceConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enable_for_player_entity")
++    public static boolean useLegacyRandomSourceForPlayers = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "use_vanilla_random_source";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3c4d05256ff5430ab508705bc87a77a077a59b3
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class VoidTradingFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "allow_void_trading";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..255f88821f212713e12c181c3e1896430a006644
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class ChatSignConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "mojang_chat_sign";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..26980d0d06024f31a60d767fc3807d291810ca98
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class InorderChatConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "mojang_out_of_order_chat_check";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b49ea930376dac62e94cbf1051b9da4f823d290d
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class OfflineModeWarningConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "warn_on_offline_mode";
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..1f76044de5e9016a6ca1cba165bd27369e5aa4a4
@@ -66,6 +304,94 @@ index 0000000000000000000000000000000000000000..1f76044de5e9016a6ca1cba165bd2736
 +            linearFlushThreads = Math.max(Runtime.getRuntime().availableProcessors() + linearFlushThreads, 1);
 +        else
 +            linearFlushThreads = Math.max(linearFlushThreads, 1);
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9238b246ff1003c8fbe3b18d14345f99f8eb11ba
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java
+@@ -0,0 +1,23 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class ServerModNameConfig implements IConfigModule {
++    @ConfigInfo(baseName = "name")
++    public static String serverModName = "Lumina";
++
++    @ConfigInfo(baseName = "vanilla_spoof")
++    public static boolean fakeVanilla = false;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "server_mod_name";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..02d3dfc073ab4e7f7c5c7aea8a8eba7326805162
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class UsernameCheckConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "username_checks";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d021639d97d4a3aeed29860feff64efaf662506
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java
+@@ -0,0 +1,27 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.HotReloadUnsupported;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class WatchdogConfig implements IConfigModule {
++
++    @HotReloadUnsupported
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++    @ConfigInfo(baseName = "warn_period_ticks")
++    public static long warnPeriodTicks = 5 * 20;
++    @ConfigInfo(baseName = "timeout_ticks")
++    public static long timeOutTicks = 30 * 20;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "watchdog";
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimizations/AsyncPathProcessingConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/AsyncPathProcessingConfig.java
@@ -295,6 +621,34 @@ index 0000000000000000000000000000000000000000..22129ece829add8d6f98c0ad37a64a9a
 +    @Override
 +    public String getBaseName() {
 +        return "load_chunks_to_active_climbing_entities";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PetalReduceSensorWorkConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PetalReduceSensorWorkConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..884cba6a4448d83bf8ed8ca4a202db711c026071
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/PetalReduceSensorWorkConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.optimizations;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class PetalReduceSensorWorkConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++    @ConfigInfo(baseName = "delay_ticks")
++    public static int delayTicks = 10;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.OPTIMIZATIONS;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "reduce_sensor_work";
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimizations/ProjectileChunkReduceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimizations/ProjectileChunkReduceConfig.java
