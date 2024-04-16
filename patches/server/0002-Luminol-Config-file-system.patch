@@ -1,0 +1,428 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 00:45:19 +0000
+Subject: [PATCH] Luminol Config file system
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 4cd2de79b9a611293ff315fe058a7359edd6d3b3..0f5e1de926d0317e5467dac1ff68399224b160d4 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -19,6 +19,7 @@ dependencies {
+         exclude("io.papermc.paper", "paper-api")
+     }
+     // Folia end
++    implementation("com.electronwill.night-config:toml:3.6.6") //Luminol - Night config
+     // Paper start
+     implementation("org.jline:jline-terminal-jansi:3.21.0")
+     implementation("net.minecrell:terminalconsoleappender:1.3.0")
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 6b3242117d62175de462d04e4d178b49ae2521e9..610cb7d398e472973d6b4b5942f4c717d5ce6fa5 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -209,6 +209,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
+         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         // Paper end - initialize global and world-defaults configuration
++        org.leavesmc.lumina.config.LuminaConfig.loadConfig(); //Lumina - load config file
++        org.leavesmc.lumina.config.LuminaConfig.setupLatch(); //Lumina - load config file
+         // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
+         if (this.convertOldUsers()) {
+             this.getProfileCache().save(false); // Paper
+diff --git a/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java b/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..517986db961e18ffa197e772806b35537144c4b2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java
+@@ -0,0 +1,70 @@
++package org.leavesmc.lumina.commands;
++
++import org.leavesmc.lumina.config.LuminaConfig;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.TextColor;
++import org.bukkit.Location;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class LuminaConfigCommand extends Command {
++    public LuminaConfigCommand(){
++        super("luminaconfig");
++        this.setPermission("lumina.commands.luminaconfig");
++        this.setDescription("Manage config file");
++        this.setUsage("/luminaconfig");
++    }
++
++    @Override
++    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args, @Nullable Location location) throws IllegalArgumentException {
++        final List<String> result = new ArrayList<>();
++
++        if (args.length == 1){
++            result.add("reload");
++        }
++
++        return result;
++    }
++
++    @Override
++    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
++        if (!this.testPermission(sender)){
++            sender.sendMessage(Component
++                    .text("No permission to execute this command!")
++                    .color(TextColor.color(255,0,0))
++            );
++        }
++
++        if (args.length < 1){
++            sender.sendMessage(
++                    Component
++                            .text("Wrong use!\n")
++                            .color(TextColor.color(255,0,0))
++            );
++            return true;
++        }
++
++        switch (args[0]){
++            case "reload" -> {
++                LuminaConfig.reloadAsync().thenAccept(nullValue -> sender.sendMessage(
++                        Component
++                                .text("Reloaded config file!")
++                                .color(TextColor.color(0,255,0))
++                ));
++            }
++
++            default -> sender.sendMessage(
++                    Component
++                            .text("Unknown action!\n")
++                            .color(TextColor.color(255,0,0))
++            );
++        }
++
++        return true;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigInfo.java b/src/main/java/org/leavesmc/lumina/config/ConfigInfo.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..df919be56c094b0e06acb403ee63f4da9843824e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/ConfigInfo.java
+@@ -0,0 +1,11 @@
++package org.leavesmc.lumina.config;
++
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++
++@Retention(RetentionPolicy.RUNTIME)
++public @interface ConfigInfo {
++    String baseName();
++
++    String comments() default "";
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/DoNotLoad.java b/src/main/java/org/leavesmc/lumina/config/DoNotLoad.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..14c98c4aaba9ccd9b75fa31d2ee76fcaaf3ace0f
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/DoNotLoad.java
+@@ -0,0 +1,8 @@
++package org.leavesmc.lumina.config;
++
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++
++@Retention(RetentionPolicy.RUNTIME)
++public @interface DoNotLoad {
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/EnumConfigCategory.java b/src/main/java/org/leavesmc/lumina/config/EnumConfigCategory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..96e6f2c6e9f82af3faff2f982bac8883311f1941
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/EnumConfigCategory.java
+@@ -0,0 +1,18 @@
++package org.leavesmc.lumina.config;
++
++public enum EnumConfigCategory {
++    OPTIMIZATIONS("optimizations"),
++    FIXES("fixes"),
++    MISC("misc"),
++    GAMEPLAY("gameplay");
++
++    private final String baseKeyName;
++
++    EnumConfigCategory(String baseKeyName) {
++        this.baseKeyName = baseKeyName;
++    }
++
++    public String getBaseKeyName() {
++        return this.baseKeyName;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/HotReloadUnsupported.java b/src/main/java/org/leavesmc/lumina/config/HotReloadUnsupported.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d5fc32aecfce7687617fe2084c529141afd08993
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/HotReloadUnsupported.java
+@@ -0,0 +1,8 @@
++package org.leavesmc.lumina.config;
++
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++
++@Retention(RetentionPolicy.RUNTIME)
++public @interface HotReloadUnsupported {
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/IConfigModule.java b/src/main/java/org/leavesmc/lumina/config/IConfigModule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e459226abbd6deccb568f8f34fbb0a4a7cba7437
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/IConfigModule.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config;
++
++import com.electronwill.nightconfig.core.file.CommentedFileConfig;
++import org.jetbrains.annotations.NotNull;
++
++public interface IConfigModule {
++
++    EnumConfigCategory getCategory();
++
++    String getBaseName();
++
++    default void onLoaded(CommentedFileConfig configInstance) {}
++
++    default <T> T get(String keyName, T defaultValue, @NotNull CommentedFileConfig config){
++        if (!config.contains(keyName)){
++            config.set(keyName,defaultValue);
++            return defaultValue;
++        }
++
++        return config.get(keyName);
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..502e9c2be1f94f411b9f2a0ea875e22b3d821f9a
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+@@ -0,0 +1,218 @@
++package org.leavesmc.lumina.config;
++
++import com.electronwill.nightconfig.core.file.CommentedFileConfig;
++import io.papermc.paper.threadedregions.RegionizedServer;
++import org.leavesmc.lumina.commands.LuminaConfigCommand;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++
++import java.io.File;
++import java.io.IOException;
++import java.lang.reflect.Field;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Modifier;
++import java.net.JarURLConnection;
++import java.net.URL;
++import java.net.URLDecoder;
++import java.nio.charset.StandardCharsets;
++import java.util.*;
++import java.util.concurrent.CompletableFuture;
++import java.util.jar.JarEntry;
++import java.util.jar.JarFile;
++
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++public class LuminaConfig {
++    public static final Logger logger = LogManager.getLogger();
++    private static final File baseConfigFolder = new File("lumina_config");
++    private static final File baseConfigFile = new File(baseConfigFolder,"lumina_global_config.toml");
++    private static final Set<IConfigModule> allInstanced = new HashSet<>();
++    private static CommentedFileConfig configFileInstance;
++    public static boolean alreadyInited = false;
++    private static MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
++
++    public static void setupLatch(){
++        Bukkit.getCommandMap().register("luminaconfig","lumina",new LuminaConfigCommand());
++        alreadyInited = true;
++    }
++
++    public static void reload(){
++        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
++
++        dropAllInstanced();
++        try {
++            loadConfig();
++        }catch (Exception e){
++            logger.error(e);
++        }
++    }
++
++    @Contract(" -> new")
++    public static @NotNull CompletableFuture<Void> reloadAsync(){
++        return CompletableFuture.runAsync(LuminaConfig::reload,task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN,scheduled -> task.run()));
++    }
++
++    public static void dropAllInstanced(){
++        allInstanced.clear();
++    }
++
++    public static void loadConfig() throws IOException {
++        baseConfigFolder.mkdirs();
++
++        if (!baseConfigFile.exists()){
++            baseConfigFile.createNewFile();
++        }
++
++        configFileInstance = CommentedFileConfig.ofConcurrent(baseConfigFile);
++
++        configFileInstance.load();
++
++        try {
++            instanceAllModule();
++            loadAllModules();
++        }catch (Exception e){
++            logger.error("Failed to load config modules!",e);
++        }
++
++        configFileInstance.save();
++    }
++
++    private static void loadAllModules() throws IllegalAccessException {
++        for (IConfigModule instanced : allInstanced){
++            loadForSingle(instanced);
++        }
++    }
++
++    private static void instanceAllModule() throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
++        for (Class<?> clazz  : getClasses("org.leavesmc.lumina.config.modules")){
++            if (IConfigModule.class.isAssignableFrom(clazz)){
++                allInstanced.add((IConfigModule) clazz.getConstructor().newInstance());
++            }
++        }
++    }
++
++    private static void loadForSingle(@NotNull IConfigModule singleConfigModule) throws IllegalAccessException {
++        final EnumConfigCategory category = singleConfigModule.getCategory();
++
++        Field[] fields = singleConfigModule.getClass().getDeclaredFields();
++
++        for (Field field : fields) {
++            int modifiers = field.getModifiers();
++            if (Modifier.isStatic(modifiers) && !Modifier.isFinal(modifiers)) {
++                boolean skipLoad = field.getAnnotation(DoNotLoad.class) != null || (alreadyInited && field.getAnnotation(HotReloadUnsupported.class) != null);
++                ConfigInfo configInfo = field.getAnnotation(ConfigInfo.class);
++
++                if (skipLoad || configInfo == null){
++                    continue;
++                }
++
++                final String fullConfigKeyName = category.getBaseKeyName() + "." + singleConfigModule.getBaseName() + "." + configInfo.baseName();
++
++                field.setAccessible(true);
++                final Object currentValue = field.get(null);
++
++                if (!configFileInstance.contains(fullConfigKeyName)){
++                    if (currentValue == null){
++                        throw new UnsupportedOperationException("Config " + singleConfigModule.getBaseName() + "tried to add an null default value!");
++                    }
++
++                    final String comments = configInfo.comments();
++
++                    if (!comments.isBlank()){
++                        configFileInstance.setComment(fullConfigKeyName,comments);
++                    }
++
++                    configFileInstance.add(fullConfigKeyName,currentValue);
++                    continue;
++                }
++
++                final Object actuallyValue = configFileInstance.get(fullConfigKeyName);
++                field.set(null,actuallyValue);
++            }
++        }
++
++        singleConfigModule.onLoaded(configFileInstance);
++    }
++
++    public static @NotNull Set<Class<?>> getClasses(String pack) {
++        Set<Class<?>> classes = new LinkedHashSet<>();
++        String packageDirName = pack.replace('.', '/');
++        Enumeration<URL> dirs;
++
++        try {
++            dirs = Thread.currentThread().getContextClassLoader().getResources(packageDirName);
++            while (dirs.hasMoreElements()) {
++                URL url = dirs.nextElement();
++                String protocol = url.getProtocol();
++                if ("file".equals(protocol)) {
++                    String filePath = URLDecoder.decode(url.getFile(), StandardCharsets.UTF_8);
++                    findClassesInPackageByFile(pack, filePath, classes);
++                } else if ("jar".equals(protocol)) {
++                    JarFile jar;
++                    try {
++                        jar = ((JarURLConnection) url.openConnection()).getJarFile();
++                        Enumeration<JarEntry> entries = jar.entries();
++                        findClassesInPackageByJar(pack, entries, packageDirName, classes);
++                    } catch (IOException e) {
++                        throw new RuntimeException(e);
++                    }
++                }
++            }
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++
++        return classes;
++    }
++
++    private static void findClassesInPackageByFile(String packageName, String packagePath, Set<Class<?>> classes) {
++        File dir = new File(packagePath);
++
++        if (!dir.exists() || !dir.isDirectory()) {
++            return;
++        }
++
++        File[] dirfiles = dir.listFiles((file) -> file.isDirectory() || file.getName().endsWith(".class"));
++        if (dirfiles != null) {
++            for (File file : dirfiles) {
++                if (file.isDirectory()) {
++                    findClassesInPackageByFile(packageName + "." + file.getName(), file.getAbsolutePath(), classes);
++                } else {
++                    String className = file.getName().substring(0, file.getName().length() - 6);
++                    try {
++                        classes.add(Class.forName(packageName + '.' + className));
++                    } catch (ClassNotFoundException e) {
++                        throw new RuntimeException(e);
++                    }
++                }
++            }
++        }
++    }
++
++    private static void findClassesInPackageByJar(String packageName, Enumeration<JarEntry> entries, String packageDirName, Set<Class<?>> classes) {
++        while (entries.hasMoreElements()) {
++            JarEntry entry = entries.nextElement();
++            String name = entry.getName();
++            if (name.charAt(0) == '/') {
++                name = name.substring(1);
++            }
++            if (name.startsWith(packageDirName)) {
++                int idx = name.lastIndexOf('/');
++                if (idx != -1) {
++                    packageName = name.substring(0, idx).replace('/', '.');
++                }
++                if (name.endsWith(".class") && !entry.isDirectory()) {
++                    String className = name.substring(packageName.length() + 1, name.length() - 6);
++                    try {
++                        classes.add(Class.forName(packageName + '.' + className));
++                    } catch (ClassNotFoundException e) {
++                        throw new RuntimeException(e);
++                    }
++                }
++            }
++        }
++    }
++}
