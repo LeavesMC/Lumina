@@ -5,13 +5,13 @@ Subject: [PATCH] Kaiiju linear region format and settings
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 0f5e1de926d0317e5467dac1ff68399224b160d4..79454f44cff7ab4967719bcb4deac11b72a9f6f4 100644
+index da97cba3fba11e15d08edd72ee2d5485488939db..262afe79d760ff80dc56e977e5462df4dcdb7d3b 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -20,6 +20,10 @@ dependencies {
      }
      // Folia end
-     implementation("com.electronwill.night-config:toml:3.6.6") //Luminol - Night config
+     implementation("com.electronwill.night-config:toml:3.6.6") // Luminol - Night config
 +    // Kaiiju start - Linear format
 +    implementation("com.github.luben:zstd-jni:1.5.4-1")
 +    implementation("org.lz4:lz4-java:1.8.0")

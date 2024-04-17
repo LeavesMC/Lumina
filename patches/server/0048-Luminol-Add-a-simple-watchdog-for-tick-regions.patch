@@ -5,19 +5,19 @@ Subject: [PATCH] Luminol Add a simple watchdog for tick regions
 
 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
-index fc3d332aa1c1d469cedfe2aaa7102dcd78e25642..1ae61bc6603dd3ac290e3ead20416f9c5b63ff02 100644
+index fc3d332aa1c1d469cedfe2aaa7102dcd78e25642..d22d3a7e9c5bb9913e28c73c5de9a6320281710e 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 @@ -279,6 +279,7 @@ public final class RegionizedServer {
       */
  
      private void globalTick(final int tickCount) {
-+        me.earthme.luminol.utils.LuminolWatchDog.globalRegionHeartBeat(); //Luminol
++        me.earthme.luminol.utils.LuminolWatchDog.globalRegionHeartBeat(); // Luminol
          /*
          if (false) {
              io.papermc.paper.threadedregions.ThreadedTicketLevelPropagator.main(null);
 diff --git a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
-index 531aa50f2c84e13358e8918bb0c15ea3cd036cb5..fd0053369eb68f0fd596d8acfba4a5247ef8105a 100644
+index 531aa50f2c84e13358e8918bb0c15ea3cd036cb5..c24e431895d60382efc1cabfdc3486d536ee2bee 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
 @@ -167,6 +167,8 @@ public final class ThreadedRegionizer<R extends ThreadedRegionizer.ThreadedRegio
@@ -25,19 +25,19 @@ index 531aa50f2c84e13358e8918bb0c15ea3cd036cb5..fd0053369eb68f0fd596d8acfba4a524
              throw new IllegalStateException("Expected to remove " + region + ", but removed " + removed);
          }
 +
-+        me.earthme.luminol.utils.LuminolWatchDog.onRegionDeath(region); //Luminol - Simple watchdog
++        me.earthme.luminol.utils.LuminolWatchDog.onRegionDeath(region); // Luminol - Simple watchdog
      }
  
      public int getSectionCoordinate(final int chunkCoordinate) {
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
-index 2ad25dd345ab42125d456f2b9cf67d8c4515c8b7..78c50292fb25e8703e9c91db892f05456f07d72f 100644
+index 2ad25dd345ab42125d456f2b9cf67d8c4515c8b7..92c9488f3b0828a0da5502aa5f90d98a6a63eb0c 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 @@ -402,6 +402,7 @@ public final class TickRegions implements ThreadedRegionizer.RegionCallbacks<Tic
  
          @Override
          protected void tickRegion(final int tickCount, final long startTime, final long scheduledEnd) {
-+            me.earthme.luminol.utils.LuminolWatchDog.tickRegionHeartBeat(); //Luminol - Simple watchdog
++            me.earthme.luminol.utils.LuminolWatchDog.tickRegionHeartBeat(); // Luminol - Simple watchdog
              final ca.spottedleaf.leafprofiler.RegionizedProfiler.Handle profiler = io.papermc.paper.threadedregions.TickRegionScheduler.getProfiler(); // Folia - profiler
              profiler.startTick(); try { // Folia - profiler
              MinecraftServer.getServer().tickServer(startTime, scheduledEnd, TimeUnit.MILLISECONDS.toMillis(10L), this.region);
@@ -210,14 +210,14 @@ index 0000000000000000000000000000000000000000..1c2ee05a6cac8ae77e74494dcbaf1a7d
 +}
 \ No newline at end of file
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index ba0f5e23192322a9ea6bfbf20286603559971153..01871891e9a148f0c63bc81a64ec41f7c1330138 100644
+index c0e5c1be928d0c07a264c6ab4c7660bc96b59d93..852823e01d1c7b18dc07020b085649f961f74e95 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1222,6 +1222,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.statusIcon = (ServerStatus.Favicon) this.loadStatusIcon().orElse(null); // CraftBukkit - decompile error
              this.status = this.buildServerStatus();
  
-+            me.earthme.luminol.utils.LuminolWatchDog.boot(); //Luminol - Simple watchdog
++            me.earthme.luminol.utils.LuminolWatchDog.boot(); // Luminol - Simple watchdog
 +
              // Folia start - region threading
              if (true) {

@@ -5,7 +5,7 @@ Subject: [PATCH] Luminol vanilla random config
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7ab7ad69bdf9e43bba42d445bae8a2c4ec6e1cd0..2633fb8b27ecfe72c7145d53f240c1d0da54838d 100644
+index fac40e36dedb38618a5f0433905d2243fc84b30c..29e8efea2e838ebda08e06631dcda50f31d00365 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -573,7 +573,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
@@ -13,7 +13,7 @@ index 7ab7ad69bdf9e43bba42d445bae8a2c4ec6e1cd0..2633fb8b27ecfe72c7145d53f240c1d0
          this.stuckSpeedMultiplier = Vec3.ZERO;
          this.nextStep = 1.0F;
 -        this.random = SHARED_RANDOM; // Paper - Share random for entities to make them more random
-+        this.random = org.leavesmc.lumina.config.modules.fixes.VanillaRandomSourceConfig.useLegacyRandomSourceForPlayers ? RandomSource.create() : SHARED_RANDOM;//Luminol - Add config for vanilla random SHARED_RANDOM // Paper - Share random for entities to make them more random
++        this.random = org.leavesmc.lumina.config.modules.fixes.VanillaRandomSourceConfig.useLegacyRandomSourceForPlayers ? RandomSource.create() : SHARED_RANDOM;// Luminol - Add config for vanilla random SHARED_RANDOM // Paper - Share random for entities to make them more random
          this.remainingFireTicks = -this.getFireImmuneTicks();
          this.fluidHeight = new Object2DoubleArrayMap(2);
          this.fluidOnEyes = new HashSet();

@@ -5,7 +5,7 @@ Subject: [PATCH] Leaves Protocol core
 
 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
-index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..168ed2c21aed6a10f3aca259880b1b8bdbf98b78 100644
+index d22d3a7e9c5bb9913e28c73c5de9a6320281710e..525211335de3c2bfdfd613bb96f88ecf377865ce 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 @@ -314,6 +314,8 @@ public final class RegionizedServer {
@@ -120,7 +120,7 @@ index 0000000000000000000000000000000000000000..64a1d25973b032e8cab64bbffa6824a1
 +}
 diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8b7813c442733f5d4d3b2a072902099cbe596b37
+index 0000000000000000000000000000000000000000..c11fc3affea62c1103096b65c4b0f6105fcf811e
 --- /dev/null
 +++ b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 @@ -0,0 +1,344 @@
@@ -167,10 +167,10 @@ index 0000000000000000000000000000000000000000..8b7813c442733f5d4d3b2a072902099c
 +    private static final Map<LeavesProtocol, Map<ProtocolHandler.MinecraftRegister, Method>> MINECRAFT_REGISTER = new HashMap<>();
 +
 +    public static void init() {
-+        //Luminol start - For the protocol supports of luminol
++        // Luminol start - For the protocol supports of luminol
 +        final Set<Class<?>> allClazz = getClasses("org.leavesmc.leaves.protocol");
 +        allClazz.addAll(getClasses("me.earthme.luminol.protocols"));
-+        //Luminol end
++        // Luminol end
 +        for (Class<?> clazz : allClazz) {
 +            final LeavesProtocol protocol = clazz.getAnnotation(LeavesProtocol.class);
 +            if (protocol != null) {

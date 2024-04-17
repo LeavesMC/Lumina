@@ -5,7 +5,7 @@ Subject: [PATCH] Luminol void trading config
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 9d5d16e8acc559d244e46075106b753633530d89..650300a9cfd25c2b88d27b9a749849b82d8ad345 100644
+index 9d5d16e8acc559d244e46075106b753633530d89..3e38deb46b67a2c17be2794b7189d20287e25058 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -3046,7 +3046,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -13,7 +13,7 @@ index 9d5d16e8acc559d244e46075106b753633530d89..650300a9cfd25c2b88d27b9a749849b8
              if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
                  // Paper start - Fix merchant inventory not closing on entity removal
 -                if (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) {
-+                if (!org.leavesmc.lumina.config.modules.fixes.VoidTradingFixConfig.enabled && (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null)) { //Luminol - Add config for void trading
++                if (!org.leavesmc.lumina.config.modules.fixes.VoidTradingFixConfig.enabled && (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null)) { // Luminol - Add config for void trading
                      merchant.getTrader().closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED);
                  }
                  // Paper end - Fix merchant inventory not closing on entity removal
