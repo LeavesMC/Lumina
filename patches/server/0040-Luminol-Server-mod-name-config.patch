@@ -5,7 +5,7 @@ Subject: [PATCH] Luminol Server mod name config
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java b/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
-index 6ed2114f577ce12d2d493985e798609c7d83f15e..11b12bc139ee95c06f95b6f1700bb6dae252a307 100644
+index 6ed2114f577ce12d2d493985e798609c7d83f15e..ef031596b00cf72b0ee12f403d38751d15c9ebb1 100644
 --- a/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
 +++ b/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
 @@ -14,7 +14,7 @@ class PaperServerListPingEventImpl extends PaperServerListPingEvent {
@@ -13,12 +13,12 @@ index 6ed2114f577ce12d2d493985e798609c7d83f15e..11b12bc139ee95c06f95b6f1700bb6da
      PaperServerListPingEventImpl(MinecraftServer server, StatusClient client, int protocolVersion, @Nullable CachedServerIcon icon) {
          super(client, server.motd(), server.getPlayerCount(), server.getMaxPlayers(),
 -                server.getServerModName() + ' ' + server.getServerVersion(), protocolVersion, icon);
-+                org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.fakeVanilla ? server.getServerVersion() : server.getServerModName() + ' ' + server.getServerVersion(), protocolVersion, icon);//Luminol - Fake vanilla mode
++                org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.fakeVanilla ? server.getServerVersion() : server.getServerModName() + ' ' + server.getServerVersion(), protocolVersion, icon);// Luminol - Fake vanilla mode
          this.server = server;
      }
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index ac07133a8b59aec53e547ab3d554ebc99d80480f..ba0f5e23192322a9ea6bfbf20286603559971153 100644
+index ac07133a8b59aec53e547ab3d554ebc99d80480f..c0e5c1be928d0c07a264c6ab4c7660bc96b59d93 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1963,7 +1963,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -26,7 +26,7 @@ index ac07133a8b59aec53e547ab3d554ebc99d80480f..ba0f5e23192322a9ea6bfbf202866035
      @DontObfuscate
      public String getServerModName() {
 -        return "Lumina"; // Paper // Folia - Folia // Lumina - Lumina
-+        return org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.fakeVanilla ? "vanilla" : org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.serverModName; // Paper // Folia - Folia //Luminol - Luminol //Luminol - Add config for this
++        return org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.fakeVanilla ? "vanilla" : org.leavesmc.lumina.config.modules.misc.ServerModNameConfig.serverModName; // Paper // Folia - Folia // Luminol - Luminol //Luminol - Add config for this
      }
  
      public SystemReport fillSystemReport(SystemReport details) {

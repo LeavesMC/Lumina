@@ -5,7 +5,7 @@ Subject: [PATCH] Luminol Chat sign config
 
 
 diff --git a/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java b/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
-index 72a8aa676836fcb3b4578689d16af65e18f55bbe..8c4591c626be8a18de1ccbfd6131918e38111025 100644
+index 72a8aa676836fcb3b4578689d16af65e18f55bbe..b2b4154b765934a3ea6ba1e388f364989ad8cb4b 100644
 --- a/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
 +++ b/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
 @@ -14,9 +14,17 @@ public record ArgumentSignatures(List<ArgumentSignatures.Entry> entries) {
@@ -13,22 +13,22 @@ index 72a8aa676836fcb3b4578689d16af65e18f55bbe..8c4591c626be8a18de1ccbfd6131918e
  
      public ArgumentSignatures(FriendlyByteBuf buf) {
 -        this(buf.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), ArgumentSignatures.Entry::new));
-+        this(readSign(buf)); //Luminol - Fix java compile
++        this(readSign(buf)); // Luminol - Fix java compile
      }
  
-+    //Luminol start - Add config for chat sign
++    // Luminol start - Add config for chat sign
 +    private static List<ArgumentSignatures.Entry> readSign(FriendlyByteBuf buf) {
 +        var entries = buf.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), Entry::new);
 +        return org.leavesmc.lumina.config.modules.misc.ChatSignConfig.enabled ? List.of() : entries;
 +    }
-+    //Luminol end
++    // Luminol end
 +
 +
      @Nullable
      public MessageSignature get(String argumentName) {
          for(ArgumentSignatures.Entry entry : this.entries) {
 diff --git a/src/main/java/net/minecraft/network/FriendlyByteBuf.java b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
-index b863249ff7e13cf4939c8961601f0564c62fd661..995c11af702dbdbe93bb825afadbdaadf2b65fcf 100644
+index b863249ff7e13cf4939c8961601f0564c62fd661..9f322c04552dcc2249e2544f9bdb8dad19b060f7 100644
 --- a/src/main/java/net/minecraft/network/FriendlyByteBuf.java
 +++ b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
 @@ -143,6 +143,16 @@ public class FriendlyByteBuf extends ByteBuf {
@@ -43,7 +43,7 @@ index b863249ff7e13cf4939c8961601f0564c62fd661..995c11af702dbdbe93bb825afadbdaad
 +            this.writeUtf(GSON.toJson(element));
 +            return;
 +        }
-+        //Luminol end
++        // Luminol end
 +
          this.writeUtf(FriendlyByteBuf.GSON.toJson((JsonElement) Util.getOrThrow(dataresult, (s) -> {
              return new EncoderException("Failed to encode: " + s + " " + value);
