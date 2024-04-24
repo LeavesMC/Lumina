@@ -1,0 +1,280 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lumine1909 <133463833+Lumine1909@users.noreply.github.com>
+Date: Wed, 24 Apr 2024 01:36:24 +0800
+Subject: [PATCH] Scoreboard support
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 262afe79d760ff80dc56e977e5462df4dcdb7d3b..702525ba88a65bf01a35bba7c89ee2aa5f4a542a 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -35,7 +35,8 @@ dependencies {
+           all its classes to check if they are plugins.
+           Scanning takes about 1-2 seconds so adding this speeds up the server start.
+      */
+-    implementation("org.apache.logging.log4j:log4j-core:2.19.0") // Paper - implementation
++    implementation("org.apache.logging.log4j:log4j-core:2.19.0")
++    implementation(project(mapOf("path" to ":lumina-api"))) // Paper - implementation
+     log4jPlugins.annotationProcessorConfigurationName("org.apache.logging.log4j:log4j-core:2.19.0") // Paper - Needed to generate meta for our Log4j plugins
+     runtimeOnly(log4jPlugins.output)
+     alsoShade(log4jPlugins.output)
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+index 525211335de3c2bfdfd613bb96f88ecf377865ce..cf6a0597a51e47d8d8ab65f6891abc2d37d61e4a 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+@@ -14,11 +14,14 @@ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.MutableComponent;
+ import net.minecraft.network.protocol.common.ClientboundDisconnectPacket;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.ServerScoreboard;
+ import net.minecraft.server.dedicated.DedicatedServer;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import net.minecraft.world.level.GameRules;
++import net.minecraft.world.level.storage.DimensionDataStorage;
+ import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager;
+ import org.slf4j.Logger;
+ import java.util.ArrayList;
+ import java.util.Collections;
+@@ -35,6 +38,8 @@ public final class RegionizedServer {
+     public final RegionizedTaskQueue taskQueue = new RegionizedTaskQueue();
+ 
+     private final CopyOnWriteArrayList<ServerLevel> worlds = new CopyOnWriteArrayList<>();
++    private final ServerScoreboard scoreboard = new ServerScoreboard(MinecraftServer.getServer());
++    public CraftScoreboardManager scoreboardManager;
+     private final CopyOnWriteArrayList<Connection> connections = new CopyOnWriteArrayList<>();
+ 
+     private final MultiThreadedQueue<Runnable> globalTickQueue = new MultiThreadedQueue<>();
+@@ -67,6 +72,13 @@ public final class RegionizedServer {
+         TickRegions.getScheduler().init();
+     }
+ 
++    public ServerScoreboard getScoreboard() {
++        return scoreboard;
++    }
++    public void readScoreboard(DimensionDataStorage persistentStateManager) {
++        persistentStateManager.computeIfAbsent(this.getScoreboard().dataFactory(), "scoreboard");
++    }
++
+     public void invalidateStatus() {
+         this.lastServerStatus = 0L;
+     }
+diff --git a/src/main/java/net/minecraft/commands/Commands.java b/src/main/java/net/minecraft/commands/Commands.java
+index 4f25b35a037e6c697e5e345f38b94a8e4b436ad7..8b51d090348589735f10dd59a930e093ea5b6e68 100644
+--- a/src/main/java/net/minecraft/commands/Commands.java
++++ b/src/main/java/net/minecraft/commands/Commands.java
+@@ -197,7 +197,7 @@ public class Commands {
+         //RideCommand.register(this.dispatcher); // Folia - region threading - TODO later
+         SayCommand.register(this.dispatcher);
+         //ScheduleCommand.register(this.dispatcher); // Folia - region threading
+-        //ScoreboardCommand.register(this.dispatcher); // Folia - region threading - TODO later
++        ScoreboardCommand.register(this.dispatcher); // Folia
+         SeedCommand.register(this.dispatcher, environment != Commands.CommandSelection.INTEGRATED);
+         SetBlockCommand.register(this.dispatcher, commandRegistryAccess);
+         SetSpawnCommand.register(this.dispatcher);
+diff --git a/src/main/java/net/minecraft/server/Main.java b/src/main/java/net/minecraft/server/Main.java
+index 61840cfd64caba6595dfc99c91c76a195638d4ee..be6df9b90be2bc5849f6b8b696eae450aeb63f41 100644
+--- a/src/main/java/net/minecraft/server/Main.java
++++ b/src/main/java/net/minecraft/server/Main.java
+@@ -65,7 +65,6 @@ import com.google.common.base.Charsets;
+ import java.io.InputStreamReader;
+ import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.SharedConstants;
+-import org.bukkit.configuration.file.YamlConfiguration;
+ // CraftBukkit end
+ 
+ public class Main {
+@@ -146,15 +145,15 @@ public class Main {
+             if (optionset.has("initSettings")) { // CraftBukkit
+                 // CraftBukkit start - SPIGOT-5761: Create bukkit.yml and commands.yml if not present
+                 File configFile = (File) optionset.valueOf("bukkit-settings");
+-                YamlConfiguration configuration = YamlConfiguration.loadConfiguration(configFile);
++                org.bukkit.configuration.file.YamlConfiguration configuration = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
+                 configuration.options().copyDefaults(true);
+-                configuration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/bukkit.yml"), Charsets.UTF_8)));
++                configuration.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/bukkit.yml"), Charsets.UTF_8)));
+                 configuration.save(configFile);
+ 
+                 File commandFile = (File) optionset.valueOf("commands-settings");
+-                YamlConfiguration commandsConfiguration = YamlConfiguration.loadConfiguration(commandFile);
++                org.bukkit.configuration.file.YamlConfiguration commandsConfiguration = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(commandFile);
+                 commandsConfiguration.options().copyDefaults(true);
+-                commandsConfiguration.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/commands.yml"), Charsets.UTF_8)));
++                commandsConfiguration.setDefaults(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new InputStreamReader(Main.class.getClassLoader().getResourceAsStream("configurations/commands.yml"), Charsets.UTF_8)));
+                 commandsConfiguration.save(commandFile);
+                 // CraftBukkit end
+                 Main.LOGGER.info("Initialized '{}' and '{}'", path1.toAbsolutePath(), path2.toAbsolutePath());
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 852823e01d1c7b18dc07020b085649f961f74e95..dc9657e8385000dc31ed6509af761dff7abfb771 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.threadedregions.RegionizedServer;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.awt.image.BufferedImage;
+@@ -270,7 +271,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     private long delayedTasksMaxNextTickTimeNanos;
+     private boolean mayHaveDelayedTasks;
+     private final PackRepository packRepository;
+-    private final ServerScoreboard scoreboard;
+     @Nullable
+     private CommandStorage commandStorage;
+     private final CustomBossEvents customBossEvents;
+@@ -313,7 +313,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
+ 
+     // Folia start - regionised ticking
+-    public final io.papermc.paper.threadedregions.RegionizedServer regionizedServer = new io.papermc.paper.threadedregions.RegionizedServer();
++    public final io.papermc.paper.threadedregions.RegionizedServer regionizedServer;
+ 
+     @Override
+     public void execute(Runnable runnable) {
+@@ -364,6 +364,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public MinecraftServer(OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, Proxy proxy, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
+         super("Server");
+         SERVER = this; // Paper - better singleton
++        regionizedServer = new io.papermc.paper.threadedregions.RegionizedServer();
+         this.metricsRecorder = InactiveMetricsRecorder.INSTANCE;
+         this.profiler = this.metricsRecorder.getProfiler();
+         this.onMetricsRecordingStopped = (methodprofilerresults) -> {
+@@ -379,7 +380,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         this.tickTimesNanos = new long[100];
+         this.aggregatedTickTimesNanos = 0L;
+         this.nextTickTimeNanos = Util.getNanos();
+-        this.scoreboard = new ServerScoreboard(this);
+         this.customBossEvents = new CustomBossEvents();
+         this.registries = worldstem.registries();
+         this.worldData = worldstem.worldData();
+@@ -441,9 +441,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
+     }
+ 
+-    private void readScoreboard(DimensionDataStorage persistentStateManager) {
+-        persistentStateManager.computeIfAbsent(this.getScoreboard().dataFactory(), "scoreboard");
+-    }
++
+ 
+     protected abstract boolean initServer() throws IOException;
+ 
+@@ -647,9 +645,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+                 world = new ServerLevel(this, this.executor, worldSession, iworlddataserver, worldKey, worlddimension, worldloadlistener, flag, j, list, true, (RandomSequences) null, org.bukkit.World.Environment.getEnvironment(dimension), gen, biomeProvider);
+                 DimensionDataStorage worldpersistentdata = world.getDataStorage();
+-                this.readScoreboard(worldpersistentdata);
+-                this.server.scoreboardManager = new org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager(this, world.getScoreboard());
++                RegionizedServer.getInstance().readScoreboard(worldpersistentdata);
++                RegionizedServer.getInstance().scoreboardManager = new org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager(this, world.getScoreboard());
+                 this.commandStorage = new CommandStorage(worldpersistentdata);
++                server.scoreboardManager = RegionizedServer.getInstance().scoreboardManager;
+             } else {
+                 ChunkProgressListener worldloadlistener = this.progressListenerFactory.create(11);
+                 // Paper start - option to use the dimension_type to check if spawners should be added. I imagine mojang will add some datapack-y way of managing this in the future.
+@@ -697,7 +696,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         }
+ 
+         // Paper start - Configurable player collision; Handle collideRule team for player collision toggle
+-        final ServerScoreboard scoreboard = this.getScoreboard();
++        final ServerScoreboard scoreboard = RegionizedServer.getInstance().getScoreboard();
+         final java.util.Collection<String> toRemove = scoreboard.getPlayerTeams().stream().filter(team -> team.getName().startsWith("collideRule_")).map(net.minecraft.world.scores.PlayerTeam::getName).collect(java.util.stream.Collectors.toList());
+         for (String teamName : toRemove) {
+             scoreboard.removePlayerTeam(scoreboard.getPlayerTeam(teamName)); // Clean up after ourselves
+@@ -2504,7 +2503,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     }
+ 
+     public ServerScoreboard getScoreboard() {
+-        return this.scoreboard;
++        return RegionizedServer.getInstance().getScoreboard();
+     }
+ 
+     public CommandStorage getCommandStorage() {
+diff --git a/src/main/java/net/minecraft/server/ServerScoreboard.java b/src/main/java/net/minecraft/server/ServerScoreboard.java
+index 76d67d01388ecc1af6b43212e018edc678e84d72..73c2a6679d1c7f3ac037f6695cdbe467a4636e73 100644
+--- a/src/main/java/net/minecraft/server/ServerScoreboard.java
++++ b/src/main/java/net/minecraft/server/ServerScoreboard.java
+@@ -2,10 +2,8 @@ package net.minecraft.server;
+ 
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Sets;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Objects;
+-import java.util.Set;
++
++import java.util.*;
+ import javax.annotation.Nullable;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.protocol.Packet;
+@@ -29,8 +27,8 @@ import net.minecraft.world.scores.ScoreboardSaveData;
+ public class ServerScoreboard extends Scoreboard {
+ 
+     private final MinecraftServer server;
+-    private final Set<Objective> trackedObjectives = Sets.newHashSet();
+-    private final List<Runnable> dirtyListeners = Lists.newArrayList();
++    private final Set<Objective> trackedObjectives = Collections.synchronizedSet(Sets.newHashSet());
++    private final List<Runnable> dirtyListeners = Collections.synchronizedList(Lists.newArrayList());
+ 
+     public ServerScoreboard(MinecraftServer server) {
+         this.server = server;
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index 0f172512085e9dfc0850451d2c6bbffb18221f8f..c66cd938fb5783cefee56fb90a858d9fdb6c2349 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -396,7 +396,7 @@ public abstract class PlayerList {
+         this.sendPlayerPermissionLevel(player);
+         player.getStats().markAllDirty();
+         player.getRecipeBook().sendInitialRecipeBook(player);
+-        if (false) this.updateEntireScoreboard(worldserver1.getScoreboard(), player); // Folia - region threading
++        this.updateEntireScoreboard(worldserver1.getScoreboard(), player); // Folia - region threading
+         this.server.invalidateStatus();
+         MutableComponent ichatmutablecomponent;
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java b/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java
+index ce8b91f00f925960ad17f381162a11294e8b511d..6bb9b599e86cbf3c57d84e0c86c3aab642b0e2dd 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java
++++ b/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java
+@@ -4,6 +4,7 @@ import com.google.common.base.Function;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableSet;
+ import com.google.common.collect.Iterables;
++import io.papermc.paper.threadedregions.RegionizedServer;
+ import net.minecraft.world.scores.PlayerTeam;
+ import net.minecraft.world.scores.ScoreHolder;
+ import net.minecraft.world.scores.Scoreboard;
+@@ -45,7 +46,6 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
+     }
+     @Override
+     public CraftObjective registerNewObjective(String name, Criteria criteria, net.kyori.adventure.text.Component displayName, RenderType renderType) throws IllegalArgumentException {
+-        if (true) throw new UnsupportedOperationException(); // Folia - not supported yet
+         if (displayName == null) {
+             displayName = net.kyori.adventure.text.Component.empty();
+         }
+@@ -56,7 +56,7 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
+         Preconditions.checkArgument(this.board.getObjective(name) == null, "An objective of name '%s' already exists", name);
+         // Paper start - lazily track plugin scoreboards
+         if (((CraftCriteria) criteria).criteria != net.minecraft.world.scores.criteria.ObjectiveCriteria.DUMMY && !this.registeredGlobally) {
+-            net.minecraft.server.MinecraftServer.getServer().server.getScoreboardManager().registerScoreboardForVanilla(this);
++            RegionizedServer.getInstance().scoreboardManager.registerScoreboardForVanilla(this);
+             this.registeredGlobally = true;
+         }
+         // Paper end - lazily track plugin scoreboards
+@@ -205,7 +205,6 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
+ 
+     @Override
+     public Team registerNewTeam(String name) {
+-        if (true) throw new UnsupportedOperationException(); // Folia - not supported yet
+         Preconditions.checkArgument(name != null, "Team name cannot be null");
+         Preconditions.checkArgument(name.length() <= Short.MAX_VALUE, "Team name '%s' is longer than the limit of 32767 characters (%s)", name, name.length());
+         Preconditions.checkArgument(this.board.getPlayerTeam(name) == null, "Team name '%s' is already in use", name);
+@@ -233,7 +232,6 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
+ 
+     @Override
+     public void clearSlot(DisplaySlot slot) {
+-        if (true) throw new UnsupportedOperationException(); // Folia - not supported yet
+         Preconditions.checkArgument(slot != null, "Slot cannot be null");
+         this.board.setDisplayObjective(CraftScoreboardTranslations.fromBukkitSlot(slot), null);
+     }
