@@ -233,6 +233,108 @@ index 0f172512085e9dfc0850451d2c6bbffb18221f8f..c66cd938fb5783cefee56fb90a858d9f
          this.server.invalidateStatus();
          MutableComponent ichatmutablecomponent;
  
+diff --git a/src/main/java/net/minecraft/world/scores/Objective.java b/src/main/java/net/minecraft/world/scores/Objective.java
+index ac5373810c662762072b9baed0be286e9c5a78dc..f0632b5b68e30c23ac64d479898679aceda86f8a 100644
+--- a/src/main/java/net/minecraft/world/scores/Objective.java
++++ b/src/main/java/net/minecraft/world/scores/Objective.java
+@@ -70,8 +70,10 @@ public class Objective {
+     }
+ 
+     public void setDisplayName(Component name) {
+-        this.displayName = name;
+-        this.formattedDisplayName = this.createFormattedDisplayName();
++        synchronized (this) {
++            this.displayName = name;
++            this.formattedDisplayName = this.createFormattedDisplayName();
++        }
+         this.scoreboard.onObjectiveChanged(this);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/scores/PlayerScores.java b/src/main/java/net/minecraft/world/scores/PlayerScores.java
+index 71e8eef4b9b79e0433794eae6d0b45e1454fd533..f8d0a18e3678a460d1972854add0b12356439dbb 100644
+--- a/src/main/java/net/minecraft/world/scores/PlayerScores.java
++++ b/src/main/java/net/minecraft/world/scores/PlayerScores.java
+@@ -2,6 +2,7 @@ package net.minecraft.world.scores;
+ 
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+ import java.util.Collections;
+ import java.util.Map;
+@@ -9,7 +10,7 @@ import java.util.function.Consumer;
+ import javax.annotation.Nullable;
+ 
+ class PlayerScores {
+-    private final Reference2ObjectOpenHashMap<Objective, Score> scores = new Reference2ObjectOpenHashMap<>(16, 0.5F);
++    private final Reference2ObjectOpenHashMap<Objective, Score> scores = (Reference2ObjectOpenHashMap<Objective, Score>) Reference2ObjectMaps.synchronize(new Reference2ObjectOpenHashMap<Objective, Score>(16, 0.5F));
+ 
+     @Nullable
+     public Score get(Objective objective) {
+diff --git a/src/main/java/net/minecraft/world/scores/Scoreboard.java b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+index 8e310b674134fd9f9d73e3b8a9072ed7948ce18f..3277ce61f69ce87ee14f84dd85e15b6b4dc1ee58 100644
+--- a/src/main/java/net/minecraft/world/scores/Scoreboard.java
++++ b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+@@ -2,12 +2,8 @@ package net.minecraft.world.scores;
+ 
+ import com.google.common.collect.Lists;
+ import com.mojang.logging.LogUtils;
+-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+-import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+-import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.objects.*;
++
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.Collections;
+@@ -30,12 +26,12 @@ import org.slf4j.Logger;
+ public class Scoreboard {
+     public static final String HIDDEN_SCORE_PREFIX = "#";
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private final Object2ObjectMap<String, Objective> objectivesByName = new Object2ObjectOpenHashMap<>(16, 0.5F);
+-    private final Reference2ObjectMap<ObjectiveCriteria, List<Objective>> objectivesByCriteria = new Reference2ObjectOpenHashMap<>();
+-    private final Map<String, PlayerScores> playerScores = new Object2ObjectOpenHashMap<>(16, 0.5F);
+-    private final Map<DisplaySlot, Objective> displayObjectives = new EnumMap<>(DisplaySlot.class);
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByName = new Object2ObjectOpenHashMap<>();
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByPlayer = new Object2ObjectOpenHashMap<>();
++    private final Object2ObjectMap<String, Objective> objectivesByName = Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>(16, 0.5F));
++    private final Reference2ObjectMap<ObjectiveCriteria, List<Objective>> objectivesByCriteria = Reference2ObjectMaps.synchronize(new Reference2ObjectOpenHashMap<>());
++    private final Map<String, PlayerScores> playerScores = Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>(16, 0.5F));
++    private final Map<DisplaySlot, Objective> displayObjectives = Collections.synchronizedMap(new EnumMap<>(DisplaySlot.class));
++    private final Object2ObjectMap<String, PlayerTeam> teamsByName = Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>());
++    private final Object2ObjectMap<String, PlayerTeam> teamsByPlayer = Object2ObjectMaps.synchronize(new Object2ObjectOpenHashMap<>());
+ 
+     @Nullable
+     public Objective getObjective(@Nullable String name) {
+@@ -81,12 +77,12 @@ public class Scoreboard {
+         });
+         return new ScoreAccess() {
+             @Override
+-            public int get() {
++            public synchronized int get() {
+                 return score.value();
+             }
+ 
+             @Override
+-            public void set(int scorex) {
++            public synchronized void set(int scorex) {
+                 if (!bl) {
+                     throw new IllegalStateException("Cannot modify read-only score");
+                 } else {
+@@ -99,8 +95,8 @@ public class Scoreboard {
+                         }
+                     }
+ 
+-                    if (score != score.value()) {
+-                        score.value(score);
++                    if (scorex != score.value()) {
++                        score.value(scorex);
+                         bl = true;
+                     }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java b/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java
 index ce8b91f00f925960ad17f381162a11294e8b511d..6bb9b599e86cbf3c57d84e0c86c3aab642b0e2dd 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scoreboard/CraftScoreboard.java
