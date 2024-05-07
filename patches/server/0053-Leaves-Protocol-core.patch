@@ -13,7 +13,7 @@ index d22d3a7e9c5bb9913e28c73c5de9a6320281710e..525211335de3c2bfdfd613bb96f88ecf
          // player list
          MinecraftServer.getServer().getPlayerList().tick();
 +
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); //Leaves
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); //Leaves
      }
  
      private void tickPlayerSample() {
@@ -27,7 +27,7 @@ index af86f752c33a2990405fea058b7c41c437ba9d46..bada9fae1e7178162429e1f5a1608b9c
          FriendlyByteBuf.Reader<? extends CustomPacketPayload> packetdataserializer_a = (FriendlyByteBuf.Reader) ServerboundCustomPayloadPacket.KNOWN_TYPES.get(id);
 -
 +        // Leaves start - protocol
-+        CustomPacketPayload leavesPayload = top.leavesmc.leaves.protocol.core.LeavesProtocolManager.getPayload(id, buf);
++        CustomPacketPayload leavesPayload = org.leavesmc.leaves.protocol.core.LeavesProtocolManager.getPayload(id, buf);
 +        if (leavesPayload != null) {
 +            return leavesPayload;
 +        }
@@ -43,7 +43,7 @@ index d5c0735a4494a7c52bcb4911ecf456fc7961ef50..f17d12c036c7e8c4e547bc023450e280
  
      @Override
      public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePayload(player, packet.payload()); // Leaves - protocol
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePayload(player, packet.payload()); // Leaves - protocol
          // Paper start - Brand support
          if (packet.payload() instanceof net.minecraft.network.protocol.common.custom.BrandPayload brandPayload) {
              this.player.clientBrandName = brandPayload.brand();
@@ -51,7 +51,7 @@ index d5c0735a4494a7c52bcb4911ecf456fc7961ef50..f17d12c036c7e8c4e547bc023450e280
                  String channels = payload.toString(com.google.common.base.Charsets.UTF_8);
                  for (String channel : channels.split("\0")) {
                      this.getCraftPlayer().addChannel(channel);
-+                    top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleMinecraftRegister(channel, player); // Leaves - protocol
++                    org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleMinecraftRegister(channel, player); // Leaves - protocol
                  }
              } catch (Exception ex) {
                  ServerGamePacketListenerImpl.LOGGER.error("Couldn\'t register custom payload", ex);
@@ -63,7 +63,7 @@ index 90be312057221a5a78066d89783c5e22008d797d..0f172512085e9dfc0850451d2c6bbffb
              //return; // Folia - region threading - must still allow the player to connect, as we must add to chunk map before handling disconnect
          }
  
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerJoin(player); // Leaves - protocol
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerJoin(player); // Leaves - protocol
 +
          final net.kyori.adventure.text.Component jm = playerJoinEvent.joinMessage();
  
@@ -72,7 +72,7 @@ index 90be312057221a5a78066d89783c5e22008d797d..0f172512085e9dfc0850451d2c6bbffb
          return this.remove(entityplayer, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? entityplayer.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(entityplayer.getDisplayName())));
      }
      public net.kyori.adventure.text.Component remove(ServerPlayer entityplayer, net.kyori.adventure.text.Component leaveMessage) {
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerLeave(entityplayer); // Leaves - protocol
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerLeave(entityplayer); // Leaves - protocol
          // Paper end - Fix kick event leave message not being sent
          ServerLevel worldserver = entityplayer.serverLevel();
  
@@ -84,7 +84,7 @@ index 3a8cab3ae06e879cc0f2773b567f704f47eaf16d..087d9e3a45d5225b2d2bda558ce365d6
              MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
          }
          datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.init(); // Leaves - protocol
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.init(); // Leaves - protocol
      }
  
      public boolean getCommandBlockOverride(String command) {
@@ -92,17 +92,17 @@ index 3a8cab3ae06e879cc0f2773b567f704f47eaf16d..087d9e3a45d5225b2d2bda558ce365d6
          io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
          this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
-+        top.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleServerReload(); // Leaves - protocol
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleServerReload(); // Leaves - protocol
  
          int pollCount = 0;
  
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..64a1d25973b032e8cab64bbffa6824a131676773
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java
 @@ -0,0 +1,16 @@
-+package top.leavesmc.leaves.protocol.core;
++package org.leavesmc.leaves.protocol.core;
 +
 +import java.lang.annotation.ElementType;
 +import java.lang.annotation.Retention;
@@ -118,13 +118,13 @@ index 0000000000000000000000000000000000000000..64a1d25973b032e8cab64bbffa6824a1
 +    String[] namespaces() default {};
 +
 +}
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..c11fc3affea62c1103096b65c4b0f6105fcf811e
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 @@ -0,0 +1,344 @@
-+package top.leavesmc.leaves.protocol.core;
++package org.leavesmc.leaves.protocol.core;
 +
 +import net.minecraft.network.FriendlyByteBuf;
 +import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -468,13 +468,13 @@ index 0000000000000000000000000000000000000000..c11fc3affea62c1103096b65c4b0f610
 +        }
 +    }
 +}
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..d696f001d2576d1b61cc732c81f22eb52205072b
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java
 @@ -0,0 +1,65 @@
-+package top.leavesmc.leaves.protocol.core;
++package org.leavesmc.leaves.protocol.core;
 +
 +import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 +
@@ -539,13 +539,13 @@ index 0000000000000000000000000000000000000000..d696f001d2576d1b61cc732c81f22eb5
 +        boolean ignoreId() default false;
 +    }
 +}
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolUtils.java b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolUtils.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolUtils.java b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolUtils.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..5282c5ad3d26d06ab685ddaaf6fd9a4d49559717
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolUtils.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolUtils.java
 @@ -0,0 +1,36 @@
-+package top.leavesmc.leaves.protocol.core;
++package org.leavesmc.leaves.protocol.core;
 +
 +import net.minecraft.network.FriendlyByteBuf;
 +import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;

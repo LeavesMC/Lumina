@@ -4,13 +4,13 @@ Date: Thu, 8 Feb 2024 11:57:18 +0000
 Subject: [PATCH] Leaves Carpet protocol
 
 
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/top/leavesmc/leaves/protocol/CarpetServerProtocol.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..be240bf145a199cd2888a91676d42bd16e658dc9
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/CarpetServerProtocol.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
 @@ -0,0 +1,113 @@
-+package top.leavesmc.leaves.protocol;
++package org.leavesmc.leaves.protocol;
 +
 +import org.leavesmc.lumina.config.modules.gameplay.LeavesCarpetProtocolSupportConfig;
 +import net.minecraft.nbt.CompoundTag;
@@ -21,9 +21,9 @@ index 0000000000000000000000000000000000000000..be240bf145a199cd2888a91676d42bd1
 +import net.minecraft.server.level.ServerPlayer;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import top.leavesmc.leaves.protocol.core.LeavesProtocol;
-+import top.leavesmc.leaves.protocol.core.ProtocolHandler;
-+import top.leavesmc.leaves.protocol.core.ProtocolUtils;
++import org.leavesmc.leaves.protocol.core.LeavesProtocol;
++import org.leavesmc.leaves.protocol.core.ProtocolHandler;
++import org.leavesmc.leaves.protocol.core.ProtocolUtils;
 +
 +import java.util.HashMap;
 +import java.util.Locale;

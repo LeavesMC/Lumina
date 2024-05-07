@@ -4,13 +4,13 @@ Date: Wed, 7 Feb 2024 08:59:41 +0000
 Subject: [PATCH] Leaves Bladeren protocol
 
 
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java b/src/main/java/top/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..09acf4e5e8b31b10960e93ac6e80bae06fec6cf9
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/bladeren/BladerenProtocol.java
 @@ -0,0 +1,150 @@
-+package top.leavesmc.leaves.protocol.bladeren;
++package org.leavesmc.leaves.protocol.bladeren;
 +
 +import com.google.common.collect.Maps;
 +import net.minecraft.nbt.CompoundTag;
@@ -20,9 +20,9 @@ index 0000000000000000000000000000000000000000..09acf4e5e8b31b10960e93ac6e80bae0
 +import net.minecraft.server.level.ServerPlayer;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import top.leavesmc.leaves.protocol.core.LeavesProtocol;
-+import top.leavesmc.leaves.protocol.core.ProtocolHandler;
-+import top.leavesmc.leaves.protocol.core.ProtocolUtils;
++import org.leavesmc.leaves.protocol.core.LeavesProtocol;
++import org.leavesmc.leaves.protocol.core.ProtocolHandler;
++import org.leavesmc.leaves.protocol.core.ProtocolUtils;
 +
 +import java.util.HashMap;
 +import java.util.Map;
@@ -160,13 +160,13 @@ index 0000000000000000000000000000000000000000..09acf4e5e8b31b10960e93ac6e80bae0
 +        }
 +    }
 +}
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java b/src/main/java/top/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..f00dbcc6b99ff99fdf562b31c969ae268c98e8e7
 --- /dev/null
-+++ b/src/main/java/top/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/bladeren/MsptSyncProtocol.java
 @@ -0,0 +1,90 @@
-+package top.leavesmc.leaves.protocol.bladeren;
++package org.leavesmc.leaves.protocol.bladeren;
 +
 +import io.papermc.paper.threadedregions.ThreadedRegionizer;
 +import io.papermc.paper.threadedregions.TickData;
@@ -178,9 +178,9 @@ index 0000000000000000000000000000000000000000..f00dbcc6b99ff99fdf562b31c969ae26
 +import net.minecraft.server.level.ServerPlayer;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import top.leavesmc.leaves.protocol.core.LeavesProtocol;
-+import top.leavesmc.leaves.protocol.core.ProtocolHandler;
-+import top.leavesmc.leaves.protocol.core.ProtocolUtils;
++import org.leavesmc.leaves.protocol.core.LeavesProtocol;
++import org.leavesmc.leaves.protocol.core.ProtocolHandler;
++import org.leavesmc.leaves.protocol.core.ProtocolUtils;
 +
 +import java.util.List;
 +
@@ -256,10 +256,10 @@ index 0000000000000000000000000000000000000000..f00dbcc6b99ff99fdf562b31c969ae26
 +        }
 +    }
 +}
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java
 index 64a1d25973b032e8cab64bbffa6824a131676773..a2fb7ab4923ca7953e1d81e3da28d92a717a53f9 100644
---- a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocol.java
+--- a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocol.java
 @@ -9,8 +9,6 @@ import java.lang.annotation.Target;
  @Retention(RetentionPolicy.RUNTIME)
  public @interface LeavesProtocol {
@@ -270,10 +270,10 @@ index 64a1d25973b032e8cab64bbffa6824a131676773..a2fb7ab4923ca7953e1d81e3da28d92a
 +    String[] namespace();
  
  }
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 index 8b7813c442733f5d4d3b2a072902099cbe596b37..1f5b37daa5cbb709eeacf3dc7a4f9b4a0dc05274 100644
---- a/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
+--- a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 @@ -60,7 +60,7 @@ public class LeavesProtocolManager {
                      return;
                  }
@@ -326,10 +326,10 @@ index 8b7813c442733f5d4d3b2a072902099cbe596b37..1f5b37daa5cbb709eeacf3dc7a4f9b4a
                  continue;
              }
  
-diff --git a/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java
 index d696f001d2576d1b61cc732c81f22eb52205072b..92ad6e9b1c0d9640b80c1ebe739c613d989eec21 100644
---- a/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java
-+++ b/src/main/java/top/leavesmc/leaves/protocol/core/ProtocolHandler.java
+--- a/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java
++++ b/src/main/java/org/leavesmc/leaves/protocol/core/ProtocolHandler.java
 @@ -21,9 +21,7 @@ public class ProtocolHandler {
  
          Class<? extends CustomPacketPayload> payload();
