@@ -6,7 +6,7 @@ Lumina
 
 **English** | [中文](./README_cn.md)
 
-> Fork of [Folia](https://github.com/PaperMC/Paper) aims at repairing broken vanilla properties.
+> Fork of [Folia]](https://github.com/PaperMC/Folia) aims at repairing broken vanilla properties.
 
 This is currently an empty repository, and the priority of this project will not be too high.
 
