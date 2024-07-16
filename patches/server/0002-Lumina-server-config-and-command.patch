@@ -117,10 +117,10 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..36e0a4921bb57291aa45c44c145df0a4016fc733
+index 0000000000000000000000000000000000000000..21adc9f1099c5779f9fc521ebe7af3f89e4dffd8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,78 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -133,6 +133,8 @@ index 0000000000000000000000000000000000000000..36e0a4921bb57291aa45c44c145df0a4
 +import org.leavesmc.lumina.commands.LuminaConfigCommand;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.gson.GsonConfigurationLoader;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 +import org.spongepowered.configurate.loader.AbstractConfigurationLoader;
 +import org.spongepowered.configurate.yaml.NodeStyle;
@@ -148,24 +150,29 @@ index 0000000000000000000000000000000000000000..36e0a4921bb57291aa45c44c145df0a4
 +    public static ConfigModule configModule;
 +    public static boolean alreadyInit = false;
 +    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
-+    private static AbstractConfigurationLoader<CommentedConfigurationNode> loader;
++    private static AbstractConfigurationLoader<?> loader;
 +
 +    public static void setup() {
 +        if (alreadyInit) {
 +            return;
 +        }
 +        Path hoconConfigPath = Paths.get("lumina.conf");
++        Path yamlConfigPath = Paths.get("lumina.yml");
 +        if (Files.exists(hoconConfigPath)) {
 +            loader = HoconConfigurationLoader.builder()
 +                    .path(hoconConfigPath)
 +                    .build();
-+        } else {
++        } else if (Files.exists(yamlConfigPath)) {
 +            loader = YamlConfigurationLoader.builder()
 +                    .nodeStyle(NodeStyle.BLOCK)
-+                    .path(Paths.get("lumina.yml"))
++                    .path(yamlConfigPath)
++                    .build();
++        } else {
++            loader = GsonConfigurationLoader.builder()
++                    .path(Paths.get("lumina.json"))
 +                    .build();
 +        }
-+        CommentedConfigurationNode node;
++        ConfigurationNode node;
 +        try {
 +            node = loader.load();
 +            configModule = node.get(ConfigModule.class);
