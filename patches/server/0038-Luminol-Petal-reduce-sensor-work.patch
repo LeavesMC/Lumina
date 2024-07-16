@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 04:46:30 +0000
+Subject: [PATCH] Luminol Petal reduce sensor work
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
+index 7d5223d1b916eabe0b58e127e9923be1e7e06eb3..1b8f5a6bdf033a2dfe6598490fc2b406616918a1 100644
+--- a/src/main/java/net/minecraft/world/entity/Mob.java
++++ b/src/main/java/net/minecraft/world/entity/Mob.java
+@@ -929,10 +929,11 @@ public abstract class Mob extends LivingEntity implements Targeting {
+             return;
+         }
+         // Paper end - Allow nerfed mobs to jump and float
++        int i = this.tickCount + this.getId(); // Folia - region threading // Luminol - Petal - Move up
++
+         this.level().getProfiler().push("sensing");
+-        this.sensing.tick();
++        if (i % org.leavesmc.lumina.config.LuminaConfig.configModule.optimization.petalReduceSensorWork.delayTicks == 0 || !org.leavesmc.lumina.config.LuminaConfig.configModule.optimization.petalReduceSensorWork.enabled)this.sensing.tick(); // Luminol - Petal - Reduce sensor work
+         this.level().getProfiler().pop();
+-        int i = this.tickCount + this.getId(); // Folia - region threading
+ 
+         if (i % 2 != 0 && this.tickCount > 1) {
+             this.level().getProfiler().push("targetSelector");

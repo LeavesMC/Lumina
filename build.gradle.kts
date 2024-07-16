@@ -1,27 +1,21 @@
 plugins {
     java
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
-    id("io.papermc.paperweight.patcher") version "1.5.11"
+    id("org.leavesmc.leavesweight.patcher") version "1.0.0-SNAPSHOT"
 }
 
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
 
 repositories {
     mavenCentral()
-    maven(paperMavenPublicUrl) {
-        content { onlyForConfigurations(configurations.paperclip.name) }
-    }
-    maven {
-        name = "leavesmcRepositorySnapshots"
-        url = uri("https://repo.leavesmc.top/snapshots")
-    }
+    maven("https://repo.leavesmc.top/snapshots")
+    maven("https://repo.leavesmc.org/releases")
 }
 
 dependencies {
     remapper("net.fabricmc:tiny-remapper:0.8.6:fat")
     decompiler("org.quiltmc:quiltflower:1.9.0")
-    paperclip("top.leavesmc:leavesclip:1.0-SNAPSHOT")
+    leavesclip("org.leavesmc:leavesclip:2.0.1")
 }
 
 subprojects {
@@ -30,13 +24,13 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(21))
         }
     }
 
     tasks.withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
+        options.release.set(21)
     }
 
     tasks.withType<Javadoc> {
@@ -63,7 +57,6 @@ subprojects {
 
 tasks.generateDevelopmentBundle {
     apiCoordinates.set("org.leavesmc.lumina:lumina-api")
-    mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.set(
         listOf(
             "https://repo.maven.apache.org/maven2/",
@@ -105,7 +98,6 @@ paperweight {
 
 tasks.generateDevelopmentBundle {
     apiCoordinates.set("org.leavesmc.lumina:lumina-api")
-    mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.addAll(
         "https://repo.maven.apache.org/maven2/",
         paperMavenPublicUrl,
@@ -139,15 +131,5 @@ publishing {
                 artifactId = "dev-bundle"
             }
         }
-    }
-}
-
-val createReobfLeavesclipJar = tasks.register("createReobfLeavesclipJar") {
-    group = "paperweight"
-    dependsOn("createReobfPaperclipJar")
-    doLast {
-        file("build/libs/lumina-paperclip-${project.version}-reobf.jar").renameTo(
-            file("build/libs/lumina-leavesclip-${project.version}-reobf.jar")
-        )
     }
 }

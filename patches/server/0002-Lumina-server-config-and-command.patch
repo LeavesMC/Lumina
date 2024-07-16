@@ -1,0 +1,792 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7studio@foxmail.com>
+Date: Thu, 11 Apr 2024 22:58:15 +0800
+Subject: [PATCH] Lumina server config and command
+
+
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 6b3242117d62175de462d04e4d178b49ae2521e9..fc1b84d8352684026ab68d35258ed69941f3db69 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -209,6 +209,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
+         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         // Paper end - initialize global and world-defaults configuration
++        org.leavesmc.lumina.config.LuminaConfig.setup(); //Lumina - load config file
+         // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
+         if (this.convertOldUsers()) {
+             this.getProfileCache().save(false); // Paper
+diff --git a/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java b/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..517986db961e18ffa197e772806b35537144c4b2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/commands/LuminaConfigCommand.java
+@@ -0,0 +1,70 @@
++package org.leavesmc.lumina.commands;
++
++import org.leavesmc.lumina.config.LuminaConfig;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.TextColor;
++import org.bukkit.Location;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class LuminaConfigCommand extends Command {
++    public LuminaConfigCommand(){
++        super("luminaconfig");
++        this.setPermission("lumina.commands.luminaconfig");
++        this.setDescription("Manage config file");
++        this.setUsage("/luminaconfig");
++    }
++
++    @Override
++    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args, @Nullable Location location) throws IllegalArgumentException {
++        final List<String> result = new ArrayList<>();
++
++        if (args.length == 1){
++            result.add("reload");
++        }
++
++        return result;
++    }
++
++    @Override
++    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
++        if (!this.testPermission(sender)){
++            sender.sendMessage(Component
++                    .text("No permission to execute this command!")
++                    .color(TextColor.color(255,0,0))
++            );
++        }
++
++        if (args.length < 1){
++            sender.sendMessage(
++                    Component
++                            .text("Wrong use!\n")
++                            .color(TextColor.color(255,0,0))
++            );
++            return true;
++        }
++
++        switch (args[0]){
++            case "reload" -> {
++                LuminaConfig.reloadAsync().thenAccept(nullValue -> sender.sendMessage(
++                        Component
++                                .text("Reloaded config file!")
++                                .color(TextColor.color(0,255,0))
++                ));
++            }
++
++            default -> sender.sendMessage(
++                    Component
++                            .text("Unknown action!\n")
++                            .color(TextColor.color(255,0,0))
++            );
++        }
++
++        return true;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828bf5ff18e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
+@@ -0,0 +1,16 @@
++package org.leavesmc.lumina.config;
++
++import org.leavesmc.lumina.config.modules.Fix;
++import org.leavesmc.lumina.config.modules.Gameplay;
++import org.leavesmc.lumina.config.modules.Misc;
++import org.leavesmc.lumina.config.modules.Optimization;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class ConfigModule {
++    public String configVersion = "1";
++    public Fix fix = new Fix();
++    public Gameplay gameplay = new Gameplay();
++    public Optimization optimization = new Optimization();
++    public Misc misc = new Misc();
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..36e0a4921bb57291aa45c44c145df0a4016fc733
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+@@ -0,0 +1,71 @@
++package org.leavesmc.lumina.config;
++
++import io.papermc.paper.threadedregions.RegionizedServer;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.commands.LuminaConfigCommand;
++import org.spongepowered.configurate.CommentedConfigurationNode;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
++import org.spongepowered.configurate.loader.AbstractConfigurationLoader;
++import org.spongepowered.configurate.yaml.NodeStyle;
++import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
++
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.util.concurrent.CompletableFuture;
++
++public class LuminaConfig {
++    public static final Logger logger = LogManager.getLogger();
++    public static ConfigModule configModule;
++    public static boolean alreadyInit = false;
++    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
++    private static AbstractConfigurationLoader<CommentedConfigurationNode> loader;
++
++    public static void setup() {
++        if (alreadyInit) {
++            return;
++        }
++        Path hoconConfigPath = Paths.get("lumina.conf");
++        if (Files.exists(hoconConfigPath)) {
++            loader = HoconConfigurationLoader.builder()
++                    .path(hoconConfigPath)
++                    .build();
++        } else {
++            loader = YamlConfigurationLoader.builder()
++                    .nodeStyle(NodeStyle.BLOCK)
++                    .path(Paths.get("lumina.yml"))
++                    .build();
++        }
++        CommentedConfigurationNode node;
++        try {
++            node = loader.load();
++            configModule = node.get(ConfigModule.class);
++            node.set(ConfigModule.class, configModule);
++            loader.save(node);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++        Bukkit.getCommandMap().register("luminaconfig", "lumina", new LuminaConfigCommand());
++        alreadyInit = true;
++    }
++
++    public static void reload() {
++        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
++        try {
++            configModule = loader.load().get(ConfigModule.class);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    @Contract(" -> new")
++    public static @NotNull CompletableFuture<Void> reloadAsync() {
++        return CompletableFuture.runAsync(LuminaConfig::reload, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..43c1699c99cb26ccb6f5719d123a79a29fc3f099
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
+@@ -0,0 +1,15 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.fix.FoliaEntityMovingFixConfig;
++import org.leavesmc.lumina.config.modules.fix.FoliaTeleportAsyncFixConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Fix {
++    public FoliaEntityMovingFixConfig fixHighVelocityIssue = new FoliaEntityMovingFixConfig();
++    public FoliaTeleportAsyncFixConfig preventTeleportAsyncCallDuringMoving = new FoliaTeleportAsyncFixConfig();
++    public boolean fixSpectorTeleportFolia = true;
++    public boolean enableUnsafeTeleportation = true;
++    public boolean useVanillaRandomSourceForPlayers = true;
++    public boolean enableVoidTrading = true;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java b/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b4eba642ebdcb1dadab0b1085ac94b4cc14682ac
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.gameplay.LeavesBladerenProtocolConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Gameplay {
++    public boolean enableCarpetProtocol = false;
++    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ecbca8aa04b5b78b25cd1db587abd030594bacc6
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
+@@ -0,0 +1,17 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.misc.RegionFormatConfig;
++import org.leavesmc.lumina.config.modules.misc.WatchdogConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Misc {
++    public boolean mojangChatSign = true;
++    public boolean allowInorderChat = true;
++    public boolean offlineModeWarning = true;
++    public String serverModName = "Lumina";
++    public boolean fakeVanilla = false;
++    public boolean checkUsername = true;
++    public WatchdogConfig watchdog = new WatchdogConfig();
++    public RegionFormatConfig regionFormat = new RegionFormatConfig();
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java b/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..53b6bdcb7db581597f562f0b34786c836797c105
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java
+@@ -0,0 +1,17 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.optimization.*;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Optimization {
++    public AsyncPathProcessingConfig asyncPathProcessing = new AsyncPathProcessingConfig();
++    public EntityDABConfig entityDab = new EntityDABConfig();
++    public PetalReduceSensorWorkConfig petalReduceSensorWork = new PetalReduceSensorWorkConfig();
++    public ProjectileChunkReduceConfig projectileChunkReduce = new ProjectileChunkReduceConfig();
++    public boolean entityGoalSelectorInactiveTick = false;
++    public double entityWakeUpDurationRatioStandardDeviation = 0.2;
++    public boolean allowLoadChunksToActiveClimbingEntities = false;
++    public boolean useAlternativeKeepAlive = true;
++    public boolean suffocationOptimization = false;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4f8d731b897c8550d7a2b034146d4b99c0a3de45
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules.fix;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.Setting;
++
++@ConfigSerializable
++public class FoliaEntityMovingFixConfig {
++    public boolean enabled = false;
++    public boolean warnOnDetected = true;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9552e998a723693f700e0a26542691791a59f9e5
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules.fix;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.Setting;
++
++@ConfigSerializable
++public class FoliaTeleportAsyncFixConfig {
++    public boolean enabled = false;
++    public boolean throwOnDetected = true;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7fc24053b2535be5f21f15793c7aaf3b38ac2f63
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaEntityMovingFixConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaEntityMovingFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++    @ConfigInfo(baseName = "warn_on_detected")
++    public static boolean warnOnDetected = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.fix_high_velocity_issue";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..03ccf27e7d0dbd59654344be20f3bf47eeb112ed
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaSpectorTeleportationFixConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaSpectorTeleportationFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean fixSpectorTeleportFolia = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.fix_spector_teleportation";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab9ccc3ee94e435f24410b165876042128ec46b8
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/FoliaTeleportAsyncFixConfig.java
+@@ -0,0 +1,22 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class FoliaTeleportAsyncFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = false;
++    @ConfigInfo(baseName = "throw_on_detected")
++    public static boolean throwOnDetected = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "folia.prevent_teleportasync_call_during_moving";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1fd3f895b338d281b28d7bb43a9da559524b1f5a
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/UnsafeTeleportationConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class UnsafeTeleportationConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled", comments = "If you want to use sand duping,please turn on this")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "allow_unsafe_teleportation";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..52a6d931a2fcd44fe8c21b5935ed23f7caa2fc6b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VanillaRandomSourceConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class VanillaRandomSourceConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enable_for_player_entity")
++    public static boolean useLegacyRandomSourceForPlayers = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "use_vanilla_random_source";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3c4d05256ff5430ab508705bc87a77a077a59b3
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fixes/VoidTradingFixConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.fixes;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class VoidTradingFixConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.FIXES;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "allow_void_trading";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..94f61ca5e003d221415665a921988028e27b8fef
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules.gameplay;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class LeavesBladerenProtocolConfig {
++    public boolean enableBaseProtocol = false;
++    public boolean msptSyncProtocol = false;
++    public int msptSyncTickInterval = 20;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..255f88821f212713e12c181c3e1896430a006644
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/ChatSignConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class ChatSignConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "mojang_chat_sign";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..26980d0d06024f31a60d767fc3807d291810ca98
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/InorderChatConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class InorderChatConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "mojang_out_of_order_chat_check";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b49ea930376dac62e94cbf1051b9da4f823d290d
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/OfflineModeWarningConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class OfflineModeWarningConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "warn_on_offline_mode";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ad69f33eb2da56576c6f4cc7dbd66e0e40243ed2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
+@@ -0,0 +1,39 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import dev.kaiijumc.kaiiju.region.RegionFileFormat;
++import org.leavesmc.lumina.config.LuminaConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.PostProcess;
++
++@ConfigSerializable
++public class RegionFormatConfig {
++    public RegionFileFormat format = RegionFileFormat.ANVIL;
++    public int regionFormatLinearCompressionLevel = 1;
++    public int linearFlushThreads = 1;
++    public int linearFlushFrequency = 10;
++
++    @PostProcess
++    public void onLoaded(){
++        if (LuminaConfig.alreadyInit){
++            return;
++        }
++
++        if (format.equals(RegionFileFormat.INVALID)) {
++            LuminaConfig.logger.error("Unknown region format in lumina global config: {}", format);
++            LuminaConfig.logger.error("Falling back to ANVIL region file format.");
++            format = RegionFileFormat.ANVIL;
++        }
++
++        if (regionFormatLinearCompressionLevel > 23 || regionFormatLinearCompressionLevel < 1) {
++            LuminaConfig.logger.error("Linear region compression level should be between 1 and 22 in lumina global config: {}", regionFormatLinearCompressionLevel);
++            LuminaConfig.logger.error("Falling back to compression level 1.");
++            regionFormatLinearCompressionLevel = 1;
++        }
++
++        if (linearFlushThreads < 0) {
++            linearFlushThreads = Math.max(Runtime.getRuntime().availableProcessors() + linearFlushThreads, 1);
++        } else {
++            linearFlushThreads = Math.max(linearFlushThreads, 1);
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9238b246ff1003c8fbe3b18d14345f99f8eb11ba
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/ServerModNameConfig.java
+@@ -0,0 +1,23 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class ServerModNameConfig implements IConfigModule {
++    @ConfigInfo(baseName = "name")
++    public static String serverModName = "Lumina";
++
++    @ConfigInfo(baseName = "vanilla_spoof")
++    public static boolean fakeVanilla = false;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "server_mod_name";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..02d3dfc073ab4e7f7c5c7aea8a8eba7326805162
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/UsernameCheckConfig.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.leavesmc.lumina.config.ConfigInfo;
++import org.leavesmc.lumina.config.EnumConfigCategory;
++import org.leavesmc.lumina.config.IConfigModule;
++
++public class UsernameCheckConfig implements IConfigModule {
++    @ConfigInfo(baseName = "enabled")
++    public static boolean enabled = true;
++
++    @Override
++    public EnumConfigCategory getCategory() {
++        return EnumConfigCategory.MISC;
++    }
++
++    @Override
++    public String getBaseName() {
++        return "username_checks";
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5e79b3e1dfa56896c20e3b7e9c9d0cc37257af05
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules.misc;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class WatchdogConfig {
++    public boolean enabled = false;
++    public long warnPeriodTicks = 5 * 20;
++    public long timeOutTicks = 30 * 20;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..12a85414d4eb8f7740c227f5a5fb8514e5cd03e1
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java
+@@ -0,0 +1,24 @@
++package org.leavesmc.lumina.config.modules.optimization;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.PostProcess;
++
++@ConfigSerializable
++public class AsyncPathProcessingConfig {
++    public boolean enabled = false;
++    public int maxThreadNumber = 0;
++    public int keepalive = 60;
++
++    @PostProcess
++    public void onLoaded() {
++        if (!enabled) {
++            maxThreadNumber = 0;
++            return;
++        }
++        if (maxThreadNumber < 0) {
++            maxThreadNumber = Math.max(Runtime.getRuntime().availableProcessors() + maxThreadNumber, 1);
++        } else if (maxThreadNumber == 0) {
++            maxThreadNumber = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9b29297052562c1464b5d93a0b03a144efadf5ef
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java
+@@ -0,0 +1,33 @@
++package org.leavesmc.lumina.config.modules.optimization;
++
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.EntityType;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.PostProcess;
++
++import java.util.Collections;
++import java.util.List;
++
++@ConfigSerializable
++public class EntityDABConfig {
++    public boolean dearEnabled = false;
++    public int startDistance = 12;
++    public int startDistanceSquared;
++    public int maximumActivationPrio = 20;
++    public int activationDistanceMod;
++    public List<String> blackedEntities = Collections.emptyList();
++
++    @PostProcess
++    public void onLoaded() {
++        for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
++            entityType.dabEnabled = true; // reset all, before setting the ones to true
++        }
++
++        blackedEntities.forEach(name -> EntityType.byString(name).ifPresentOrElse(entityType -> {
++            entityType.dabEnabled = false;
++        }, () -> MinecraftServer.LOGGER.warn("Unknown entity \"" + name + "\"")));
++
++        // config.setComment("optimizations.dab", "Optimizes entity brains when\n" + "they're far away from the player");
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b72e9c1fe5c7fb9abc9a3230b7339fb73c84e25c
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java
+@@ -0,0 +1,8 @@
++package org.leavesmc.lumina.config.modules.optimization;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class LoadChunksToActiveClimbingEntitiesConfig {
++    public boolean allow = false;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b18d3ab629aff9ddb15e0ad493325155ad8e1f6f
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java
+@@ -0,0 +1,9 @@
++package org.leavesmc.lumina.config.modules.optimization;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class PetalReduceSensorWorkConfig {
++    public boolean enabled = true;
++    public int delayTicks = 10;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d3c8a35d01125de736eb1f1a0bd27023406ebf25
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java
+@@ -0,0 +1,9 @@
++package org.leavesmc.lumina.config.modules.optimization;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class ProjectileChunkReduceConfig {
++    public int maxProjectileLoadsPerTick;
++    public int maxProjectileLoadsPerProjectile;
++}

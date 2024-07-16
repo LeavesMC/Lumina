@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 02:33:00 +0000
+Subject: [PATCH] Luminol vanilla random config
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 93321373a64508f33c4a3d22923d1916fd17f2e9..048c5b0bd03340dd6295ad89f640996f2081c191 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -573,7 +573,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+         this.bb = Entity.INITIAL_AABB;
+         this.stuckSpeedMultiplier = Vec3.ZERO;
+         this.nextStep = 1.0F;
+-        this.random = SHARED_RANDOM; // Paper - Share random for entities to make them more random
++        this.random = org.leavesmc.lumina.config.LuminaConfig.configModule.fix.useVanillaRandomSourceForPlayers ? RandomSource.create() : SHARED_RANDOM;// Luminol - Add config for vanilla random SHARED_RANDOM // Paper - Share random for entities to make them more random
+         this.remainingFireTicks = -this.getFireImmuneTicks();
+         this.fluidHeight = new Object2DoubleArrayMap(2);
+         this.fluidOnEyes = new HashSet();

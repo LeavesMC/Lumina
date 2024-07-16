@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 00:53:03 +0000
+Subject: [PATCH] Luminol Unsafe teleportation config
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 26a10d23e8affffaeeb07968d2c0a68960e2a1a2..93321373a64508f33c4a3d22923d1916fd17f2e9 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4090,6 +4090,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+ 
+     protected boolean tryEndPortal() {
+         io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot portal entity async");
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.enableUnsafeTeleportation && !(this instanceof Player)) return false; // Luminol - Unsafe teleportation
+         BlockPos pos = this.portalBlock;
+         ServerLevel world = this.portalWorld;
+         this.portalBlock = null;
+diff --git a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
+index afc9445941b984cc1122839e4a8a17cf27aa966e..18999fdf31c88a9f594638da9c9e61a2360e274b 100644
+--- a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
+@@ -61,6 +61,13 @@ public class EndPortalBlock extends BaseEntityBlock {
+                 // return; // CraftBukkit - always fire event in case plugins wish to change it
+             }
+ 
++            // Luminol start - Unsafe teleportation
++            if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.enableUnsafeTeleportation && !(entity instanceof net.minecraft.world.entity.player.Player)){
++                entity.endPortalLogicAsync();
++                return;
++            }
++            // Luminol end - Unsafe teleportation
++
+             // Paper start - move all of this logic into portal tick
+             entity.portalWorld = ((ServerLevel)world);
+             entity.portalBlock = pos.immutable();

@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 00:49:38 +0000
+Subject: [PATCH] Luminol Server mod name config
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java b/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
+index 6ed2114f577ce12d2d493985e798609c7d83f15e..18e2e80d6f983919eed98e977bc574473be7b3d9 100644
+--- a/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
++++ b/src/main/java/com/destroystokyo/paper/network/PaperServerListPingEventImpl.java
+@@ -14,7 +14,7 @@ class PaperServerListPingEventImpl extends PaperServerListPingEvent {
+ 
+     PaperServerListPingEventImpl(MinecraftServer server, StatusClient client, int protocolVersion, @Nullable CachedServerIcon icon) {
+         super(client, server.motd(), server.getPlayerCount(), server.getMaxPlayers(),
+-                server.getServerModName() + ' ' + server.getServerVersion(), protocolVersion, icon);
++                org.leavesmc.lumina.config.LuminaConfig.configModule.misc.fakeVanilla ? server.getServerVersion() : server.getServerModName() + ' ' + server.getServerVersion(), protocolVersion, icon);// Luminol - Fake vanilla mode
+         this.server = server;
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index ac07133a8b59aec53e547ab3d554ebc99d80480f..9580d33d7077e40f027ce41755e538222e57fee1 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1963,7 +1963,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+     @DontObfuscate
+     public String getServerModName() {
+-        return "Lumina"; // Paper // Folia - Folia // Lumina - Lumina
++        return org.leavesmc.lumina.config.LuminaConfig.configModule.misc.fakeVanilla ? "vanilla" : org.leavesmc.lumina.config.LuminaConfig.configModule.misc.serverModName; // Paper // Folia - Folia // Luminol - Luminol //Luminol - Add config for this
+     }
+ 
+     public SystemReport fillSystemReport(SystemReport details) {
