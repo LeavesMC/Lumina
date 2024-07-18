@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stabrinai <wujiaxin752@outlook.com>
+Date: Sun, 30 Jun 2024 20:46:42 +0800
+Subject: [PATCH] Verify signature only in online-mode
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java b/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
+index 2fa51c3a70f43cd23b8f494fc643d66cecfda7d2..199419c546118e09f92cd53ee1bdbd06791997c2 100644
+--- a/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
++++ b/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
+@@ -15,6 +15,7 @@ import net.minecraft.network.chat.ThrowingComponent;
+ import net.minecraft.util.Crypt;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.SignatureValidator;
++import org.bukkit.Bukkit;
+ 
+ public record ProfilePublicKey(ProfilePublicKey.Data data) {
+     public static final Component EXPIRED_PROFILE_PUBLIC_KEY = Component.translatable("multiplayer.disconnect.expired_public_key");
+@@ -23,7 +24,7 @@ public record ProfilePublicKey(ProfilePublicKey.Data data) {
+     public static final Codec<ProfilePublicKey> TRUSTED_CODEC = ProfilePublicKey.Data.CODEC.xmap(ProfilePublicKey::new, ProfilePublicKey::data);
+ 
+     public static ProfilePublicKey createValidated(SignatureValidator servicesSignatureVerifier, UUID playerUuid, ProfilePublicKey.Data publicKeyData) throws ProfilePublicKey.ValidationException {
+-        if (!publicKeyData.validateSignature(servicesSignatureVerifier, playerUuid)) {
++        if ((!org.leavesmc.lumina.config.LuminaConfig.configModule.misc.verifyPublicKeyOnlyInOnlineMode || Bukkit.getServer().getOnlineMode()) && !publicKeyData.validateSignature(servicesSignatureVerifier, playerUuid)) { // Luminol - Verify signature only in online-mode
+             throw new ProfilePublicKey.ValidationException(INVALID_SIGNATURE, org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PUBLIC_KEY_SIGNATURE); // Paper - kick event causes
+         } else {
+             return new ProfilePublicKey(publicKeyData);

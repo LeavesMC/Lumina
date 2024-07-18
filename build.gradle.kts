@@ -7,6 +7,7 @@ plugins {
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
 
 repositories {
+    maven(paperMavenPublicUrl)
     mavenCentral()
     maven("https://repo.leavesmc.top/snapshots")
     maven("https://repo.leavesmc.org/releases")
