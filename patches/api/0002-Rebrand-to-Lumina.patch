@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Sat, 20 Jul 2024 00:10:48 +0800
+Subject: [PATCH] Rebrand to Lumina
+
+
+diff --git a/src/main/java/io/papermc/paper/ServerBuildInfo.java b/src/main/java/io/papermc/paper/ServerBuildInfo.java
+index 9df9d09aa477d4cd3c496ba0933c816df1ef0964..2a88bfed4f9afaaea8e26a50353cb084ab3b7886 100644
+--- a/src/main/java/io/papermc/paper/ServerBuildInfo.java
++++ b/src/main/java/io/papermc/paper/ServerBuildInfo.java
+@@ -16,7 +16,7 @@ public interface ServerBuildInfo {
+     /**
+      * The brand id for Paper.
+      */
+-    Key BRAND_PAPER_ID = Key.key("papermc", "paper");
++    Key BRAND_PAPER_ID = Key.key("leavesmc", "lumina");
+ 
+     /**
+      * Gets the {@code ServerBuildInfo}.
