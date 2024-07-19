@@ -18,10 +18,10 @@ index 189f1a8b97d400d9e0303a345b7202614ee83606..da89ac9b2adea7b0b872b65b8b677487
      private Vec3 deltaMovement;
      private float yRot;
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index ed628d38136534b3391c0a06b9c892a922710235..b3f0de04a7448a31a87d50f630dd4d929a6b6f37 100644
+index 0edc4c5e64bdfe4de396425b23234839f1ec855e..dc290b2bc486fb5cf2bb216e5a8436a5b588fa8d 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -2053,6 +2053,20 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -2052,6 +2052,20 @@ public abstract class LivingEntity extends Entity implements Attackable {
          return this.lastClimbablePos;
      }
  
@@ -43,10 +43,10 @@ index ed628d38136534b3391c0a06b9c892a922710235..b3f0de04a7448a31a87d50f630dd4d92
          if (this.isSpectator()) {
              return false;
 diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
-index 4fc4690d03fd5f39e019f16845954052210c7361..c77beef9651aa2f7333d536e8ff4af3281834619 100644
+index 0e333af159feeccdb43075cc033a1ef533c9d58e..5dffcce9ab20c2ef9864b254d780eab403caa437 100644
 --- a/src/main/java/org/spigotmc/ActivationRange.java
 +++ b/src/main/java/org/spigotmc/ActivationRange.java
-@@ -307,7 +307,7 @@ public class ActivationRange
+@@ -304,7 +304,7 @@ public class ActivationRange
          if ( entity instanceof LivingEntity )
          {
              LivingEntity living = (LivingEntity) entity;

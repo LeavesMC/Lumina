@@ -5,11 +5,11 @@ Subject: [PATCH] Pufferfish Dynamic Activation of Brain
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b194f3448b5199e1204da31e1408f2e80803a77d..0c351aa8edb2ae81b2b7b5cded91ab2e8c47aa0f 100644
+index 0b11aa29ac8cb4f65ace8b63ef1fd5a214139f3d..6c4b9a6ff7d1bbe670329bb635f9895764c6e48a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -994,6 +994,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
-             this.timings.entityTick.startTiming(); // Spigot
+@@ -983,6 +983,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              profiler.startTimer(ca.spottedleaf.leafprofiler.LProfilerRegistry.ENTITY_TICK); try { // Folia - profiler
              regionizedWorldData.forEachTickingEntity((entity) -> { // Folia - regionised ticking
 +                entity.activatedPriorityReset = false; // Pufferfish - DAB
@@ -33,7 +33,7 @@ index 30f5c8102e1af06fef206ded825baccd185a9dab..3fce42fd3450296f155e068bc377d57a
          return this.yRot;
      }
 diff --git a/src/main/java/net/minecraft/world/entity/EntityType.java b/src/main/java/net/minecraft/world/entity/EntityType.java
-index aa2bb97ef305ed234a11b05e665ac1062b571591..29699e51b3e791a1a82a19c95fd6a3f30bac75d5 100644
+index b75b58c9f9bb31c4bf37d7a4fb2551ace6277fcb..0fc436fc44d7b333ba00437abe16cc1d101e24ec 100644
 --- a/src/main/java/net/minecraft/world/entity/EntityType.java
 +++ b/src/main/java/net/minecraft/world/entity/EntityType.java
 @@ -316,6 +316,7 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
@@ -267,10 +267,10 @@ index 6339967b154af1ca9632c7b8b315d612f4b80ea2..c4b7fd6c9d0f26361295a70d63f6fc08
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
 diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
-index c77beef9651aa2f7333d536e8ff4af3281834619..294248c948833c5c07bc4880fae33d64f8375680 100644
+index 5dffcce9ab20c2ef9864b254d780eab403caa437..1d124d0a653ecb03998f6c354b27e21eff8f0a44 100644
 --- a/src/main/java/org/spigotmc/ActivationRange.java
 +++ b/src/main/java/org/spigotmc/ActivationRange.java
-@@ -38,6 +38,10 @@ import co.aikar.timings.MinecraftTimings;
+@@ -37,6 +37,10 @@ import net.minecraft.world.entity.raid.Raider;
  import net.minecraft.world.entity.schedule.Activity;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.AABB;
@@ -281,7 +281,7 @@ index c77beef9651aa2f7333d536e8ff4af3281834619..294248c948833c5c07bc4880fae33d64
  
  public class ActivationRange
  {
-@@ -232,6 +236,25 @@ public class ActivationRange
+@@ -230,6 +234,25 @@ public class ActivationRange
                  }
                  // Paper end - Configurable marker ticking
                  ActivationRange.activateEntity(entity, bbByType); // Folia - threaded regions
@@ -307,7 +307,7 @@ index c77beef9651aa2f7333d536e8ff4af3281834619..294248c948833c5c07bc4880fae33d64
              }
              // Paper end
          }
-@@ -248,12 +271,12 @@ public class ActivationRange
+@@ -245,12 +268,12 @@ public class ActivationRange
          if ( io.papermc.paper.threadedregions.RegionizedServer.getCurrentTick() > entity.activatedTick ) // Folia - threaded regions
          {
              if ( entity.defaultActivationState )

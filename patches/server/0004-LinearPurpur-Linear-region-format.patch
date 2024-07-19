@@ -69,10 +69,10 @@ index 2096e57c025858519e7c46788993b9aac1ec60e8..9c8a3749c09ca4f5389cc9d240f713f0
              }
          }
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 355c8408da189a4805e206db0932c41f940930f0..8f1b55d9cb5a427a49d68146050a22c391c4b330 100644
+index 0afc3d90f7531b8e216f30f0989d04c3461b6a02..fb753f5a73d33e00d7029e01ab6e53c95d5475db 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -923,7 +923,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -918,7 +918,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              // Paper start - rewrite chunk system
              worldserver.save((ProgressListener) null, flush, worldserver.noSave && !force, close);
              if (flush) {
@@ -81,7 +81,7 @@ index 355c8408da189a4805e206db0932c41f940930f0..8f1b55d9cb5a427a49d68146050a22c3
              }
              // Paper end - rewrite chunk system
          }
-@@ -947,7 +947,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -942,7 +942,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  //MinecraftServer.LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", worldserver2.getChunkSource().chunkMap.getStorageName()); // Paper - move up
              }
  
@@ -91,10 +91,10 @@ index 355c8408da189a4805e206db0932c41f940930f0..8f1b55d9cb5a427a49d68146050a22c3
  
          return flag3;
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index c547d51eebd965f2be7ac45bc0981626c0515ef1..4a0c5afd03dba788c40a71f00bc1fd0d4f0fc7e4 100644
+index b3e2a8024baf94c45a9c369ee96b715448cf9eec..c868a09cf07ee98e474a660debc2176276bce736 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -826,13 +826,13 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -821,13 +821,13 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      public ChunkStatus getChunkStatusOnDiskIfCached(ChunkPos chunkPos) {
@@ -110,7 +110,7 @@ index c547d51eebd965f2be7ac45bc0981626c0515ef1..4a0c5afd03dba788c40a71f00bc1fd0d
  
          if (regionFile == null || !regionFileCache.chunkExists(chunkPos)) {
              return null;
-@@ -850,7 +850,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -845,7 +845,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      public void updateChunkStatusOnDisk(ChunkPos chunkPos, @Nullable CompoundTag compound) throws IOException {

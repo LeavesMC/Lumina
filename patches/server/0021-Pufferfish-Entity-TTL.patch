@@ -22,7 +22,7 @@ index 39c4de380bb60b47ae3c255df02439f84d8eef71..30f5c8102e1af06fef206ded825baccd
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/EntityType.java b/src/main/java/net/minecraft/world/entity/EntityType.java
-index a2f0fb8b4057bd3a84d18298e49c4d02955240d3..aa2bb97ef305ed234a11b05e665ac1062b571591 100644
+index c837edbaca336842bc196c1f6efeee9e5b17768c..b75b58c9f9bb31c4bf37d7a4fb2551ace6277fcb 100644
 --- a/src/main/java/net/minecraft/world/entity/EntityType.java
 +++ b/src/main/java/net/minecraft/world/entity/EntityType.java
 @@ -325,6 +325,7 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT

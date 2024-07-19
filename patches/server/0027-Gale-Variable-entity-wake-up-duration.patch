@@ -5,10 +5,10 @@ Subject: [PATCH] Gale Variable entity wake-up duration
 
 
 diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
-index 294248c948833c5c07bc4880fae33d64f8375680..75e763a56704051e50504172c5edb30843593a7f 100644
+index 1d124d0a653ecb03998f6c354b27e21eff8f0a44..50a07dbfe3896679af6226ec0f54b777b090083e 100644
 --- a/src/main/java/org/spigotmc/ActivationRange.java
 +++ b/src/main/java/org/spigotmc/ActivationRange.java
-@@ -75,28 +75,41 @@ public class ActivationRange
+@@ -74,28 +74,41 @@ public class ActivationRange
          if (entity.activationType == ActivationType.VILLAGER) {
              if (inactiveFor > config.wakeUpInactiveVillagersEvery && worldData.wakeupInactiveRemainingVillagers > 0) { // Folia - threaded regions
                  worldData.wakeupInactiveRemainingVillagers--; // Folia - threaded regions
