@@ -1754,6 +1754,19 @@ index 5f60010d44f2a3df8645a0e7dafa3f28d882aecf..b798dbb7d22ab06c8d47c64d2db47b3d
                      }
                  }
              }
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index b86ba59158964f73abd6622341a9acb98a33fa44..8c54b8c16d47d71a5a63e1503b0f3ef2b1085a45 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -346,8 +346,6 @@ public class Main {
+             tryPreloadClass("org.jline.terminal.impl.MouseSupport");
+             tryPreloadClass("org.jline.terminal.impl.MouseSupport$1");
+             tryPreloadClass("org.jline.terminal.Terminal$MouseTracking");
+-            tryPreloadClass("co.aikar.timings.TimingHistory");
+-            tryPreloadClass("co.aikar.timings.TimingHistory$MinuteReport");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext$11");
+             tryPreloadClass("io.netty.channel.AbstractChannelHandlerContext$12");
 diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 index b00e3b9b628f3d2a2fdbf1d2c77904963c16d3ac..86dcb5f24653d65d691c45a2c6860b5e4ec7a608 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
