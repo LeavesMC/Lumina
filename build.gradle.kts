@@ -56,16 +56,6 @@ subprojects {
 
 }
 
-tasks.generateDevelopmentBundle {
-    apiCoordinates.set("org.leavesmc.lumina:lumina-api")
-    libraryRepositories.set(
-        listOf(
-            "https://repo.maven.apache.org/maven2/",
-            "https://maven.pkg.github.com/LeavesMC/Lumina",
-        )
-    )
-}
-
 paperweight {
     serverProject.set(project(":lumina-server"))
 
@@ -74,7 +64,7 @@ paperweight {
 
     useStandardUpstream("folia") {
         url.set(github("PaperMC", "Folia"))
-        ref.set(providers.gradleProperty("foliaCommit"))
+        ref.set(providers.gradleProperty("foliaRef"))
 
         withStandardPatcher {
             apiSourceDirPath.set("Folia-API")
@@ -108,19 +98,6 @@ tasks.generateDevelopmentBundle {
 allprojects {
     publishing {
         repositories {
-            maven {
-                name = "githubPackage"
-                url = uri("https://maven.pkg.github.com/LeavesMC/Lumina")
-
-                credentials.username = System.getenv("GITHUB_USERNAME")
-                credentials.password = System.getenv("GITHUB_TOKEN")
-            }
-
-            publications {
-                register<MavenPublication>("gpr") {
-                    from(components["java"])
-                }
-            }
         }
     }
 }

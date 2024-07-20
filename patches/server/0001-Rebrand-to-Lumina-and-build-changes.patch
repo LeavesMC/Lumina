@@ -5,7 +5,7 @@ Subject: [PATCH] Rebrand to Lumina and build changes
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index eb2f9941b24af591f1e56339b97f5284a765cf81..b348aaafb9397e7531cb5e18fa591ecec1d60f9a 100644
+index eb2f9941b24af591f1e56339b97f5284a765cf81..e8f78fc0a8310a9428da2378f831795a0c047a4b 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -13,7 +13,7 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
@@ -36,6 +36,15 @@ index eb2f9941b24af591f1e56339b97f5284a765cf81..b348aaafb9397e7531cb5e18fa591ece
      implementation("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.45.3.0")
      runtimeOnly("com.mysql:mysql-connector-j:8.3.0")
+@@ -72,7 +81,7 @@ tasks.jar {
+ 
+     manifest {
+         val git = Git(rootProject.layout.projectDirectory.path)
+-        val mcVersion = rootProject.providers.gradleProperty("mcVersion").get()
++        val mcVersion = rootProject.providers.gradleProperty("version").get().split("-")[0]
+         val build = System.getenv("BUILD_NUMBER") ?: null
+         val gitHash = git("rev-parse", "--short=7", "HEAD").getText().trim()
+         val implementationVersion = "$mcVersion-${build ?: "DEV"}-$gitHash"
 @@ -80,14 +89,14 @@ tasks.jar {
          val gitBranch = git("rev-parse", "--abbrev-ref", "HEAD").getText().trim() // Paper
          attributes(
@@ -78,7 +87,7 @@ index eb2f9941b24af591f1e56339b97f5284a765cf81..b348aaafb9397e7531cb5e18fa591ece
 +
 +// Leaves start - create config file
 +tasks.registerRunTask("createLuminaConfig") {
-+    //TODO
++    // TODO
 +    description = "Create a new lumina.yml"
 +    mainClass = "org.leavesmc.leaves.config.GlobalConfigCreator"
 +    classpath(sourceSets.main.map { it.runtimeClasspath })
