@@ -1061,7 +1061,7 @@ index 355c8408da189a4805e206db0932c41f940930f0..0afc3d90f7531b8e216f30f0989d04c3
          this.profiler.popPush("send chunks");
          iterator = this.playerList.getPlayers().iterator();
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index cc40d3e69a3635ca7895876159f2821091c14a9a..9e4ca0c4aeb1e6a9a442add966a1bca155400cc2 100644
+index ad189a69f8466324d5c33416d0fbaeefa017341f..d95c73f589e831f65088d30c4af4d04cbf7e7fd9 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -63,7 +63,6 @@ import org.apache.logging.log4j.Level;
@@ -1072,7 +1072,7 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..9e4ca0c4aeb1e6a9a442add966a1bca1
  import org.bukkit.craftbukkit.util.TerminalCompletionHandler;
  import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
  import org.bukkit.event.server.ServerCommandEvent;
-@@ -505,7 +504,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -515,7 +514,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
      }
  
      public void handleConsoleInputs() {
@@ -1080,7 +1080,7 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..9e4ca0c4aeb1e6a9a442add966a1bca1
          // Paper start - Perf: use proper queue
          ConsoleInput servercommand;
          while ((servercommand = this.serverCommandQueue.poll()) != null) {
-@@ -522,7 +520,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -532,7 +530,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
              // CraftBukkit end
          }
  
@@ -1088,7 +1088,7 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..9e4ca0c4aeb1e6a9a442add966a1bca1
      }
  
      @Override
-@@ -796,21 +793,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -806,21 +803,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
              }
              // Paper start
              command.set(event.getCommand());

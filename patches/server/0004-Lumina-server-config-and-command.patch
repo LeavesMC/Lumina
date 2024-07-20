@@ -5,10 +5,10 @@ Subject: [PATCH] Lumina server config and command
 
 
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 9e4ca0c4aeb1e6a9a442add966a1bca155400cc2..cfa19d1d408418b498c81a07f2bcbd8a53f5ee85 100644
+index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..3a5733b72964a2ab8b35135b4a93f642830294cd 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -221,6 +221,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+@@ -222,6 +222,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
          this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
          this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
          // Paper end - initialize global and world-defaults configuration

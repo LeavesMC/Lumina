@@ -6,10 +6,10 @@ Subject: [PATCH] Command API Support
 
 diff --git a/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..33e95c2985cca225ae70523da8654fe3de37b793
+index 0000000000000000000000000000000000000000..aa3df03e982d3299b7d262b06a7c0a5eaa1886c8
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,56 @@
 +/*******************************************************************************
 + * Copyright 2018, 2021 Jorel Ali (Skepter) - MIT License
 + *
@@ -33,6 +33,7 @@ index 0000000000000000000000000000000000000000..33e95c2985cca225ae70523da8654fe3
 +// Copy from https://github.com/JorelAli/CommandAPI
 +package dev.jorel.commandapi;
 +
++import com.mojang.logging.LogUtils;
 +import dev.jorel.commandapi.nms.*;
 +
 +/**
@@ -60,7 +61,8 @@ index 0000000000000000000000000000000000000000..33e95c2985cca225ae70523da8654fe3
 +     * @return an instance of NMS which can run on the specified Minecraft version
 +     */
 +    static CommandAPIPlatform<?, ?, ?> getPlatform() {
-+         return new NMS_1_20_R4();
++        LogUtils.getLogger().info("Loading 1_20_R4 NMS implementation for CommandAPI.");
++        return new NMS_1_20_R4();
 +    }
 +
 +}
@@ -1769,3 +1771,43 @@ index 0000000000000000000000000000000000000000..d9d2f5a111f1fac23de7f87e224c7511
 +    public abstract CommandRegistrationStrategy<CommandSourceStack> createCommandRegistrationStrategy();
 +}
 \ No newline at end of file
+diff --git a/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java b/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
+index 9af388a8e56806ab44f8c3ef4f97086ce38ef3b4..7956046156b8e382fb377ebbc63fe8738d38b4ca 100644
+--- a/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
++++ b/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
+@@ -75,6 +75,7 @@ public class ModernPluginLoadingStrategy<T> implements ProviderLoadingStrategy<T
+ 
+             // Populate missing dependencies to capture if there are multiple missing ones.
+             List<String> missingDependencies = provider.validateDependencies(dependencyTree);
++            if(missingDependencies.contains("CommandAPI")) missingDependencies.remove("CommandAPI"); // Lumina - CommandAPI support
+ 
+             if (missingDependencies.isEmpty()) {
+                 validatedProviders.add(provider);
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index cc40d3e69a3635ca7895876159f2821091c14a9a..ad189a69f8466324d5c33416d0fbaeefa017341f 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -91,6 +91,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+     private RemoteSampleLogger tickTimeLogger;
+     @Nullable
+     private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
++    private org.bukkit.plugin.java.JavaPlugin commandAPIPlugin; // Lumina - CommandAPI
+ 
+     // CraftBukkit start - Signature changed
+     public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
+@@ -281,6 +282,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             return false;
+         }
+ 
++        // Lumina start - enable CommandAPI
++        commandAPIPlugin = new org.bukkit.plugin.java.JavaPlugin(null){};
++        dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
++                .shouldHookPaperReload(false)
++                .skipReloadDatapacks(true)
++                .silentLogs(true)
++        );
++        dev.jorel.commandapi.CommandAPI.onEnable();
++        // Lumina end - enable CommandAPI
+         // CraftBukkit start
+         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
+         this.server.loadPlugins();
