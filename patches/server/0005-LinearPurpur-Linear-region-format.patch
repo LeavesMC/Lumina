@@ -4,21 +4,6 @@ Date: Thu, 27 Jun 2024 18:25:12 +0800
 Subject: [PATCH] LinearPurpur Linear region format
 
 
-diff --git a/build.gradle.kts b/build.gradle.kts
-index 4148da9929c8ed6bb57267306b936e2999956615..ec6cac28dd23a09b6ffba1e3f03ed5e3f1e09c41 100644
---- a/build.gradle.kts
-+++ b/build.gradle.kts
-@@ -30,6 +30,10 @@ dependencies {
-     alsoShade(log4jPlugins.output)
-     implementation("io.netty:netty-codec-haproxy:4.1.97.Final") // Paper - Add support for proxy protocol
-     // Paper end
-+    // LinearPaper start
-+    implementation("com.github.luben:zstd-jni:1.5.6-3")
-+    implementation("org.lz4:lz4-java:1.8.0")
-+    // LinearPaper end
-     implementation("org.apache.logging.log4j:log4j-iostreams:2.22.1") // Paper - remove exclusion
-     implementation("org.ow2.asm:asm-commons:9.7")
-     implementation("org.spongepowered:configurate-yaml:4.2.0-SNAPSHOT") // Paper - config files
 diff --git a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java b/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
 index 2096e57c025858519e7c46788993b9aac1ec60e8..9c8a3749c09ca4f5389cc9d240f713f0a12badee 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
