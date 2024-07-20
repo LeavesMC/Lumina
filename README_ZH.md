@@ -11,4 +11,4 @@ Lumina
 目前这是一个空仓库，此项目的优先级不会太高。
 
 我们正在收集 Folia 破坏的原版特性，如果你有发现，请在 issue 中提出，谢谢。
-![meme..jpg](meme..jpg)
+![meme..jpg](meme.jpg)
