@@ -26,19 +26,23 @@ index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1d5a9529bc579675d595e87873fc7c52315e9bb9
+index 0000000000000000000000000000000000000000..fd9c1eb61db962a0901de3fcd34e2810ab873b1d
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,37 @@
 +package org.leavesmc.lumina;
 +
++import com.mojang.datafixers.util.Pair;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandExecutor;
 +import org.checkerframework.checker.units.qual.C;
++import org.reflections.Reflections;
 +
 +import java.util.ArrayList;
++import java.util.HashMap;
 +import java.util.List;
++import java.util.Map;
 +
 +public class LuminaCommand {
 +    private LuminaCommand() {
@@ -89,10 +93,10 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f1bb42333122b449e41109d726be851bce0490eb
+index 0000000000000000000000000000000000000000..39b52abfc5647739989d68475b7d9e2731447c6b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,111 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -106,15 +110,29 @@ index 0000000000000000000000000000000000000000..f1bb42333122b449e41109d726be851b
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 +
++import java.lang.reflect.Field;
 +import java.nio.file.Paths;
++import java.util.*;
 +import java.util.concurrent.CompletableFuture;
 +
 +public class LuminaConfig {
++    private static final String MODULES_PACKAGE = "org.leavesmc.lumina.config.modules";
++    private static final Set<Class<?>> SIMPLE_TYPES = new HashSet<>(Arrays.asList(
++            String.class,
++            boolean.class,
++            byte.class,
++            short.class,
++            int.class,
++            long.class,
++            float.class,
++            double.class,
++            char.class));
 +    public static final Logger logger = LogManager.getLogger();
 +    public static ConfigModule configModule;
 +    public static boolean alreadyInit = false;
 +    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
 +    private static HoconConfigurationLoader loader;
++    public static Map<String, List<String>> nodeSuggestions = new HashMap<>();
 +
 +    public static void setup() {
 +        if (alreadyInit) {
@@ -135,6 +153,12 @@ index 0000000000000000000000000000000000000000..f1bb42333122b449e41109d726be851b
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
 +        }
++        try {
++            generateNodeSuggestions(ConfigModule.class, null, LuminaConfig.configModule);
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++        System.out.println(nodeSuggestions.toString());
 +        alreadyInit = true;
 +    }
 +
@@ -150,6 +174,38 @@ index 0000000000000000000000000000000000000000..f1bb42333122b449e41109d726be851b
 +    @Contract(" -> new")
 +    public static @NotNull CompletableFuture<Void> reloadAsync() {
 +        return CompletableFuture.runAsync(LuminaConfig::reload, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
++    }
++
++    private static @NotNull String toHyphen(String input) {
++        if (input == null || input.isEmpty()) {
++            return "";
++        }
++        StringBuilder sb = new StringBuilder();
++        for (int i = 0; i < input.length(); i++) {
++            char ch = input.charAt(i);
++            if (Character.isUpperCase(ch) && i > 0) {
++                sb.append('-');
++            }
++            sb.append(Character.toLowerCase(ch));
++        }
++        return sb.toString();
++    }
++
++    private static void generateNodeSuggestions(@NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
++        for (Field field : clazz.getFields()) {
++            String fieldName = field.getName();
++            Class<?> fieldType = field.getType();
++            String key = parentKey == null ? toHyphen(fieldName) : parentKey + "." + toHyphen(fieldName);
++            if ("boolean".equals(fieldType.getSimpleName())) {
++                nodeSuggestions.put(key, Arrays.asList("true", "false"));
++            } else if (SIMPLE_TYPES.contains(fieldType)) {
++                nodeSuggestions.put(key, List.of(field.get(parent).toString()));
++            } else if (fieldType.isEnum()) {
++                nodeSuggestions.put(key, Arrays.asList(Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new)));
++            } else {
++                generateNodeSuggestions(fieldType, key, field.get(parent));
++            }
++        }
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
