@@ -6,10 +6,10 @@ Subject: [PATCH] Command API Support
 
 diff --git a/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa3df03e982d3299b7d262b06a7c0a5eaa1886c8
+index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373ae1230238
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,57 @@
 +/*******************************************************************************
 + * Copyright 2018, 2021 Jorel Ali (Skepter) - MIT License
 + *
@@ -33,8 +33,9 @@ index 0000000000000000000000000000000000000000..aa3df03e982d3299b7d262b06a7c0a5e
 +// Copy from https://github.com/JorelAli/CommandAPI
 +package dev.jorel.commandapi;
 +
-+import com.mojang.logging.LogUtils;
 +import dev.jorel.commandapi.nms.*;
++
++import java.util.logging.Logger;
 +
 +/**
 + * This file handles the NMS version to be loaded. The CommandAPIVersionHandler
@@ -61,58 +62,18 @@ index 0000000000000000000000000000000000000000..aa3df03e982d3299b7d262b06a7c0a5e
 +     * @return an instance of NMS which can run on the specified Minecraft version
 +     */
 +    static CommandAPIPlatform<?, ?, ?> getPlatform() {
-+        LogUtils.getLogger().info("Loading 1_20_R4 NMS implementation for CommandAPI.");
++        Logger.getLogger("CommandAPIVersionHandler").info("Command API is using NMS version 1_20_R4");
 +        return new NMS_1_20_R4();
 +    }
 +
 +}
 \ No newline at end of file
-diff --git a/src/main/java/dev/jorel/commandapi/MojangMappedVersionHandler.java b/src/main/java/dev/jorel/commandapi/MojangMappedVersionHandler.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..70e34f9b863f11bfb2d0c41ea2ca55d8ffe0f240
---- /dev/null
-+++ b/src/main/java/dev/jorel/commandapi/MojangMappedVersionHandler.java
-@@ -0,0 +1,33 @@
-+/*******************************************************************************
-+ * Copyright 2018, 2021 Jorel Ali (Skepter) - MIT License
-+ *
-+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
-+ * this software and associated documentation files (the "Software"), to deal in
-+ * the Software without restriction, including without limitation the rights to
-+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-+ * the Software, and to permit persons to whom the Software is furnished to do so,
-+ * subject to the following conditions:
-+ *
-+ * The above copyright notice and this permission notice shall be included in all
-+ * copies or substantial portions of the Software.
-+ *
-+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-+ *******************************************************************************/
-+// Copy from https://github.com/JorelAli/CommandAPI
-+package dev.jorel.commandapi;
-+
-+/**
-+ * This file handles loading the correct mappings information. The MojangMappedVersionHandler
-+ * file within the commandapi-core module may not be used at run time. Instead, if a platform module
-+ * wants to be mojang-mapped, they can replace it with this class where {@link #isMojangMapped()} returns {@code true}.
-+ */
-+public interface MojangMappedVersionHandler {
-+    static boolean isMojangMapped() {
-+        return true;
-+    }
-+}
-\ No newline at end of file
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621d512ee76
+index 0000000000000000000000000000000000000000..e3228efcb0d85c0c43cd4e52fe0b877414a5ebe5
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
-@@ -0,0 +1,1055 @@
+@@ -0,0 +1,1081 @@
 +/*******************************************************************************
 + * Copyright 2024 Jorel Ali (Skepter) - MIT License
 + *
@@ -133,7 +94,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 + * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 + * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 + *******************************************************************************/
-+// Copy from https://github.com/JorelAli/CommandAPI
++// Modified from https://github.com/JorelAli/CommandAPI
 +package dev.jorel.commandapi.nms;
 +
 +import java.io.File;
@@ -141,6 +102,9 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +import java.io.PrintWriter;
 +import java.io.StringWriter;
 +import java.lang.reflect.Field;
++import java.lang.reflect.Modifier;
++import java.lang.reflect.ParameterizedType;
++import java.lang.reflect.Type;
 +import java.nio.charset.StandardCharsets;
 +import java.util.ArrayList;
 +import java.util.Collection;
@@ -157,6 +121,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +
 +import dev.jorel.commandapi.*;
 +import io.papermc.paper.command.brigadier.bukkit.BukkitCommandNode;
++import net.minecraft.commands.*;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Color;
 +import org.bukkit.Location;
@@ -228,11 +193,6 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +import net.md_5.bungee.chat.ComponentSerializer;
 +import net.minecraft.advancements.AdvancementHolder;
 +import net.minecraft.advancements.critereon.MinMaxBounds;
-+import net.minecraft.commands.CommandBuildContext;
-+import net.minecraft.commands.CommandResultCallback;
-+import net.minecraft.commands.CommandSourceStack;
-+import net.minecraft.commands.FunctionInstantiationException;
-+import net.minecraft.commands.SharedSuggestionProvider;
 +import net.minecraft.commands.arguments.ColorArgument;
 +import net.minecraft.commands.arguments.ComponentArgument;
 +import net.minecraft.commands.arguments.DimensionArgument;
@@ -304,8 +264,11 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +import net.minecraft.world.phys.Vec2;
 +import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.scores.ScoreHolder;
++import org.bukkit.loot.LootTable;
++import org.jetbrains.annotations.NotNull;
 +
 +// Mojang-Mapped reflection
++
 +/**
 + * NMS implementation for Minecraft 1.20.5, 1.20.6
 + */
@@ -315,9 +278,9 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +    private static final Field entitySelectorUsesSelector;
 +    // private static final SafeVarHandle<ItemInput, CompoundTag> itemInput;
 +    private static final Field serverFunctionLibraryDispatcher;
-+    private static final boolean vanillaCommandDispatcherFieldExists;
 +
 +    // Derived from net.minecraft.commands.Commands;
++    @NotNull
 +    private static final CommandBuildContext COMMAND_BUILD_CONTEXT;
 +
 +    // Compute all var handles all in one go so we don't do this during main server
@@ -327,25 +290,34 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +            COMMAND_BUILD_CONTEXT = CommandBuildContext.simple(server.getServer().registryAccess(),
 +                    server.getServer().getWorldData().getDataConfiguration().enabledFeatures());
 +        } else {
-+            COMMAND_BUILD_CONTEXT = null;
++            throw new IllegalStateException("Bukkit server is not a CraftServer! This should never happen!");
 +        }
 +
 +        helpMapTopics = SafeVarHandle.ofOrNull(SimpleHelpMap.class, "helpTopics", "helpTopics", Map.class);
 +        // For some reason, MethodHandles fails for this field, but Field works okay
-+        entitySelectorUsesSelector = CommandAPIHandler.getField(EntitySelector.class, "p", "usesSelector");
++        // entitySelectorUsesSelector = EntitySelector::usesSelector;
++        Field usesSelector = null;
++        for (Field field : EntitySelector.class.getFields()) {
++            if (field.getType().equals(boolean.class) && Modifier.isPublic(field.getModifiers())) {
++                usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
++            }
++        }
++        entitySelectorUsesSelector = usesSelector;
 +        // itemInput = SafeVarHandle.ofOrNull(ItemInput.class, "c", "tag", CompoundTag.class);
 +        // For some reason, MethodHandles fails for this field, but Field works okay
-+        serverFunctionLibraryDispatcher = CommandAPIHandler.getField(ServerFunctionLibrary.class, "g", "dispatcher");
-+
-+        boolean fieldExists;
-+        try {
-+            MinecraftServer.class.getDeclaredField("vanillaCommandDispatcher");
-+            fieldExists = true;
-+        } catch (NoSuchFieldException | SecurityException e) {
-+            // Expected on Paper-1.20.6-65 or later due to https://github.com/PaperMC/Paper/pull/8235
-+            fieldExists = false;
++        Field dispatcher = null;
++        for (Field field : ServerFunctionLibrary.class.getFields()) {
++            if (CommandDispatcher.class.isAssignableFrom(field.getType())) {
++                Type genericType = field.getGenericType();
++                if (genericType instanceof ParameterizedType) {
++                    Type[] actualTypeArguments = ((ParameterizedType) genericType).getActualTypeArguments();
++                    if (actualTypeArguments.length == 1 && actualTypeArguments[0].equals(CommandSourceStack.class)) {
++                        dispatcher = CommandAPIHandler.getField(ServerFunctionLibrary.class, field.getName(), "");
++                    }
++                }
++            }
 +        }
-+        vanillaCommandDispatcherFieldExists = false;
++        serverFunctionLibraryDispatcher = dispatcher;
 +    }
 +
 +    private static NamespacedKey fromResourceLocation(ResourceLocation key) {
@@ -411,8 +383,8 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +
 +    @Override
 +    public String[] compatibleVersions() {
-+        return new String[] { "1.20.5", "1.20.6" };
-+    };
++        return new String[]{"1.20.5", "1.20.6"};
++    }
 +
 +    private static String serializeNMSItemStack(ItemStack is) {
 +        final DataComponentMap patchedMap = PatchedDataComponentMap.fromPatch(PatchedDataComponentMap.EMPTY, is.getComponentsPatch());
@@ -425,7 +397,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +        return serializeNMSItemStack(CraftItemStack.asNMSCopy(is));
 +    }
 +
-+    @SuppressWarnings({ "rawtypes", "unchecked" })
++    @SuppressWarnings({"rawtypes", "unchecked"})
 +    @Differs(from = "1.20.4", by = "Everything")
 +    @Override
 +    public final String convert(ParticleData<?> particle) {
@@ -445,10 +417,12 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +    /**
 +     * An implementation of {@link ServerFunctionManager#execute(CommandFunction, CommandSourceStack)} with a specified
 +     * command result callback instead of {@link CommandResultCallback.EMPTY}
++     *
 +     * @param commandFunction the command function to run
-+     * @param css the command source stack to execute this command
++     * @param css             the command source stack to execute this command
 +     * @return the result of our function. This is either 0 is the command failed, or greater than 0 if the command succeeded
 +     */
++    @SuppressWarnings("JavadocReference")
 +    private final int runCommandFunction(CommandFunction<CommandSourceStack> commandFunction, CommandSourceStack css) {
 +        // Profile the function. We want to simulate the execution sequence exactly
 +        ProfilerFiller profiler = this.<MinecraftServer>getMinecraftServer().getProfiler();
@@ -460,7 +434,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +
 +        try {
 +            final InstantiatedFunction<CommandSourceStack> instantiatedFunction = commandFunction.instantiate((CompoundTag) null, this.getBrigadierDispatcher());
-+            net.minecraft.commands.Commands.executeCommandInContext(css, (executioncontext) -> {
++            Commands.executeCommandInContext(css, (executioncontext) -> {
 +                ExecutionContext.queueInitialFunctionCall(executioncontext, instantiatedFunction, css, onCommandResult);
 +            });
 +        } catch (FunctionInstantiationException functionInstantiationException) {
@@ -541,7 +515,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +                .location();
 +        return switch (subType) {
 +            case BIOME_BIOME -> {
-+                Biome biome = null;
++                Biome biome;
 +                try {
 +                    biome = Biome.valueOf(resourceLocation.getPath().toUpperCase());
 +                } catch (IllegalArgumentException biomeNotFound) {
@@ -724,7 +698,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +        ItemInput input = ItemArgument.getItem(cmdCtx, key);
 +
 +        // Create the basic ItemStack with an amount of 1
-+        net.minecraft.world.item.ItemStack item = input.createItemStack(1, false);
++        ItemStack item = input.createItemStack(1, false);
 +        return CraftItemStack.asBukkitCopy(item);
 +    }
 +
@@ -765,7 +739,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +    }
 +
 +    @Override
-+    public final org.bukkit.loot.LootTable getLootTable(CommandContext<CommandSourceStack> cmdCtx, String key) {
++    public final LootTable getLootTable(CommandContext<CommandSourceStack> cmdCtx, String key) {
 +        return CraftLootTable.minecraftToBukkit(ResourceLocationArgument.getId(cmdCtx, key));
 +    }
 +
@@ -774,6 +748,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +        return fromResourceLocation(ResourceLocationArgument.getId(cmdCtx, key));
 +    }
 +
++    @SuppressWarnings("UnnecessaryBoxing")
 +    @Differs(from = "1.20.4", by = "New particle option ColorParticleOption")
 +    @Override
 +    public final ParticleData<?> getParticle(CommandContext<CommandSourceStack> cmdCtx, String key) {
@@ -794,32 +769,43 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +            particle = null;
 +        }
 +
-+        if (particleOptions instanceof SimpleParticleType) {
-+            return new ParticleData<Void>(particle, null);
-+        } else if (particleOptions instanceof BlockParticleOption options) {
-+            return new ParticleData<BlockData>(particle, CraftBlockData.fromData(options.getState()));
-+        } else if (particleOptions instanceof DustColorTransitionOptions options) {
-+            return getParticleDataAsDustColorTransitionOption(particle, options);
-+        } else if (particleOptions instanceof DustParticleOptions options) {
-+            final Color color = Color.fromRGB((int) (options.getColor().x() * 255.0F),
-+                    (int) (options.getColor().y() * 255.0F), (int) (options.getColor().z() * 255.0F));
-+            return new ParticleData<DustOptions>(particle, new DustOptions(color, options.getScale()));
-+        } else if (particleOptions instanceof ItemParticleOption options) {
-+            return new ParticleData<org.bukkit.inventory.ItemStack>(particle,
-+                    CraftItemStack.asBukkitCopy(options.getItem()));
-+        } else if (particleOptions instanceof VibrationParticleOption options) {
-+            return getParticleDataAsVibrationParticleOption(cmdCtx, particle, options);
-+        } else if (particleOptions instanceof ShriekParticleOption options) {
-+            // CraftBukkit implements shriek particles as a (boxed) Integer object
-+            return new ParticleData<Integer>(particle, Integer.valueOf(options.getDelay()));
-+        } else if (particleOptions instanceof SculkChargeParticleOptions options) {
-+            // CraftBukkit implements sculk charge particles as a (boxed) Float object
-+            return new ParticleData<Float>(particle, Float.valueOf(options.roll()));
-+        } else if (particleOptions instanceof ColorParticleOption options) {
-+            return getParticleDataAsColorParticleOption(particle, options);
-+        } else {
-+            CommandAPI.getLogger().warning("Invalid particle data type for " + particle.getDataType().toString());
-+            return new ParticleData<Void>(particle, null);
++        switch (particleOptions) {
++            case SimpleParticleType simpleParticleType -> {
++                return new ParticleData<Void>(particle, null);
++            }
++            case BlockParticleOption options -> {
++                return new ParticleData<BlockData>(particle, CraftBlockData.fromData(options.getState()));
++            }
++            case DustColorTransitionOptions options -> {
++                return getParticleDataAsDustColorTransitionOption(particle, options);
++            }
++            case DustParticleOptions options -> {
++                final Color color = Color.fromRGB((int) (options.getColor().x() * 255.0F),
++                        (int) (options.getColor().y() * 255.0F), (int) (options.getColor().z() * 255.0F));
++                return new ParticleData<DustOptions>(particle, new DustOptions(color, options.getScale()));
++            }
++            case ItemParticleOption options -> {
++                return new ParticleData<org.bukkit.inventory.ItemStack>(particle,
++                        CraftItemStack.asBukkitCopy(options.getItem()));
++            }
++            case VibrationParticleOption options -> {
++                return getParticleDataAsVibrationParticleOption(cmdCtx, particle, options);
++            }
++            case ShriekParticleOption options -> {
++                // CraftBukkit implements shriek particles as a (boxed) Integer object
++                return new ParticleData<Integer>(particle, Integer.valueOf(options.getDelay()));
++            }
++            case SculkChargeParticleOptions options -> {
++                // CraftBukkit implements sculk charge particles as a (boxed) Float object
++                return new ParticleData<Float>(particle, Float.valueOf(options.roll()));
++            }
++            case ColorParticleOption options -> {
++                return getParticleDataAsColorParticleOption(particle, options);
++            }
++            default -> {
++                CommandAPI.getLogger().warning("Invalid particle data type for " + particle.getDataType().toString());
++                return new ParticleData<Void>(particle, null);
++            }
 +        }
 +    }
 +
@@ -845,6 +831,7 @@ index 0000000000000000000000000000000000000000..cf244c1a9aee687be3f95818f1cd2621
 +        return new ParticleData<DustTransition>(particle, new DustTransition(color, toColor, options.getScale()));
 +    }
 +
++    @SuppressWarnings("removal")
 +    private ParticleData<?> getParticleDataAsVibrationParticleOption(CommandContext<CommandSourceStack> cmdCtx,
 +                                                                     Particle particle, VibrationParticleOption options) {
 +        // The "from" part of the Vibration object in Bukkit is completely ignored now,
@@ -1783,6 +1770,19 @@ index 9af388a8e56806ab44f8c3ef4f97086ce38ef3b4..7956046156b8e382fb377ebbc63fe873
  
              if (missingDependencies.isEmpty()) {
                  validatedProviders.add(provider);
+diff --git a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
+index d78ad5eccd18d89050a486a0c40090a09683bd16..8302e4bedc03795c4cda526466fa4dc279b2dd21 100644
+--- a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
++++ b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
+@@ -53,7 +53,7 @@ public class EntitySelector {
+     @Nullable
+     private final UUID entityUUID;
+     private final EntityTypeTest<Entity, ?> type;
+-    private final boolean usesSelector;
++    public final boolean usesSelector; // Lumina - Command API
+ 
+     public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
+         this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 index cc40d3e69a3635ca7895876159f2821091c14a9a..ad189a69f8466324d5c33416d0fbaeefa017341f 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
