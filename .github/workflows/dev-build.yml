@@ -2,7 +2,7 @@ name: Lumina Dev Build
 
 on:
   push:
-    branches-ignore: [ master ]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
