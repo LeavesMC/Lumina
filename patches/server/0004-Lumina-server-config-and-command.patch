@@ -4,6 +4,67 @@ Date: Thu, 11 Apr 2024 22:58:15 +0800
 Subject: [PATCH] Lumina server config and command
 
 
+diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
+index e3228efcb0d85c0c43cd4e52fe0b877414a5ebe5..bdc35ec969486f6f026f6fb9bb0b9c22b947c414 100644
+--- a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
++++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
+@@ -25,19 +25,12 @@ import java.io.File;
+ import java.io.IOException;
+ import java.io.PrintWriter;
+ import java.io.StringWriter;
++import java.lang.annotation.Annotation;
+ import java.lang.reflect.Field;
+-import java.lang.reflect.Modifier;
+ import java.lang.reflect.ParameterizedType;
+ import java.lang.reflect.Type;
+ import java.nio.charset.StandardCharsets;
+-import java.util.ArrayList;
+-import java.util.Collection;
+-import java.util.HashSet;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.Optional;
+-import java.util.Set;
++import java.util.*;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.function.Predicate;
+@@ -190,6 +183,7 @@ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.ScoreHolder;
+ import org.bukkit.loot.LootTable;
+ import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.utils.ReflectTargetField;
+ 
+ // Mojang-Mapped reflection
+ 
+@@ -222,8 +216,10 @@ public class NMS_1_20_R4 extends NMS_Common {
+         // entitySelectorUsesSelector = EntitySelector::usesSelector;
+         Field usesSelector = null;
+         for (Field field : EntitySelector.class.getFields()) {
+-            if (field.getType().equals(boolean.class) && Modifier.isPublic(field.getModifiers())) {
+-                usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
++            for (Annotation annotation : field.getAnnotations()) {
++                if (annotation instanceof ReflectTargetField) {
++                    usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
++                }
+             }
+         }
+         entitySelectorUsesSelector = usesSelector;
+diff --git a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
+index 8302e4bedc03795c4cda526466fa4dc279b2dd21..17351285d16956d22eca0d5dce336699b485e42f 100644
+--- a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
++++ b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
+@@ -53,7 +53,8 @@ public class EntitySelector {
+     @Nullable
+     private final UUID entityUUID;
+     private final EntityTypeTest<Entity, ?> type;
+-    public final boolean usesSelector; // Lumina - Command API
++    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
++    private final boolean usesSelector;
+ 
+     public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
+         this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b7c05548c 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
@@ -26,23 +87,25 @@ index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fd9c1eb61db962a0901de3fcd34e2810ab873b1d
+index 0000000000000000000000000000000000000000..ef278cdf016b1ff94e8791da804a76eda7139509
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,122 @@
 +package org.leavesmc.lumina;
 +
-+import com.mojang.datafixers.util.Pair;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandExecutor;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import org.bukkit.command.CommandSender;
 +import org.checkerframework.checker.units.qual.C;
-+import org.reflections.Reflections;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.util.ArrayList;
-+import java.util.HashMap;
++import java.util.Arrays;
 +import java.util.List;
-+import java.util.Map;
 +
 +public class LuminaCommand {
 +    private LuminaCommand() {
@@ -60,11 +123,94 @@ index 0000000000000000000000000000000000000000..fd9c1eb61db962a0901de3fcd34e2810
 +                        .withSubcommand(new CommandAPICommand("modify")
 +                                .withPermission("lumina.config.modify")
 +                                .withArguments(new StringArgument("node"))
++                                .withArguments(new StringArgument("value")
++                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
++                                            String node = (String) info.previousArgs().get("node");
++                                            LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                            if (node == null || nodeInfo == null) return new String[]{};
++                                            return nodeInfo.suggestions();
++                                        })))
 +                                .executes((sender, args) -> {
 +                                    String node = (String) args.get("node");
-+                                }))
-+                )
++                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                    if (node == null || nodeInfo == null) {
++                                        sendError(sender, "No config node specified.");
++                                        return;
++                                    }
++                                    String value = (String) args.get("value");
++                                    Class<?> type = nodeInfo.type();
++                                    Object parent = nodeInfo.parent();
++                                    if (value == null) {
++                                        sendError(sender, "No value specified, expected: " + type.getSimpleName());
++                                        return;
++                                    }
++                                    try {
++                                        if (type.isEnum()) {
++                                            @SuppressWarnings({"unchecked", "rawtypes"})
++                                            Class<? extends Enum> enumType = (Class<? extends Enum>) type;
++                                            try {
++                                                @SuppressWarnings("unchecked")
++                                                Object enumValue = Enum.valueOf(enumType, value);
++                                                nodeInfo.field().set(parent, enumValue);
++                                            } catch (IllegalArgumentException ignored) {
++                                                sendError(sender, "Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value);
++                                            }
++                                        } else {
++                                            switch (type.getSimpleName()) {
++                                                case "boolean" -> {
++                                                    if ("true".equals(value)) {
++                                                        nodeInfo.field().setBoolean(parent, true);
++                                                    } else if ("false".equals(value)) {
++                                                        nodeInfo.field().setBoolean(parent, false);
++                                                    } else {
++                                                        sendError(sender, "Expected boolean, but entered: " + value);
++                                                    }
++                                                }
++                                                case "int" -> {
++                                                    try {
++                                                        nodeInfo.field().setInt(parent, Integer.parseInt(value));
++                                                    } catch (NumberFormatException ignored) {
++                                                        sendError(sender, "Expected int, but entered: " + value);
++                                                    }
++                                                }
++                                                case "long" -> {
++                                                    try {
++                                                        nodeInfo.field().setLong(parent, Long.parseLong(value));
++                                                    } catch (NumberFormatException ignored) {
++                                                        sendError(sender, "Expected long, but entered: " + value);
++                                                    }
++                                                }
++                                                case "double" -> {
++                                                    try {
++                                                        nodeInfo.field().setDouble(parent, Double.parseDouble(value));
++                                                    } catch (NumberFormatException ignored) {
++                                                        sendError(sender, "Expected double, but entered: " + value);
++                                                    }
++                                                }
++                                                case "String" -> nodeInfo.field().set(parent, value);
++                                                default -> throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                                            }
++                                        }
++                                        sendSuccess(sender, "Already set " + node + " to " + value);
++                                    } catch (IllegalAccessException e) {
++                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
++                                    }
++                                })))
 +                .register();
++    }
++
++    private void sendError(@NotNull CommandSender sender, String message) {
++        sender.sendMessage(Component
++                .empty()
++                .color(NamedTextColor.RED)
++                .append(Component.text(message)));
++    }
++
++    private void sendSuccess(@NotNull CommandSender sender, String message) {
++        sender.sendMessage(Component
++                .empty()
++                .color(NamedTextColor.DARK_GREEN)
++                .append(Component.text(message)));
 +    }
 +}
 \ No newline at end of file
@@ -93,10 +239,10 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..39b52abfc5647739989d68475b7d9e2731447c6b
+index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc7a8ec130
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,109 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -116,23 +262,18 @@ index 0000000000000000000000000000000000000000..39b52abfc5647739989d68475b7d9e27
 +import java.util.concurrent.CompletableFuture;
 +
 +public class LuminaConfig {
-+    private static final String MODULES_PACKAGE = "org.leavesmc.lumina.config.modules";
-+    private static final Set<Class<?>> SIMPLE_TYPES = new HashSet<>(Arrays.asList(
++    private static final Set<Class<?>> CONFIG_FIELD_TYPES = new HashSet<>(Arrays.asList(
 +            String.class,
 +            boolean.class,
-+            byte.class,
-+            short.class,
 +            int.class,
 +            long.class,
-+            float.class,
-+            double.class,
-+            char.class));
++            double.class));
 +    public static final Logger logger = LogManager.getLogger();
 +    public static ConfigModule configModule;
 +    public static boolean alreadyInit = false;
 +    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
 +    private static HoconConfigurationLoader loader;
-+    public static Map<String, List<String>> nodeSuggestions = new HashMap<>();
++    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
 +
 +    public static void setup() {
 +        if (alreadyInit) {
@@ -154,11 +295,11 @@ index 0000000000000000000000000000000000000000..39b52abfc5647739989d68475b7d9e27
 +            throw new RuntimeException(e);
 +        }
 +        try {
-+            generateNodeSuggestions(ConfigModule.class, null, LuminaConfig.configModule);
++            generateNodeInfos(ConfigModule.class, null, LuminaConfig.configModule);
 +        } catch (IllegalAccessException e) {
 +            throw new RuntimeException(e);
 +        }
-+        System.out.println(nodeSuggestions.toString());
++        System.out.println(nodeInfos);
 +        alreadyInit = true;
 +    }
 +
@@ -191,21 +332,24 @@ index 0000000000000000000000000000000000000000..39b52abfc5647739989d68475b7d9e27
 +        return sb.toString();
 +    }
 +
-+    private static void generateNodeSuggestions(@NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
++    private static void generateNodeInfos(@NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
 +        for (Field field : clazz.getFields()) {
 +            String fieldName = field.getName();
 +            Class<?> fieldType = field.getType();
 +            String key = parentKey == null ? toHyphen(fieldName) : parentKey + "." + toHyphen(fieldName);
 +            if ("boolean".equals(fieldType.getSimpleName())) {
-+                nodeSuggestions.put(key, Arrays.asList("true", "false"));
-+            } else if (SIMPLE_TYPES.contains(fieldType)) {
-+                nodeSuggestions.put(key, List.of(field.get(parent).toString()));
++                nodeInfos.put(key, new ConfigNodeInfo(new String[]{"true", "false"}, fieldType, field, parent));
++            } else if (CONFIG_FIELD_TYPES.contains(fieldType)) {
++                nodeInfos.put(key, new ConfigNodeInfo(new String[]{field.get(parent).toString()}, fieldType, field, parent));
 +            } else if (fieldType.isEnum()) {
-+                nodeSuggestions.put(key, Arrays.asList(Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new)));
++                nodeInfos.put(key, new ConfigNodeInfo((Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new)), fieldType, field, parent));
 +            } else {
-+                generateNodeSuggestions(fieldType, key, field.get(parent));
++                generateNodeInfos(fieldType, key, field.get(parent));
 +            }
 +        }
++    }
++
++    public record ConfigNodeInfo(String[] suggestions, Class<?> type, Field field, Object parent) {
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
@@ -344,15 +488,13 @@ index 0000000000000000000000000000000000000000..94f61ca5e003d221415665a921988028
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..66dc47d861f9233565cdb393dfadae5b071c9285
+index 0000000000000000000000000000000000000000..35aed045ceb1f7647de4b0efbf7c609f62c402d8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,11 @@
 +package org.leavesmc.lumina.config.modules.misc;
 +
-+import org.leavesmc.lumina.config.LuminaConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
 +import org.stupidcraft.linearpaper.region.EnumRegionFileExtension;
 +
 +@ConfigSerializable
@@ -489,4 +631,21 @@ index 0000000000000000000000000000000000000000..d3c8a35d01125de736eb1f1a0bd27023
 +public class ProjectileChunkReduceConfig {
 +    public int maxProjectileLoadsPerTick;
 +    public int maxProjectileLoadsPerProjectile;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4deb7ca3c09a03faf0ddf2b49d0a0581a9682c75
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
+@@ -0,0 +1,11 @@
++package org.leavesmc.lumina.utils;
++
++import java.lang.annotation.ElementType;
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++import java.lang.annotation.Target;
++
++@Retention(RetentionPolicy.RUNTIME)
++@Target(ElementType.FIELD)
++public @interface ReflectTargetField {
 +}
