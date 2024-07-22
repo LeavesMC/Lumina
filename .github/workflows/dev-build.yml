@@ -37,7 +37,7 @@ jobs:
             grep "${1}" gradle.properties | cut -d'=' -f2 | sed 's/\r//'
           }
           
-          jarName="leaves-$(prop version).jar"
+          jarName="Lumina-leavesclip-$(prop version)-mojmap.jar"
           mv build/libs/Lumina-leavesclip-"$(prop version)"-mojmap.jar "$jarName"
           echo "jar=$jarName" >> "$GITHUB_ENV"
       - name: Upload Artifact
