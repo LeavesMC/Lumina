@@ -87,7 +87,7 @@ index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ef278cdf016b1ff94e8791da804a76eda7139509
+index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac967ce04a
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 @@ -0,0 +1,122 @@
@@ -95,17 +95,13 @@ index 0000000000000000000000000000000000000000..ef278cdf016b1ff94e8791da804a76ed
 +
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
-+import dev.jorel.commandapi.executors.CommandExecutor;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.format.NamedTextColor;
 +import org.bukkit.command.CommandSender;
-+import org.checkerframework.checker.units.qual.C;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.LuminaConfig;
 +
-+import java.util.ArrayList;
 +import java.util.Arrays;
-+import java.util.List;
 +
 +public class LuminaCommand {
 +    private LuminaCommand() {
@@ -122,12 +118,15 @@ index 0000000000000000000000000000000000000000..ef278cdf016b1ff94e8791da804a76ed
 +                .withSubcommand(new CommandAPICommand("config")
 +                        .withSubcommand(new CommandAPICommand("modify")
 +                                .withPermission("lumina.config.modify")
-+                                .withArguments(new StringArgument("node"))
++                                .withArguments(new StringArgument("node")
++                                        .replaceSuggestions(ArgumentSuggestions.strings(LuminaConfig.nodeInfos.keySet().toArray(new String[0]))))
 +                                .withArguments(new StringArgument("value")
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
 +                                            String node = (String) info.previousArgs().get("node");
 +                                            LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                                            if (node == null || nodeInfo == null) return new String[]{};
++                                            if (node == null || nodeInfo == null) {
++                                                return new String[]{};
++                                            }
 +                                            return nodeInfo.suggestions();
 +                                        })))
 +                                .executes((sender, args) -> {
@@ -188,7 +187,8 @@ index 0000000000000000000000000000000000000000..ef278cdf016b1ff94e8791da804a76ed
 +                                                    }
 +                                                }
 +                                                case "String" -> nodeInfo.field().set(parent, value);
-+                                                default -> throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                                                default ->
++                                                        throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
 +                                            }
 +                                        }
 +                                        sendSuccess(sender, "Already set " + node + " to " + value);
