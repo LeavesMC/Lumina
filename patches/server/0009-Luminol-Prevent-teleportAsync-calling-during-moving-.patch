@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MrHua269 <novau233@163.com>
 Date: Wed, 7 Feb 2024 06:58:52 +0000
-Subject: [PATCH] Prevent teleportAsync calling during moving event being
+Subject: [PATCH] Luminol Prevent teleportAsync calling during moving event
+ being
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
@@ -44,7 +45,7 @@ index 2ae2527bbe5a08af98eb6405a8403c2199052f19..7ddb7d5aa1047eb8151aef01d5db694d
                                      // If the event is cancelled we move the player back to their old location.
                                      if (event.isCancelled()) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index bfc6c269d96201e8001b6575d4cb59cd70d1d7bc..676feaa5670d703429a987ff274ccfa755d64183 100644
+index faad27212cebae30095fc2b472fea960592d5ba7..13d3bcf109d3c776087089cdd690a3c7fbe48484 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4038,6 +4038,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

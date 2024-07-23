@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MrHua269 <novau233@163.com>
 Date: Mon, 10 Jun 2024 10:51:08 +0000
-Subject: [PATCH] Try fixing folia off region POI accessing issue
+Subject: [PATCH] Luminol Try fixing folia off region POI accessing issue
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java b/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java

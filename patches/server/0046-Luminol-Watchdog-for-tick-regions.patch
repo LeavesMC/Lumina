@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MrHua269 <novau233@163.com>
 Date: Sun, 10 Mar 2024 05:04:33 +0000
-Subject: [PATCH] Luminol Add a simple watchdog for tick regions
+Subject: [PATCH] Luminol Watchdog for tick regions
 
 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
