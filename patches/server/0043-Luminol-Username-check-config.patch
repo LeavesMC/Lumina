@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 04:50:10 +0000
+Subject: [PATCH] Luminol Username check config
+
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+index 83b09feec13a00c35e6f8d4f0ccdae1c8da9c0e5..55479b520f90b1cbee1016a37ec9098152106155 100644
+--- a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -173,7 +173,7 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+         // Paper start - Validate usernames
+         if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode()
+             && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.performUsernameValidation
+-            && !this.iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation) {
++            && !this.iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation  && org.leavesmc.lumina.config.LuminaConfig.configModule.misc.checkUsername) { // Luminol - Add config for username check
+             Validate.validState(StringUtil.isReasonablePlayerName(packet.name()), "Invalid characters in username", new Object[0]);
+         }
+         // Paper end - Validate usernames

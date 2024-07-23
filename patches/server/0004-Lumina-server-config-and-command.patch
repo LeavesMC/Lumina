@@ -431,10 +431,10 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..405026bad89d1d5bf9272351c98502bb25d06ea2
+index 0000000000000000000000000000000000000000..e46922fc0dff9b79a7bfab97d0b45280714dc277
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,15 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.fix.FixFoliaEntityMovingFixConfig;
@@ -446,6 +446,7 @@ index 0000000000000000000000000000000000000000..405026bad89d1d5bf9272351c98502bb
 +    public FixFoliaEntityMovingFixConfig fixFoliaEntityMoving = new FixFoliaEntityMovingFixConfig();
 +    public FixFoliaTeleportAsyncConfig fixFoliaTeleportAsync = new FixFoliaTeleportAsyncConfig();
 +    public boolean fixFoliaSpectorTeleport = true;
++    public boolean useVanillaRandomSourceForPlayers = true;
 +    public boolean fixFoliaPoiAccessOffRegion = true;
 +    public boolean mc2025 = false;
 +}
