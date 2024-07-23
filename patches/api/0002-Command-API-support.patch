@@ -5,7 +5,7 @@ Subject: [PATCH] Command API support
 
 
 diff --git a/src/main/java/org/bukkit/plugin/java/JavaPlugin.java b/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
-index d5a3c3dce76c4ed0f1184ab5ba21db9c5f1c01ec..789f500201bf0ad6597645f7799959fb8a378082 100644
+index d5a3c3dce76c4ed0f1184ab5ba21db9c5f1c01ec..13b2341f6d3b3caf3d7a79f936b19c6805197427 100644
 --- a/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
 +++ b/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
 @@ -15,6 +15,8 @@ import java.util.List;
@@ -17,17 +17,12 @@ index d5a3c3dce76c4ed0f1184ab5ba21db9c5f1c01ec..789f500201bf0ad6597645f7799959fb
  import org.bukkit.Server;
  import org.bukkit.command.Command;
  import org.bukkit.command.CommandSender;
-@@ -64,6 +66,21 @@ public abstract class JavaPlugin extends PluginBase {
+@@ -64,6 +66,16 @@ public abstract class JavaPlugin extends PluginBase {
          // Paper end
      }
  
 +    // Lumina start - CommandAPI support
-+    /**
-+     * It should only be used internally on the server side.
-+     * Never use it in a plugin!
-+     *
-+     */
-+    public JavaPlugin(@Nullable Object onlyForCommandApi) {
++    protected JavaPlugin(@Nullable Object ignored) {
 +        server = Bukkit.getServer();
 +        isEnabled = true;
 +        description = new PluginDescriptionFile("CommandAPI", "", "");

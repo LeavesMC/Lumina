@@ -1784,7 +1784,7 @@ index d78ad5eccd18d89050a486a0c40090a09683bd16..8302e4bedc03795c4cda526466fa4dc2
      public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
          this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index cc40d3e69a3635ca7895876159f2821091c14a9a..ad189a69f8466324d5c33416d0fbaeefa017341f 100644
+index cc40d3e69a3635ca7895876159f2821091c14a9a..f16e1ee682415cf1b49aeba2fb3f879b07be3226 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -91,6 +91,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -1800,7 +1800,7 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..ad189a69f8466324d5c33416d0fbaeef
          }
  
 +        // Lumina start - enable CommandAPI
-+        commandAPIPlugin = new org.bukkit.plugin.java.JavaPlugin(null){};
++        commandAPIPlugin = org.bukkit.plugin.java.CommandAPIPluginFactory.create();
 +        dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
 +                .shouldHookPaperReload(false)
 +                .skipReloadDatapacks(true)
@@ -1811,3 +1811,17 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..ad189a69f8466324d5c33416d0fbaeef
          // CraftBukkit start
          // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
          this.server.loadPlugins();
+diff --git a/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java b/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8afd999c0e4453df6b3b0c52cd6521758cd786b0
+--- /dev/null
++++ b/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java
+@@ -0,0 +1,7 @@
++package org.bukkit.plugin.java;
++
++public class CommandAPIPluginFactory {
++    public static JavaPlugin create() {
++        return new JavaPlugin(null) {};
++    }
++}
+\ No newline at end of file
