@@ -431,10 +431,10 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b96324d930094a856cdbdc9671a512a47fa2ca63
+index 0000000000000000000000000000000000000000..405026bad89d1d5bf9272351c98502bb25d06ea2
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,14 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.fix.FixFoliaEntityMovingFixConfig;
@@ -447,10 +447,11 @@ index 0000000000000000000000000000000000000000..b96324d930094a856cdbdc9671a512a4
 +    public FixFoliaTeleportAsyncConfig fixFoliaTeleportAsync = new FixFoliaTeleportAsyncConfig();
 +    public boolean fixFoliaSpectorTeleport = true;
 +    public boolean fixFoliaPoiAccessOffRegion = true;
++    public boolean mc2025 = false;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4576d68a7a2be5782e527262c20ff24edc9e1b71
+index 0000000000000000000000000000000000000000..d6f41a391d597655d799249a17445dda22c83f03
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
 @@ -0,0 +1,20 @@
@@ -468,7 +469,7 @@ index 0000000000000000000000000000000000000000..4576d68a7a2be5782e527262c20ff24e
 +    public String serverModName = "Lumina";
 +    public boolean fakeVanilla = false;
 +    public boolean checkUsername = true;
-+    public boolean useAlternativeKeepAlive = true;
++    public boolean alternativeKeepAlive = true;
 +    public boolean saveConfigAfterSet = true;
 +    public boolean verifyPublicKeyOnlyInOnlineMode = false;
 +    public WatchdogConfig watchdog = new WatchdogConfig();
@@ -496,7 +497,7 @@ index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332d
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6b93c0bf96b2a1b779ab12b2b65245fd410a7190
+index 0000000000000000000000000000000000000000..76d518c8300c9db013822766618aa560f988b5d7
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 @@ -0,0 +1,10 @@
@@ -507,7 +508,7 @@ index 0000000000000000000000000000000000000000..6b93c0bf96b2a1b779ab12b2b65245fd
 +
 +@ConfigSerializable
 +public class Protocol {
-+    public boolean enableCarpetProtocol = false;
++    public boolean carpetProtocol = false;
 +    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java

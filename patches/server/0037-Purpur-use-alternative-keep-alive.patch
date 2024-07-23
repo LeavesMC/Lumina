@@ -5,7 +5,7 @@ Subject: [PATCH] Purpur use alternative keep alive
 
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index f907dbb55369395058091dd75ae435d2025d94dd..8573142d1ef89f1fdd1ceddbb7018e426257f5d8 100644
+index f907dbb55369395058091dd75ae435d2025d94dd..5224c4ca63d47cdf0adefc0254e15bf5a0fba2fc 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -73,6 +73,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -21,7 +21,7 @@ index f907dbb55369395058091dd75ae435d2025d94dd..8573142d1ef89f1fdd1ceddbb7018e42
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
 +        // Purpur start
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.useAlternativeKeepAlive) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.alternativeKeepAlive) {
 +            if (this.keepAlivePending && !keepAlives.isEmpty() && keepAlives.contains(packet.getId())) {
 +                int ping = (int) (Util.getMillis() - packet.getId());
 +                this.latency = (this.latency * 3 + ping) / 4;
@@ -38,7 +38,7 @@ index f907dbb55369395058091dd75ae435d2025d94dd..8573142d1ef89f1fdd1ceddbb7018e42
          long elapsedTime = currentTime - this.keepAliveTime;
  
 +        // Purpur start
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.useAlternativeKeepAlive) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.alternativeKeepAlive) {
 +            if (elapsedTime >= 1000L) { // 1 second
 +                if (this.keepAlivePending && !this.processedDisconnect && keepAlives.size() * 1000L >= KEEPALIVE_LIMIT) {
 +                    LOGGER.warn("{} was kicked due to keepalive timeout!", this.player.getScoreboardName());

@@ -5,15 +5,16 @@ Subject: [PATCH] Fix-MC-2025
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7d0ce022ad816a0f3796ba22b31b962a5d83f8c9..ad62edaf597e1a5107edc99b4a7baaa138656a2e 100644
+index f8daab8b7e56421aeabb36e571a9f63d75e4bb73..657a0e0dc8350704d89ab9722a207a65f5f58455 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2602,6 +2602,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2602,6 +2602,17 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
 +
 +            // Luminol start - Fix MC-2025
++            if(!org.leavesmc.lumina.config.LuminaConfig.configModule.fix.mc2025) return nbttagcompound;
 +            AABB boundingBox = getBoundingBox();
 +            ListTag boundingBoxList = new ListTag();
 +            for (double coord : new double[]{boundingBox.minX, boundingBox.minY, boundingBox.minZ, boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ}) {
@@ -25,12 +26,12 @@ index 7d0ce022ad816a0f3796ba22b31b962a5d83f8c9..ad62edaf597e1a5107edc99b4a7baaa1
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2679,6 +2689,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2679,6 +2690,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                          this.reapplyPosition();
                      }
  
 +                    // Luminol start - Fix MC-2025
-+                    if (nbt.contains("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_LIST)) {
++                    if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.mc2025 && nbt.contains("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_LIST)) {
 +                        ListTag boundingBoxList = nbt.getList("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_DOUBLE);
 +                        setBoundingBox(new AABB(boundingBoxList.getDouble(0), boundingBoxList.getDouble(1), boundingBoxList.getDouble(2), boundingBoxList.getDouble(3), boundingBoxList.getDouble(4), boundingBoxList.getDouble(5)));
 +                    }
