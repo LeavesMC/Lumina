@@ -431,17 +431,19 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9ce750c78fdd04d62f97ed590226650079ca77bf
+index 0000000000000000000000000000000000000000..b96324d930094a856cdbdc9671a512a47fa2ca63
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,13 @@
 +package org.leavesmc.lumina.config.modules;
 +
++import org.leavesmc.lumina.config.modules.fix.FixFoliaEntityMovingFixConfig;
 +import org.leavesmc.lumina.config.modules.fix.FixFoliaTeleportAsyncConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
 +public class Fix {
++    public FixFoliaEntityMovingFixConfig fixFoliaEntityMoving = new FixFoliaEntityMovingFixConfig();
 +    public FixFoliaTeleportAsyncConfig fixFoliaTeleportAsync = new FixFoliaTeleportAsyncConfig();
 +    public boolean fixFoliaSpectorTeleport = true;
 +    public boolean fixFoliaPoiAccessOffRegion = true;
@@ -474,19 +476,20 @@ index 0000000000000000000000000000000000000000..4576d68a7a2be5782e527262c20ff24e
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ce1b53b29e5a1b515ecbd7f99804d79518a67bc3
+index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332de879acee
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,14 @@
 +package org.leavesmc.lumina.config.modules;
 +
-+import org.leavesmc.lumina.config.modules.optimization.*;
++import org.leavesmc.lumina.config.modules.performance.*;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
 +public class Performance {
 +    public PetalReduceSensorWorkConfig petalReduceSensorWork = new PetalReduceSensorWorkConfig();
 +    public ProjectileChunkReduceConfig projectileChunkReduce = new ProjectileChunkReduceConfig();
++    public DynamicEntityActivationRangeConfig dynamicEntityActivationRange = new DynamicEntityActivationRangeConfig();
 +    public boolean entityGoalSelectorInactiveTick = false;
 +    public boolean allowLoadChunksToActiveClimbingEntities = false;
 +    public boolean optimizeSuffocation = false;
@@ -507,6 +510,22 @@ index 0000000000000000000000000000000000000000..6b93c0bf96b2a1b779ab12b2b65245fd
 +    public boolean enableCarpetProtocol = false;
 +    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6abda15610a48676d145ef26bae7a7340b88b0ee
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java
+@@ -0,0 +1,9 @@
++package org.leavesmc.lumina.config.modules.fix;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class FixFoliaEntityMovingFixConfig {
++    public boolean enabled = false;
++    public boolean warnOnDetected = true;
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaTeleportAsyncConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaTeleportAsyncConfig.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..b043bf36de0604028cb7bdd166d000d2dec76360
@@ -571,13 +590,13 @@ index 0000000000000000000000000000000000000000..5e79b3e1dfa56896c20e3b7e9c9d0cc3
 +    public long warnPeriodTicks = 5 * 20;
 +    public long timeOutTicks = 30 * 20;
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..12a85414d4eb8f7740c227f5a5fb8514e5cd03e1
+index 0000000000000000000000000000000000000000..a8ae86452224380adce81229ed57757d6d4fa0ef
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/AsyncPathProcessingConfig.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java
 @@ -0,0 +1,24 @@
-+package org.leavesmc.lumina.config.modules.optimization;
++package org.leavesmc.lumina.config.modules.performance;
 +
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +import org.spongepowered.configurate.objectmapping.meta.PostProcess;
@@ -601,13 +620,31 @@ index 0000000000000000000000000000000000000000..12a85414d4eb8f7740c227f5a5fb8514
 +        }
 +    }
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b72e9c1fe5c7fb9abc9a3230b7339fb73c84e25c
+index 0000000000000000000000000000000000000000..194817dc72555bfbb78e191d0c0f393e3dfe2bb5
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java
+@@ -0,0 +1,12 @@
++package org.leavesmc.lumina.config.modules.performance;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import org.spongepowered.configurate.objectmapping.meta.PostProcess;
++
++@ConfigSerializable
++public class DynamicEntityActivationRangeConfig {
++    public boolean enabled = true;
++    public int startDistanceSquared = 144;
++    public int maximumActivationPriority = 20;
++    public int activationDistanceMod = 8;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/LoadChunksToActiveClimbingEntitiesConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/LoadChunksToActiveClimbingEntitiesConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..db160578fa0d35a275f953e88f04340c20d08942
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/LoadChunksToActiveClimbingEntitiesConfig.java
 @@ -0,0 +1,8 @@
-+package org.leavesmc.lumina.config.modules.optimization;
++package org.leavesmc.lumina.config.modules.performance;
 +
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
@@ -615,13 +652,13 @@ index 0000000000000000000000000000000000000000..b72e9c1fe5c7fb9abc9a3230b7339fb7
 +public class LoadChunksToActiveClimbingEntitiesConfig {
 +    public boolean allow = false;
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/PetalReduceSensorWorkConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/PetalReduceSensorWorkConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b18d3ab629aff9ddb15e0ad493325155ad8e1f6f
+index 0000000000000000000000000000000000000000..eed3fe3a9a7d5aa6eeeb3c2c3a40d73eafdd3f3f
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/PetalReduceSensorWorkConfig.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/PetalReduceSensorWorkConfig.java
 @@ -0,0 +1,9 @@
-+package org.leavesmc.lumina.config.modules.optimization;
++package org.leavesmc.lumina.config.modules.performance;
 +
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
@@ -630,13 +667,13 @@ index 0000000000000000000000000000000000000000..b18d3ab629aff9ddb15e0ad493325155
 +    public boolean enabled = true;
 +    public int delayTicks = 10;
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/ProjectileChunkReduceConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/ProjectileChunkReduceConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d3c8a35d01125de736eb1f1a0bd27023406ebf25
+index 0000000000000000000000000000000000000000..cb64dd4c224c9246fa8d999c8217096f7bebe89b
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/ProjectileChunkReduceConfig.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/ProjectileChunkReduceConfig.java
 @@ -0,0 +1,9 @@
-+package org.leavesmc.lumina.config.modules.optimization;
++package org.leavesmc.lumina.config.modules.performance;
 +
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +

@@ -6,7 +6,7 @@ Subject: [PATCH] Luminol Teleport async if entity was moving to another region
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index fad6a7185e8e9ea160b47ec9da56d08af9df8396..bfc6c269d96201e8001b6575d4cb59cd70d1d7bc 100644
+index fad6a7185e8e9ea160b47ec9da56d08af9df8396..faad27212cebae30095fc2b472fea960592d5ba7 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1127,6 +1127,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -25,7 +25,7 @@ index fad6a7185e8e9ea160b47ec9da56d08af9df8396..bfc6c269d96201e8001b6575d4cb59cd
              this.moveVector = movement;
          }
 +        //Luminol start - Fix high position moving
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
 +            var finalPosition = movement.add(this.position);
 +            if (this.preventMoving || Double.isNaN(finalPosition.x) || Double.isNaN(finalPosition.y) || Double.isNaN(finalPosition.z)){
 +                return;
@@ -43,7 +43,7 @@ index fad6a7185e8e9ea160b47ec9da56d08af9df8396..bfc6c269d96201e8001b6575d4cb59cd
 +                            this.preventMoving = false;
 +                        }
 +                );
-+                if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixEntityMoving.warnOnDetected){
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaEntityMoving.warnOnDetected){
 +                    MinecraftServer.LOGGER.warn("Entity {} with entityId {} has tried moving to another region!",this.type.getCategory().getName(),this.getId());
 +                }
 +                return;
