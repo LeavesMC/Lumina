@@ -87,19 +87,23 @@ index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac967ce04a
+index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab77ea818d3
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,186 @@
 +package org.leavesmc.lumina;
 +
++import com.mojang.logging.LogUtils;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextColor;
 +import org.bukkit.command.CommandSender;
++import org.bukkit.command.ConsoleCommandSender;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.LuminaConfig;
++import org.slf4j.Logger;
 +
 +import java.util.Arrays;
 +
@@ -108,19 +112,21 @@ index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac
 +    }
 +
 +    public static LuminaCommand INSTANCE = new LuminaCommand();
++    private static final Logger LOGGER = LogUtils.getClassLogger();
 +
 +    public void registerCommands() {
 +        registerLuminaCommand();
 +    }
 +
 +    private void registerLuminaCommand() {
++        String[] configNodes = LuminaConfig.nodeInfos.keySet().toArray(new String[0]);
 +        new CommandAPICommand("lumina")
 +                .withSubcommand(new CommandAPICommand("config")
-+                        .withSubcommand(new CommandAPICommand("modify")
-+                                .withPermission("lumina.config.modify")
++                        .withSubcommand(new CommandAPICommand("set")
++                                .withPermission("lumina.config.set")
 +                                .withArguments(new StringArgument("node")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(LuminaConfig.nodeInfos.keySet().toArray(new String[0]))))
-+                                .withArguments(new StringArgument("value")
++                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes)))
++                                .withArguments(new GreedyStringArgument("value")
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
 +                                            String node = (String) info.previousArgs().get("node");
 +                                            LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
@@ -128,8 +134,8 @@ index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac
 +                                                return new String[]{};
 +                                            }
 +                                            return nodeInfo.suggestions();
-+                                        })))
-+                                .executes((sender, args) -> {
++                                        }))
++                                ).executes((sender, args) -> {
 +                                    String node = (String) args.get("node");
 +                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
@@ -144,6 +150,7 @@ index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac
 +                                        return;
 +                                    }
 +                                    try {
++                                        boolean save = LuminaConfig.configModule.misc.saveConfigAfterSet;
 +                                        if (type.isEnum()) {
 +                                            @SuppressWarnings({"unchecked", "rawtypes"})
 +                                            Class<? extends Enum> enumType = (Class<? extends Enum>) type;
@@ -187,29 +194,86 @@ index 0000000000000000000000000000000000000000..7a82bdca0995d6476f38e8b6d78946ac
 +                                                    }
 +                                                }
 +                                                case "String" -> nodeInfo.field().set(parent, value);
-+                                                default ->
-+                                                        throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                                                default -> throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
 +                                            }
 +                                        }
 +                                        sendSuccess(sender, "Already set " + node + " to " + value);
++                                        if (save) {
++                                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
++                                                LOGGER.info("Saved Lumina config after setting {} to {}", node, value);
++                                                return null;
++                                            });
++                                        }
 +                                    } catch (IllegalAccessException e) {
 +                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
 +                                    }
-+                                })))
-+                .register();
++                                })
++                        ).withSubcommand(new CommandAPICommand("get")
++                                .withPermission("lumina.config.get")
++                                .withArguments(new StringArgument("node")
++                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes)))
++                                .executes((sender, args) -> {
++                                    String node = (String) args.get("node");
++                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                    if (node == null || nodeInfo == null) {
++                                        sendError(sender, "No config node specified.");
++                                        return;
++                                    }
++                                    try {
++                                        sendInfo(sender, "The value of " + node + " is " + nodeInfo.field().get(nodeInfo.parent()));
++                                    } catch (IllegalAccessException e) {
++                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
++                                    }
++                                })
++                        ).withSubcommand(new CommandAPICommand("reload")
++                                .withPermission("lumina.config.reload")
++                                .executes((sender, args) -> {
++                                    sendSuccess(sender, "Reloading Lumina config...");
++                                    if (!(sender instanceof ConsoleCommandSender)) {
++                                        LOGGER.info("Reloading Lumina config...");
++                                    }
++                                    LuminaConfig.reloadAsync().thenApply((Void ignored) -> {
++                                        sendSuccess(sender, "Lumina config reloaded.");
++                                        if (!(sender instanceof ConsoleCommandSender)) {
++                                            LOGGER.info("Lumina config reloaded.");
++                                        }
++                                        return null;
++                                    });
++                                })
++                        ).withSubcommand(new CommandAPICommand("save"))
++                        .withPermission("lumina.config.set") // Cause `set` also called save, so use the same permission node
++                        .executes((sender, args) -> {
++                            sendSuccess(sender, "Saving Lumina config...");
++                            if (!(sender instanceof ConsoleCommandSender)) {
++                                LOGGER.info("Saving Lumina config...");
++                            }
++                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
++                                sendSuccess(sender, "Lumina config saved.");
++                                if (!(sender instanceof ConsoleCommandSender)) {
++                                    LOGGER.info("Lumina config saved.");
++                                }
++                                return null;
++                            });
++                        })
++                ).register();
 +    }
 +
 +    private void sendError(@NotNull CommandSender sender, String message) {
-+        sender.sendMessage(Component
-+                .empty()
-+                .color(NamedTextColor.RED)
-+                .append(Component.text(message)));
++        sendMessage(sender, message, NamedTextColor.RED);
 +    }
 +
 +    private void sendSuccess(@NotNull CommandSender sender, String message) {
++        sendMessage(sender, message, NamedTextColor.DARK_GREEN);
++    }
++
++    private void sendInfo(@NotNull CommandSender sender, String message) {
++        sendMessage(sender, message, NamedTextColor.WHITE);
++    }
++
++    private void sendMessage(@NotNull CommandSender sender, String message, TextColor color) {
 +        sender.sendMessage(Component
 +                .empty()
-+                .color(NamedTextColor.DARK_GREEN)
++                .color(color)
 +                .append(Component.text(message)));
 +    }
 +}
@@ -239,10 +303,10 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc7a8ec130
+index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db40dd55f09
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,122 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -268,11 +332,11 @@ index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc
 +            int.class,
 +            long.class,
 +            double.class));
-+    public static final Logger logger = LogManager.getLogger();
 +    public static ConfigModule configModule;
 +    public static boolean alreadyInit = false;
 +    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
 +    private static HoconConfigurationLoader loader;
++    private static CommentedConfigurationNode node;
 +    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
 +
 +    public static void setup() {
@@ -285,7 +349,6 @@ index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc
 +                .prettyPrinting(true)
 +                .path(Paths.get("lumina.conf"))
 +                .build();
-+        CommentedConfigurationNode node;
 +        try {
 +            node = loader.load();
 +            configModule = node.get(ConfigModule.class);
@@ -299,7 +362,6 @@ index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc
 +        } catch (IllegalAccessException e) {
 +            throw new RuntimeException(e);
 +        }
-+        System.out.println(nodeInfos);
 +        alreadyInit = true;
 +    }
 +
@@ -312,9 +374,24 @@ index 0000000000000000000000000000000000000000..b9c25fc2574f0b0741e96d95e4e7afdc
 +        }
 +    }
 +
++    public static void save() {
++        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
++        try {
++            node.set(ConfigModule.class, configModule);
++            loader.save(node);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
 +    @Contract(" -> new")
 +    public static @NotNull CompletableFuture<Void> reloadAsync() {
 +        return CompletableFuture.runAsync(LuminaConfig::reload, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
++    }
++
++    @Contract(" -> new")
++    public static @NotNull CompletableFuture<Void> saveAsync() {
++        return CompletableFuture.runAsync(LuminaConfig::save, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
 +    }
 +
 +    private static @NotNull String toHyphen(String input) {
@@ -392,10 +469,10 @@ index 0000000000000000000000000000000000000000..b4eba642ebdcb1dadab0b1085ac94b4c
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ed5d885ddfe0ccca3a6e9f6d4d52c94afc292c77
+index 0000000000000000000000000000000000000000..52ae05a79cb3da8f424b24d20834dc72190510b4
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,19 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.misc.RegionFormatConfig;
@@ -410,6 +487,7 @@ index 0000000000000000000000000000000000000000..ed5d885ddfe0ccca3a6e9f6d4d52c94a
 +    public String serverModName = "Lumina";
 +    public boolean fakeVanilla = false;
 +    public boolean checkUsername = true;
++    public boolean saveConfigAfterSet = true;
 +    public boolean verifyPublicKeyOnlyInOnlineMode = false;
 +    public WatchdogConfig watchdog = new WatchdogConfig();
 +    public RegionFormatConfig regionFormat = new RegionFormatConfig();
