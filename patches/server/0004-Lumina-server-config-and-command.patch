@@ -431,20 +431,18 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3c084fbef60b6c560c8f0648acf57413ae6b60c5
+index 0000000000000000000000000000000000000000..9ce750c78fdd04d62f97ed590226650079ca77bf
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,11 @@
 +package org.leavesmc.lumina.config.modules;
 +
-+import org.leavesmc.lumina.config.modules.fix.FoliaEntityMovingFixConfig;
-+import org.leavesmc.lumina.config.modules.fix.FoliaTeleportAsyncFixConfig;
++import org.leavesmc.lumina.config.modules.fix.FixFoliaTeleportAsyncConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
 +public class Fix {
-+    public FoliaEntityMovingFixConfig fixEntityMoving = new FoliaEntityMovingFixConfig();
-+    public FoliaTeleportAsyncFixConfig fixTeleportAsync = new FoliaTeleportAsyncFixConfig();
++    public FixFoliaTeleportAsyncConfig fixFoliaTeleportAsync = new FixFoliaTeleportAsyncConfig();
 +    public boolean fixFoliaSpectorTeleport = true;
 +    public boolean fixFoliaPoiAccessOffRegion = true;
 +}
@@ -509,35 +507,18 @@ index 0000000000000000000000000000000000000000..6b93c0bf96b2a1b779ab12b2b65245fd
 +    public boolean enableCarpetProtocol = false;
 +    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaTeleportAsyncConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaTeleportAsyncConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4f8d731b897c8550d7a2b034146d4b99c0a3de45
+index 0000000000000000000000000000000000000000..b043bf36de0604028cb7bdd166d000d2dec76360
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
-@@ -0,0 +1,10 @@
++++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaTeleportAsyncConfig.java
+@@ -0,0 +1,9 @@
 +package org.leavesmc.lumina.config.modules.fix;
 +
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.spongepowered.configurate.objectmapping.meta.Setting;
 +
 +@ConfigSerializable
-+public class FoliaEntityMovingFixConfig {
-+    public boolean enabled = false;
-+    public boolean warnOnDetected = true;
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..9552e998a723693f700e0a26542691791a59f9e5
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaTeleportAsyncFixConfig.java
-@@ -0,0 +1,10 @@
-+package org.leavesmc.lumina.config.modules.fix;
-+
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.spongepowered.configurate.objectmapping.meta.Setting;
-+
-+@ConfigSerializable
-+public class FoliaTeleportAsyncFixConfig {
++public class FixFoliaTeleportAsyncConfig {
 +    public boolean enabled = false;
 +    public boolean throwOnDetected = true;
 +}

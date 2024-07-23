@@ -5,7 +5,7 @@ Subject: [PATCH] Prevent teleportAsync calling during moving event being
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index fdd745062f1516338cf91489d9e64f706912b470..053801f728638d70f45e711922f8f101a40d098c 100644
+index 29f8946dc609056c28ed2cf819e25feb086b2d9a..3c95ea6fdab99e414270fd5ed960c539b7ada265 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -346,6 +346,10 @@ public class ServerPlayer extends Player {
@@ -44,7 +44,7 @@ index 2ae2527bbe5a08af98eb6405a8403c2199052f19..7ddb7d5aa1047eb8151aef01d5db694d
                                      // If the event is cancelled we move the player back to their old location.
                                      if (event.isCancelled()) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index bfc6c269d96201e8001b6575d4cb59cd70d1d7bc..d50fef64e608a4cb7aa06e5037474061bb1d02e4 100644
+index bfc6c269d96201e8001b6575d4cb59cd70d1d7bc..676feaa5670d703429a987ff274ccfa755d64183 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4038,6 +4038,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -52,9 +52,9 @@ index bfc6c269d96201e8001b6575d4cb59cd70d1d7bc..d50fef64e608a4cb7aa06e5037474061
          io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot teleport entity async");
  
 +        //Luminol start - Prevent teleportAsync calling during moving event being handled
-+        if (this instanceof ServerPlayer player && org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixTeleportAsync.enabled){
++        if (this instanceof ServerPlayer player && org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaTeleportAsync.enabled){
 +            if (player.handlingMoveEvent){
-+                if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixTeleportAsync.throwOnDetected){
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaTeleportAsync.throwOnDetected){
 +                    throw new IllegalStateException("Player " + player.getScoreboardName() + " is trying to teleport to " + pos + " during move event handling!");
 +                }
 +                MinecraftServer.LOGGER.warn("Player {} is trying to teleport to {} during move event handling!",player.getScoreboardName(),pos);
