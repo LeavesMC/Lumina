@@ -303,7 +303,7 @@ index 0000000000000000000000000000000000000000..25e77db19cd365441216b82544fa0f4b
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db40dd55f09
+index 0000000000000000000000000000000000000000..d26422922f6d78bc89798a62d35bba3f75dc6793
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 @@ -0,0 +1,122 @@
@@ -345,7 +345,7 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +        }
 +        loader = HoconConfigurationLoader.builder()
 +                .emitComments(true)
-+                .emitJsonCompatible(true)
++                .emitJsonCompatible(Boolean.getBoolean("lumina.config.style.json"))
 +                .prettyPrinting(true)
 +                .path(Paths.get("lumina.conf"))
 +                .build();
