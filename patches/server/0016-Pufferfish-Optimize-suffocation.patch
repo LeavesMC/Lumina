@@ -5,7 +5,7 @@ Subject: [PATCH] Pufferfish Optimize suffocation
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index dc290b2bc486fb5cf2bb216e5a8436a5b588fa8d..3215adeea327584dc637276c2b1a8a336241163a 100644
+index dc290b2bc486fb5cf2bb216e5a8436a5b588fa8d..f0c7654e6a28620b37ca28420dc1c79a3bd31e51 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -441,7 +441,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -30,7 +30,7 @@ index dc290b2bc486fb5cf2bb216e5a8436a5b588fa8d..3215adeea327584dc637276c2b1a8a33
 +    }
 +
 +    public boolean shouldCheckForSuffocation() {
-+        return !org.leavesmc.lumina.config.LuminaConfig.configModule.optimization.optimizeSuffocation || (tickCount % 10 == 0 && couldPossiblyBeHurt(1.0F));
++        return !org.leavesmc.lumina.config.LuminaConfig.configModule.performance.optimizeSuffocation || (tickCount % 10 == 0 && couldPossiblyBeHurt(1.0F));
 +    }
 +    // Pufferfish end
 +

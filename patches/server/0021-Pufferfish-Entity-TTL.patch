@@ -5,7 +5,7 @@ Subject: [PATCH] Pufferfish Entity TTL
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 39c4de380bb60b47ae3c255df02439f84d8eef71..30f5c8102e1af06fef206ded825baccd185a9dab 100644
+index da89ac9b2adea7b0b872b65b8b677487d2d0357b..73547f66b777d405aec5234a97dcc3a12fe485f3 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -855,6 +855,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

@@ -5,10 +5,10 @@ Subject: [PATCH] Fix-MC-2025
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 08bfdb8963cea6b06848921cd96f7ad80a8eca83..05d450c7eb1dea429449e93a55632fd9dc6ab93b 100644
+index 7d0ce022ad816a0f3796ba22b31b962a5d83f8c9..ad62edaf597e1a5107edc99b4a7baaa138656a2e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2607,6 +2607,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2602,6 +2602,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  nbttagcompound.putBoolean("Paper.FreezeLock", true);
              }
              // Paper end
@@ -25,7 +25,7 @@ index 08bfdb8963cea6b06848921cd96f7ad80a8eca83..05d450c7eb1dea429449e93a55632fd9
              return nbttagcompound;
          } catch (Throwable throwable) {
              CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-@@ -2684,6 +2694,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2679,6 +2689,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                          this.reapplyPosition();
                      }
  

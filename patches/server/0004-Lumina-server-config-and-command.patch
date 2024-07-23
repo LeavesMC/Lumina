@@ -66,7 +66,7 @@ index 8302e4bedc03795c4cda526466fa4dc279b2dd21..17351285d16956d22eca0d5dce336699
      public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
          this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index d95c73f589e831f65088d30c4af4d04cbf7e7fd9..dfd750db2df80e84754535b8502a7b0b7c05548c 100644
+index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff895ffd9e 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -222,6 +222,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -280,7 +280,7 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828bf5ff18e
+index 0000000000000000000000000000000000000000..a4700c541d425a25d0e26e8ef82dcf47b45647c3
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
 @@ -0,0 +1,16 @@
@@ -289,7 +289,7 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 +import org.leavesmc.lumina.config.modules.Fix;
 +import org.leavesmc.lumina.config.modules.Gameplay;
 +import org.leavesmc.lumina.config.modules.Misc;
-+import org.leavesmc.lumina.config.modules.Optimization;
++import org.leavesmc.lumina.config.modules.Performance;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
@@ -297,7 +297,7 @@ index 0000000000000000000000000000000000000000..fc3bd7f1ad1f1303ad7f6ff284e23828
 +    public String configVersion = "1";
 +    public Fix fix = new Fix();
 +    public Gameplay gameplay = new Gameplay();
-+    public Optimization optimization = new Optimization();
++    public Performance performance = new Performance();
 +    public Misc misc = new Misc();
 +}
 \ No newline at end of file
@@ -469,10 +469,10 @@ index 0000000000000000000000000000000000000000..b4eba642ebdcb1dadab0b1085ac94b4c
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..52ae05a79cb3da8f424b24d20834dc72190510b4
+index 0000000000000000000000000000000000000000..4576d68a7a2be5782e527262c20ff24edc9e1b71
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,20 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.misc.RegionFormatConfig;
@@ -487,34 +487,30 @@ index 0000000000000000000000000000000000000000..52ae05a79cb3da8f424b24d20834dc72
 +    public String serverModName = "Lumina";
 +    public boolean fakeVanilla = false;
 +    public boolean checkUsername = true;
++    public boolean useAlternativeKeepAlive = true;
 +    public boolean saveConfigAfterSet = true;
 +    public boolean verifyPublicKeyOnlyInOnlineMode = false;
 +    public WatchdogConfig watchdog = new WatchdogConfig();
 +    public RegionFormatConfig regionFormat = new RegionFormatConfig();
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java b/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e31c590d256d8ee0c847c657846e5cadc2f17574
+index 0000000000000000000000000000000000000000..ce1b53b29e5a1b515ecbd7f99804d79518a67bc3
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/Optimization.java
-@@ -0,0 +1,18 @@
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
+@@ -0,0 +1,13 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.optimization.*;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
-+public class Optimization {
-+    public AsyncPathProcessingConfig asyncPathProcessing = new AsyncPathProcessingConfig();
-+    public EntityDABConfig entityDab = new EntityDABConfig();
++public class Performance {
 +    public PetalReduceSensorWorkConfig petalReduceSensorWork = new PetalReduceSensorWorkConfig();
 +    public ProjectileChunkReduceConfig projectileChunkReduce = new ProjectileChunkReduceConfig();
 +    public boolean entityGoalSelectorInactiveTick = false;
-+    public double entityWakeUpDurationRatioStandardDeviation = 0.2;
 +    public boolean allowLoadChunksToActiveClimbingEntities = false;
-+    public boolean useAlternativeKeepAlive = true;
 +    public boolean optimizeSuffocation = false;
-+    public boolean reduceEntityFluidLookups = true;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
 new file mode 100644
@@ -625,45 +621,6 @@ index 0000000000000000000000000000000000000000..12a85414d4eb8f7740c227f5a5fb8514
 +        } else if (maxThreadNumber == 0) {
 +            maxThreadNumber = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
 +        }
-+    }
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..9b29297052562c1464b5d93a0b03a144efadf5ef
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/optimization/EntityDABConfig.java
-@@ -0,0 +1,33 @@
-+package org.leavesmc.lumina.config.modules.optimization;
-+
-+import net.minecraft.core.registries.BuiltInRegistries;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.world.entity.EntityType;
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
-+
-+import java.util.Collections;
-+import java.util.List;
-+
-+@ConfigSerializable
-+public class EntityDABConfig {
-+    public boolean dearEnabled = false;
-+    public int startDistance = 12;
-+    public int startDistanceSquared;
-+    public int maximumActivationPrio = 20;
-+    public int activationDistanceMod;
-+    public List<String> blackedEntities = Collections.emptyList();
-+
-+    @PostProcess
-+    public void onLoaded() {
-+        for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
-+            entityType.dabEnabled = true; // reset all, before setting the ones to true
-+        }
-+
-+        blackedEntities.forEach(name -> EntityType.byString(name).ifPresentOrElse(entityType -> {
-+            entityType.dabEnabled = false;
-+        }, () -> MinecraftServer.LOGGER.warn("Unknown entity \"" + name + "\"")));
-+
-+        // config.setComment("optimizations.dab", "Optimizes entity brains when\n" + "they're far away from the player");
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/optimization/LoadChunksToActiveClimbingEntitiesConfig.java

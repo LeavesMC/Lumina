@@ -5,10 +5,10 @@ Subject: [PATCH] Gale Don't load chunks to activate climbing entities
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 3fce42fd3450296f155e068bc377d57ae3f98ba4..3df427b1bc4d0f477a14c5d063dda09cb5a9edc2 100644
+index 73547f66b777d405aec5234a97dcc3a12fe485f3..53f50067fd3131b16a89b3d0dbb2d1acbb949f5c 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -5599,6 +5599,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -5462,6 +5462,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          return this.inBlockState;
      }
  
@@ -26,7 +26,7 @@ index 3fce42fd3450296f155e068bc377d57ae3f98ba4..3df427b1bc4d0f477a14c5d063dda09c
          return this.chunkPosition;
      }
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 3215adeea327584dc637276c2b1a8a336241163a..9fd86198da6834a5789e241730fc760296ba4aca 100644
+index f0c7654e6a28620b37ca28420dc1c79a3bd31e51..b67d315e33e9a649147e4417c0c38f78aa700b26 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -2072,19 +2072,43 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -36,7 +36,7 @@ index 3215adeea327584dc637276c2b1a8a336241163a..9fd86198da6834a5789e241730fc7602
 -            this.cachedOnClimable = this.onClimbable();
 -            this.lastClimbingPosition = this.blockPosition();
 +            // Gale start - don't load chunks to activate climbing entities
-+            Boolean onClimbableIfLoaded = this.onClimbable(org.leavesmc.lumina.config.LuminaConfig.configModule.optimization.allowLoadChunksToActiveClimbingEntities);
++            Boolean onClimbableIfLoaded = this.onClimbable(org.leavesmc.lumina.config.LuminaConfig.configModule.performance.allowLoadChunksToActiveClimbingEntities);
 +            if (onClimbableIfLoaded != null) {
 +                this.cachedOnClimable = onClimbableIfLoaded;
 +                this.lastClimbingPosition = this.blockPosition();

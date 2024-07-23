@@ -5,7 +5,7 @@ Subject: [PATCH] Gale Optimize sun burn tick
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 3df427b1bc4d0f477a14c5d063dda09cb5a9edc2..0dc6a17c5748afe56da9bcaeec5a77bc41b3fd11 100644
+index 53f50067fd3131b16a89b3d0dbb2d1acbb949f5c..8970a6c09951304e71ba717f190ca7d574fa7ecc 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -310,7 +310,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -17,7 +17,7 @@ index 3df427b1bc4d0f477a14c5d063dda09cb5a9edc2..0dc6a17c5748afe56da9bcaeec5a77bc
      public BlockPos blockPosition; // Pufferfish - private->public
      private ChunkPos chunkPosition;
      private Vec3 deltaMovement;
-@@ -2120,9 +2120,17 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2115,9 +2115,17 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      /** @deprecated */
      @Deprecated
      public float getLightLevelDependentMagicValue() {
@@ -37,10 +37,10 @@ index 3df427b1bc4d0f477a14c5d063dda09cb5a9edc2..0dc6a17c5748afe56da9bcaeec5a77bc
          this.absMoveTo(x, y, z);
          this.setYRot(yaw % 360.0F);
 diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
-index e9501e51258ba98ca861b902ea1b997f831088d5..b372fab3567609c446d0310652c559846688fff0 100644
+index 136aaca7798ce4ffe902bb349887530e8f5ad981..a5e4735c99afa5c225a0bc4629b37ce1784a9818 100644
 --- a/src/main/java/net/minecraft/world/entity/Mob.java
 +++ b/src/main/java/net/minecraft/world/entity/Mob.java
-@@ -1869,13 +1869,29 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Targeti
+@@ -1865,13 +1865,29 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Targeti
          return flag;
      }
  
