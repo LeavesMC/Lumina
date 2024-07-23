@@ -5,7 +5,7 @@ Subject: [PATCH] Luminol Try fixing folia spector teleportation
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 8ee61c2415455f8d4ff1ae687753117a40eb687b..fdd745062f1516338cf91489d9e64f706912b470 100644
+index 8ee61c2415455f8d4ff1ae687753117a40eb687b..29f8946dc609056c28ed2cf819e25feb086b2d9a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -892,6 +892,11 @@ public class ServerPlayer extends Player {
@@ -13,7 +13,7 @@ index 8ee61c2415455f8d4ff1ae687753117a40eb687b..fdd745062f1516338cf91489d9e64f70
  
          Entity entity = this.getCamera();
 +        //Luminol start - Fix folia spector teleportation
-+        if (!io.papermc.paper.util.TickThread.isTickThreadFor(entity) && org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixSpectorTeleportFolia){
++        if (!io.papermc.paper.util.TickThread.isTickThreadFor(entity) && org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaSpectorTeleport){
 +            this.setCamera(this);
 +        }
 +        //Luminol end

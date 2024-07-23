@@ -280,14 +280,14 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a4700c541d425a25d0e26e8ef82dcf47b45647c3
+index 0000000000000000000000000000000000000000..25e77db19cd365441216b82544fa0f4b59b5c04c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
 @@ -0,0 +1,16 @@
 +package org.leavesmc.lumina.config;
 +
 +import org.leavesmc.lumina.config.modules.Fix;
-+import org.leavesmc.lumina.config.modules.Gameplay;
++import org.leavesmc.lumina.config.modules.Protocol;
 +import org.leavesmc.lumina.config.modules.Misc;
 +import org.leavesmc.lumina.config.modules.Performance;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
@@ -296,7 +296,7 @@ index 0000000000000000000000000000000000000000..a4700c541d425a25d0e26e8ef82dcf47
 +public class ConfigModule {
 +    public String configVersion = "1";
 +    public Fix fix = new Fix();
-+    public Gameplay gameplay = new Gameplay();
++    public Protocol protocol = new Protocol();
 +    public Performance performance = new Performance();
 +    public Misc misc = new Misc();
 +}
@@ -431,10 +431,10 @@ index 0000000000000000000000000000000000000000..4a50bf4aae9cb4c20e160e0739aa1db4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fd4173a1873871f5cc560fb0eb2a16554cd687c8
+index 0000000000000000000000000000000000000000..3c084fbef60b6c560c8f0648acf57413ae6b60c5
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,13 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.fix.FoliaEntityMovingFixConfig;
@@ -445,27 +445,8 @@ index 0000000000000000000000000000000000000000..fd4173a1873871f5cc560fb0eb2a1655
 +public class Fix {
 +    public FoliaEntityMovingFixConfig fixEntityMoving = new FoliaEntityMovingFixConfig();
 +    public FoliaTeleportAsyncFixConfig fixTeleportAsync = new FoliaTeleportAsyncFixConfig();
-+    public boolean fixSpectorTeleportFolia = true;
-+    public boolean enableUnsafeTeleportation = true;
-+    public boolean useVanillaRandomSourceForPlayers = true;
++    public boolean fixFoliaSpectorTeleport = true;
 +    public boolean fixFoliaPoiAccessOffRegion = true;
-+    public boolean enableVoidTrading = true;
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java b/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..b4eba642ebdcb1dadab0b1085ac94b4cc14682ac
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/Gameplay.java
-@@ -0,0 +1,10 @@
-+package org.leavesmc.lumina.config.modules;
-+
-+import org.leavesmc.lumina.config.modules.gameplay.LeavesBladerenProtocolConfig;
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+
-+@ConfigSerializable
-+public class Gameplay {
-+    public boolean enableCarpetProtocol = false;
-+    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
 new file mode 100644
@@ -511,6 +492,22 @@ index 0000000000000000000000000000000000000000..ce1b53b29e5a1b515ecbd7f99804d795
 +    public boolean entityGoalSelectorInactiveTick = false;
 +    public boolean allowLoadChunksToActiveClimbingEntities = false;
 +    public boolean optimizeSuffocation = false;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6b93c0bf96b2a1b779ab12b2b65245fd410a7190
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.gameplay.LeavesBladerenProtocolConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Protocol {
++    public boolean enableCarpetProtocol = false;
++    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FoliaEntityMovingFixConfig.java
 new file mode 100644
