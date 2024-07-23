@@ -45,15 +45,3 @@ index aafeb9c61ddba6a8671f0238eda47b227619f1af..69c13463ac59d02544a0e4acd52aa615
          this.writeUtf(FriendlyByteBuf.GSON.toJson((JsonElement) dataresult.getOrThrow((s) -> {
              return new EncoderException("Failed to encode: " + s + " " + String.valueOf(value));
          })), maxLength); // Paper - Adventure; add max length parameter
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
-index d6f41a391d597655d799249a17445dda22c83f03..ca1cca05408c4396f61b12d6b8e447574e829494 100644
---- a/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/Misc.java
-@@ -12,6 +12,7 @@ public class Misc {
-     public String serverModName = "Lumina";
-     public boolean fakeVanilla = false;
-     public boolean checkUsername = true;
-+    public boolean useVanillaRandomSourceForPlayers = true;
-     public boolean alternativeKeepAlive = true;
-     public boolean saveConfigAfterSet = true;
-     public boolean verifyPublicKeyOnlyInOnlineMode = false;
