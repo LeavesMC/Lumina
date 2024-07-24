@@ -515,10 +515,10 @@ index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332d
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..820c7a31460bb026f730937cedb357c1daf2fee2
+index 0000000000000000000000000000000000000000..4d2c33d0b2e40f738c9d787785501109580fe491
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,12 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.gameplay.LeavesBladerenProtocolConfig;
@@ -528,6 +528,7 @@ index 0000000000000000000000000000000000000000..820c7a31460bb026f730937cedb357c1
 +public class Protocol {
 +    public boolean carpetProtocol = false;
 +    public boolean jadeProtocol = false;
++    public boolean bborProtocol = false;
 +    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java
