@@ -651,7 +651,7 @@ index 0000000000000000000000000000000000000000..194817dc72555bfbb78e191d0c0f393e
 +
 +@ConfigSerializable
 +public class DynamicEntityActivationRangeConfig {
-+    public boolean enabled = true;
++    public boolean enabled = false;
 +    public int startDistanceSquared = 144;
 +    public int maximumActivationPriority = 20;
 +    public int activationDistanceMod = 8;
