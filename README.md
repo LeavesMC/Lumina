@@ -8,6 +8,8 @@ Lumina
 
 > Fork of [Folia](https://github.com/PaperMC/Folia) aims at repairing broken vanilla properties.
 
-This is currently an empty repository, and the priority of this project will not be too high.
+**The project is currently unstable**
 
 We are collecting vanilla properties broken by Folia, if you find something, please raise it in an issue, thanks.
+
+**In order to make the default more consistent with Vanilla behavior, we have changed the default values of some Paper and Spigot configuration items, see [Modify List](./ModifiedConfigList.md) for details**
