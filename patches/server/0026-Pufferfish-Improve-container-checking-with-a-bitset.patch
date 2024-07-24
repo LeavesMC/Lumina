@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Thu, 20 Jun 2024 04:46:56 +0000
 Subject: [PATCH] Pufferfish Improve container checking with a bitset
 
+This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/gg/airplane/structs/ItemListWithBitset.java b/src/main/java/gg/airplane/structs/ItemListWithBitset.java
 new file mode 100644

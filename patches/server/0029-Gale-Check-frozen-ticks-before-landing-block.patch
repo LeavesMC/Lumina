@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Sun, 28 Jan 2024 09:30:22 +0000
 Subject: [PATCH] Gale Check frozen ticks before landing block
 
+This patch is Powered by Gale(https://github.com/GaleMC/Gale)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/GaleMC/Gale?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 index b67d315e33e9a649147e4417c0c38f78aa700b26..4bac808c54d8c840af98e4d35b8503f721f96374 100644

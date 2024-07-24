@@ -3,6 +3,8 @@ From: M2ke4U <79621885+MrHua269@users.noreply.github.com>
 Date: Sun, 26 Nov 2023 20:25:38 +0800
 Subject: [PATCH] Kaiiju Vanilla end portal teleportation
 
+This patch is Powered by Kaiiju(https://github.com/KaiijuMC/Kaiiju)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/KaiijuMC/Kaiiju?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index 13d3bcf109d3c776087089cdd690a3c7fbe48484..2a1ed00a5adaac8602df18a9a1845c4e4c2d8032 100644

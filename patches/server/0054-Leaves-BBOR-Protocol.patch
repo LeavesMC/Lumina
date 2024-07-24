@@ -3,6 +3,8 @@ From: violetc <58360096+s-yh-china@users.noreply.github.com>
 Date: Tue, 29 Nov 2022 09:51:16 +0800
 Subject: [PATCH] Leaves BBOR Protocol
 
+This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
 index b524b7cb36594fab8864b2e7f18d1c35b0150549..b00e254fd059dcf5b9246b1d6171bf6d1ead8254 100644

@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Fri, 9 Feb 2024 23:44:23 +0000
 Subject: [PATCH] Gale Optimize noise generation
 
+This patch is Powered by Gale(https://github.com/GaleMC/Gale)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/GaleMC/Gale?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java b/src/main/java/net/minecraft/world/level/levelgen/synth/ImprovedNoise.java
 index 9a97e5cd23d839183ac4d243d28df92af3119fe7..0da2d816f0497eae0c055f3929b8194a3473a221 100644

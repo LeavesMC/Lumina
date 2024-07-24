@@ -3,6 +3,8 @@ From: violetc <58360096+s-yh-china@users.noreply.github.com>
 Date: Tue, 26 Sep 2023 19:00:41 +0800
 Subject: [PATCH] Leaves Protocol core
 
+This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 index 0211311b3b63bcdea7ebf7bcb24629674c771402..c05a72f4928ee2cec28a61ed06a9079d52634900 100644

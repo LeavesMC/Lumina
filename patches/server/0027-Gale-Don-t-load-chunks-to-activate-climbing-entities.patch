@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Wed, 7 Feb 2024 06:03:02 +0000
 Subject: [PATCH] Gale Don't load chunks to activate climbing entities
 
+This patch is Powered by Gale(https://github.com/GaleMC/Gale)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/GaleMC/Gale?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index 73402ccbb8729eda743b9df0dad4f82fe85cbf26..972559472038ff3de12fa4684c1350fe97018bb3 100644

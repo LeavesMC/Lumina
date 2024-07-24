@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Sun, 28 Jan 2024 09:11:58 +0000
 Subject: [PATCH] Sparkly Paper Optimize canSee checks
 
+This patch is Powered by Sparkly Paper(https://github.com/SparklyPower/SparklyPaper)
+License: unknown
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
 index c868a09cf07ee98e474a660debc2176276bce736..dfdb85c14c4afce7879acf9093d54f7480c0a08c 100644

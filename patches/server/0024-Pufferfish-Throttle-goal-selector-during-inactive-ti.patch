@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Tue, 20 Feb 2024 13:03:42 +0000
 Subject: [PATCH] Pufferfish Throttle goal selector during inactive ticking
 
+This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
 index 9e418d614df14719c1d7826fdf7827492ab05c66..136aaca7798ce4ffe902bb349887530e8f5ad981 100644

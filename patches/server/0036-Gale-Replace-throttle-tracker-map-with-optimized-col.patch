@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Sat, 6 Apr 2024 05:18:00 +0000
 Subject: [PATCH] Gale Replace throttle tracker map with optimized collection
 
+This patch is Powered by Gale(https://github.com/GaleMC/Gale)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/GaleMC/Gale?tab=License-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerHandshakePacketListenerImpl.java
 index 45a2683c9489bee6d67a1f3d702c17f2e9dc02e4..8e90f35218e66690359dac35828a1485a77f34c1 100644

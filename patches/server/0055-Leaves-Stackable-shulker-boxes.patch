@@ -3,6 +3,9 @@ From: violetc <58360096+s-yh-china@users.noreply.github.com>
 Date: Wed, 14 Dec 2022 14:47:06 +0800
 Subject: [PATCH] Leaves Stackable shulker boxes
 
+This patch is copied from Leaves(https://github.com/LeavesMC/Leaves)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
+
 This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet) and plusls-carpet-addition(https://github.com/plusls/plusls-carpet-addition)
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java

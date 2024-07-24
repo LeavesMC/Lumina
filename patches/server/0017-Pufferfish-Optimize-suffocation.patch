@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Wed, 7 Feb 2024 04:55:43 +0000
 Subject: [PATCH] Pufferfish Optimize suffocation
 
+This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 index dc290b2bc486fb5cf2bb216e5a8436a5b588fa8d..f0c7654e6a28620b37ca28420dc1c79a3bd31e51 100644

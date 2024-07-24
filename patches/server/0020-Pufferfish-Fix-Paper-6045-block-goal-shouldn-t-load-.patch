@@ -3,6 +3,8 @@ From: MrHua269 <novau233@163.com>
 Date: Tue, 6 Feb 2024 03:21:56 +0000
 Subject: [PATCH] Pufferfish Fix Paper#6045, block goal shouldn't load chunks
 
+This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java
 index aee0147649d458b87d92496eda0c1723ebe570d2..89e9ea999d2fbd81a1d74382ef3fcd675fc8b94e 100644

@@ -3,6 +3,8 @@ From: M2ke4U <79621885+MrHua269@users.noreply.github.com>
 Date: Sat, 25 Nov 2023 19:03:34 +0800
 Subject: [PATCH] Kaiiju Don't pathfind outside region
 
+This patch is Powered by Kaiiju(https://github.com/KaiijuMC/Kaiiju)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/KaiijuMC/Kaiiju?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java b/src/main/java/net/minecraft/world/entity/ai/behavior/MoveToTargetSink.java
 index 2a7a26ca447cc78f24e61a2bf557411c31eb16b2..28602455d659dfac4653ab5b7bf4139f65c190ad 100644

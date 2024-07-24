@@ -3,6 +3,8 @@ From: Paul Sauve <paul@technove.co>
 Date: Fri, 15 Jan 2021 19:05:01 -0600
 Subject: [PATCH] Airplane Dynamic Activation of Brain
 
+This patch is Powered by Airplane(https://github.com/TECHNOVE/Airplane)
+
 This replaces the current method of ticking an inactive entity's
 pathfinder 1/4 times with a new method that's dynamic based off how far
 away it is from a player. If an entity is within 32 blocks, it gets
