@@ -5,19 +5,19 @@ Subject: [PATCH] Luminol Unsafe teleportation config
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 95ed0a02baef01be794d515b8e0346e4f4990c63..c41033654b4299f9b1f5378658de79a73b85141c 100644
+index 95ed0a02baef01be794d515b8e0346e4f4990c63..c17f8b0d8fe362a5a0255c5f639f2b6eb077f0f9 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4200,6 +4200,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
  
      protected boolean tryEndPortal() {
          io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot portal entity async");
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fixes.allowUnsafeTeleportation && !(this instanceof Player)) return false; //Luminol - Unsafe teleportation
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.allowUnsafeTeleportation && !(this instanceof Player)) return false; //Luminol - Unsafe teleportation
          BlockPos pos = this.portalBlock;
          ServerLevel world = this.portalWorld;
          this.portalBlock = null;
 diff --git a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
-index aeac09f628bd04070fd302842c304a7dfd39b229..c7d28cae6558d64c1c9231930df39461e105d806 100644
+index aeac09f628bd04070fd302842c304a7dfd39b229..36ee8df0efbf3751c4f99dbe2603b6cc366b0010 100644
 --- a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
 @@ -61,6 +61,13 @@ public class EndPortalBlock extends BaseEntityBlock {
@@ -25,7 +25,7 @@ index aeac09f628bd04070fd302842c304a7dfd39b229..c7d28cae6558d64c1c9231930df39461
              }
  
 +            //Luminol start - Unsafe teleportation
-+            if (org.leavesmc.lumina.config.LuminaConfig.configModule.fixes.allowUnsafeTeleportation && !(entity instanceof net.minecraft.world.entity.player.Player)){
++            if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.allowUnsafeTeleportation && !(entity instanceof net.minecraft.world.entity.player.Player)){
 +                entity.endPortalLogicAsync();
 +                return;
 +            }
