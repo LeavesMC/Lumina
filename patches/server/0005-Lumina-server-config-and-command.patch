@@ -280,16 +280,13 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..25e77db19cd365441216b82544fa0f4b59b5c04c
+index 0000000000000000000000000000000000000000..ca9b57fbd49d9307712b917f8169b24eaec1f50e
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,14 @@
 +package org.leavesmc.lumina.config;
 +
-+import org.leavesmc.lumina.config.modules.Fix;
-+import org.leavesmc.lumina.config.modules.Protocol;
-+import org.leavesmc.lumina.config.modules.Misc;
-+import org.leavesmc.lumina.config.modules.Performance;
++import org.leavesmc.lumina.config.modules.*;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
@@ -298,6 +295,7 @@ index 0000000000000000000000000000000000000000..25e77db19cd365441216b82544fa0f4b
 +    public Fix fix = new Fix();
 +    public Protocol protocol = new Protocol();
 +    public Performance performance = new Performance();
++    public Modify modify = new Modify();
 +    public Misc misc = new Misc();
 +}
 \ No newline at end of file
@@ -493,6 +491,21 @@ index 0000000000000000000000000000000000000000..d6f41a391d597655d799249a17445dda
 +    public WatchdogConfig watchdog = new WatchdogConfig();
 +    public RegionFormatConfig regionFormat = new RegionFormatConfig();
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Modify.java b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f4586276dccdc028dc70a39dac61e9c6ae93f813
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
+@@ -0,0 +1,9 @@
++package org.leavesmc.lumina.config.modules;
++
++import org.leavesmc.lumina.config.modules.protocol.LeavesBladerenProtocolConfig;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class Modify {
++    public int shulkerBoxStackSize = 1;
++}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332de879acee
@@ -515,13 +528,13 @@ index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332d
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4d2c33d0b2e40f738c9d787785501109580fe491
+index 0000000000000000000000000000000000000000..25eebc5f5eb63311b7002726d8a989e9b310f30c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 @@ -0,0 +1,12 @@
 +package org.leavesmc.lumina.config.modules;
 +
-+import org.leavesmc.lumina.config.modules.gameplay.LeavesBladerenProtocolConfig;
++import org.leavesmc.lumina.config.modules.protocol.LeavesBladerenProtocolConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
@@ -561,22 +574,6 @@ index 0000000000000000000000000000000000000000..b043bf36de0604028cb7bdd166d000d2
 +public class FixFoliaTeleportAsyncConfig {
 +    public boolean enabled = false;
 +    public boolean throwOnDetected = true;
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..94f61ca5e003d221415665a921988028e27b8fef
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/gameplay/LeavesBladerenProtocolConfig.java
-@@ -0,0 +1,10 @@
-+package org.leavesmc.lumina.config.modules.gameplay;
-+
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+
-+@ConfigSerializable
-+public class LeavesBladerenProtocolConfig {
-+    public boolean enableBaseProtocol = false;
-+    public boolean msptSyncProtocol = false;
-+    public int msptSyncTickInterval = 20;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
 new file mode 100644
@@ -702,6 +699,22 @@ index 0000000000000000000000000000000000000000..cb64dd4c224c9246fa8d999c8217096f
 +public class ProjectileChunkReduceConfig {
 +    public int maxProjectileLoadsPerTick;
 +    public int maxProjectileLoadsPerProjectile;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/protocol/LeavesBladerenProtocolConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/protocol/LeavesBladerenProtocolConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..75352347781b590ddef6680bd8816bdc06631640
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/protocol/LeavesBladerenProtocolConfig.java
+@@ -0,0 +1,10 @@
++package org.leavesmc.lumina.config.modules.protocol;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class LeavesBladerenProtocolConfig {
++    public boolean enableBaseProtocol = false;
++    public boolean msptSyncProtocol = false;
++    public int msptSyncTickInterval = 20;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
 new file mode 100644
