@@ -1,0 +1,204 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Wed, 24 Jul 2024 04:01:45 +0000
+Subject: [PATCH] Change default value of some configs for technical
+
+
+diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+index b0ea3ecb8cfec0a19250745aa6d0d0bdd9951246..9c2d17da3bbf76d2f6ffc539c077308c521ca298 100644
+--- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+@@ -149,16 +149,16 @@ public class GlobalConfiguration extends ConfigurationPart {
+ 
+     public class UnsupportedSettings extends ConfigurationPart {
+         @Comment("This setting controls if the broken behavior of disarmed tripwires not breaking should be allowed. This also allows for dupes")
+-        public boolean allowTripwireDisarmingExploits = false;
++        public boolean allowTripwireDisarmingExploits = true; // Lumina - change config default value for technical
+         @Comment("This setting allows for exploits related to end portals, for example sand duping")
+-        public boolean allowUnsafeEndPortalTeleportation = false;
++        public boolean allowUnsafeEndPortalTeleportation = true; // Lumina - change config default value for technical
+         @Comment("This setting controls if players should be able to break bedrock, end portals and other intended to be permanent blocks.")
+-        public boolean allowPermanentBlockBreakExploits = false;
++        public boolean allowPermanentBlockBreakExploits = true; // Lumina - change config default value for technical
+         @Comment("This setting controls if player should be able to use TNT duplication, but this also allows duplicating carpet, rails and potentially other items")
+-        public boolean allowPistonDuplication = false;
++        public boolean allowPistonDuplication = true; // Lumina - change config default value for technical
+         public boolean performUsernameValidation = true;
+         @Comment("This setting controls if players should be able to create headless pistons.")
+-        public boolean allowHeadlessPistons = false;
++        public boolean allowHeadlessPistons = true; // Lumina - change config default value for technical
+         @Comment("This setting controls if the vanilla damage tick should be skipped if damage was blocked via a shield.")
+         public boolean skipVanillaDamageTickWhenShieldBlocked = false;
+         @Comment("This setting controls what compression format is used for region files.")
+@@ -176,7 +176,7 @@ public class GlobalConfiguration extends ConfigurationPart {
+     public class Commands extends ConfigurationPart {
+         public boolean suggestPlayerNamesWhenNullTabCompletions = true;
+         public boolean fixTargetSelectorTagCompletion = true;
+-        public boolean timeCommandAffectsAllWorlds = false;
++        public boolean timeCommandAffectsAllWorlds = true; // Lumina - change config default value for technical
+     }
+ 
+     public Logging logging;
+@@ -226,15 +226,15 @@ public class GlobalConfiguration extends ConfigurationPart {
+             public int pageMax = 2560; // TODO this appears to be a duplicate setting with one above
+             public double totalMultiplier = 0.98D; // TODO this should probably be merged into the above inner class
+         }
+-        public boolean resolveSelectorsInBooks = false;
++        public boolean resolveSelectorsInBooks = true; // Lumina - change config default value for technical
+     }
+ 
+     public PacketLimiter packetLimiter;
+ 
+     public class PacketLimiter extends ConfigurationPart {
+         public Component kickMessage = Component.translatable("disconnect.exceeded_packet_rate", NamedTextColor.RED);
+-        public PacketLimit allPackets = new PacketLimit(7.0, 500.0, PacketLimit.ViolateAction.KICK);
+-        public Map<Class<? extends Packet<?>>, PacketLimit> overrides = Map.of(ServerboundPlaceRecipePacket.class, new PacketLimit(4.0, 5.0, PacketLimit.ViolateAction.DROP));
++        public PacketLimit allPackets = new PacketLimit(1.0, 114514.0, PacketLimit.ViolateAction.KICK); // Lumina - change config default value for technical
++        public Map<Class<? extends Packet<?>>, PacketLimit> overrides = Map.of(); // Lumina - change config default value for technical
+ 
+         @ConfigSerializable
+         public record PacketLimit(@Required double interval, @Required double maxPacketRate, ViolateAction action) {
+@@ -303,7 +303,7 @@ public class GlobalConfiguration extends ConfigurationPart {
+             }
+         }
+         public int maxJoinsPerTick = 5;
+-        public boolean fixEntityPositionDesync = true;
++        public boolean fixEntityPositionDesync = false; // Lumina - change config default value for technical
+         public boolean loadPermissionsYmlBeforePlugins = true;
+         @Constraints.Min(4)
+         public int regionFileCacheSize = 256;
+diff --git a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
+index 9534308bb0a34761f70241b1ba993b814d989753..8f70061d9f1242d7e62e4fcb8daffb94bd856fea 100644
+--- a/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/WorldConfiguration.java
+@@ -173,10 +173,10 @@ public class WorldConfiguration extends ConfigurationPart {
+         public class Spawning extends ConfigurationPart {
+             public ArrowDespawnRate nonPlayerArrowDespawnRate = ArrowDespawnRate.def(WorldConfiguration.this.spigotConfig);
+             public ArrowDespawnRate creativeArrowDespawnRate = ArrowDespawnRate.def(WorldConfiguration.this.spigotConfig);
+-            public boolean filterBadTileEntityNbtFromFallingBlocks = true;
+-            public List<NbtPathArgument.NbtPath> filteredEntityTagNbtPaths = NbtPathSerializer.fromString(List.of("Pos", "Motion", "SleepingX", "SleepingY", "SleepingZ"));
++            public boolean filterBadTileEntityNbtFromFallingBlocks = false; // Lumina - change config default value for technical
++            public List<NbtPathArgument.NbtPath> filteredEntityTagNbtPaths = NbtPathSerializer.fromString(List.of()); // Lumina - change config default value for technical
+             public boolean disableMobSpawnerSpawnEggTransformation = false;
+-            public boolean perPlayerMobSpawns = true;
++            public boolean perPlayerMobSpawns = false; // Lumina - change config default value for technical
+             public boolean scanForLegacyEnderDragon = true;
+             @MergeMap
+             public Reference2IntMap<MobCategory> spawnLimits = Util.make(new Reference2IntOpenHashMap<>(NaturalSpawner.SPAWNING_CATEGORIES.length), map -> Arrays.stream(NaturalSpawner.SPAWNING_CATEGORIES).forEach(mobCategory -> map.put(mobCategory, -1)));
+@@ -228,13 +228,13 @@ public class WorldConfiguration extends ConfigurationPart {
+             @BelowZeroToEmpty
+             public DoubleOr.Default skeletonHorseThunderSpawnChance = DoubleOr.Default.USE_DEFAULT;
+             public boolean ironGolemsCanSpawnInAir = false;
+-            public boolean countAllMobsForSpawning = false;
++            public boolean countAllMobsForSpawning = true; // Lumina - change config default value for technical
+             @BelowZeroToEmpty
+             public IntOr.Default monsterSpawnMaxLightLevel = IntOr.Default.USE_DEFAULT;
+             public DuplicateUUID duplicateUuid;
+ 
+             public class DuplicateUUID extends ConfigurationPart {
+-                public DuplicateUUIDMode mode = DuplicateUUIDMode.SAFE_REGEN;
++                public DuplicateUUIDMode mode = DuplicateUUIDMode.WARN; // Lumina - change config default value for technical
+                 public int safeRegenDeleteRange = 32;
+ 
+                 public enum DuplicateUUIDMode {
+@@ -272,8 +272,8 @@ public class WorldConfiguration extends ConfigurationPart {
+ 
+             public boolean disableCreeperLingeringEffect = false;
+             public boolean enderDragonsDeathAlwaysPlacesDragonEgg = false;
+-            public boolean phantomsDoNotSpawnOnCreativePlayers = true;
+-            public boolean phantomsOnlyAttackInsomniacs = true;
++            public boolean phantomsDoNotSpawnOnCreativePlayers = false; // Lumina - change config default value for technical
++            public boolean phantomsOnlyAttackInsomniacs = false; // Lumina - change config default value for technical
+             public int playerInsomniaStartTicks = 72000;
+             public int phantomsSpawnAttemptMinSeconds = 60;
+             public int phantomsSpawnAttemptMaxSeconds = 119;
+@@ -374,7 +374,7 @@ public class WorldConfiguration extends ConfigurationPart {
+ 
+     public class Scoreboards extends ConfigurationPart {
+         public boolean allowNonPlayerEntitiesOnScoreboards = true;
+-        public boolean useVanillaWorldScoreboardNameColoring = false;
++        public boolean useVanillaWorldScoreboardNameColoring = true; // Lumina - change config default value for technical
+     }
+ 
+     public Environment environment;
+@@ -427,7 +427,7 @@ public class WorldConfiguration extends ConfigurationPart {
+     public Maps maps;
+ 
+     public class Maps extends ConfigurationPart {
+-        public int itemFrameCursorLimit = 128;
++        public int itemFrameCursorLimit = 10086; // Lumina - change config default value for technical
+         public int itemFrameCursorUpdateInterval = 10;
+     }
+ 
+@@ -435,7 +435,7 @@ public class WorldConfiguration extends ConfigurationPart {
+ 
+     public class Fixes extends ConfigurationPart {
+         public boolean fixItemsMergingThroughWalls = false;
+-        public boolean disableUnloadedChunkEnderpearlExploit = true;
++        public boolean disableUnloadedChunkEnderpearlExploit = false; // Lumina - change config default value for technical
+         public boolean preventTntFromMovingInWater = false;
+         public boolean splitOverstackedLoot = true;
+         public IntOr.Disabled fallingBlockHeightNerf = IntOr.Disabled.DISABLED;
+@@ -445,14 +445,14 @@ public class WorldConfiguration extends ConfigurationPart {
+     public UnsupportedSettings unsupportedSettings;
+ 
+     public class UnsupportedSettings extends ConfigurationPart {
+-        public boolean fixInvulnerableEndCrystalExploit = true;
++        public boolean fixInvulnerableEndCrystalExploit = false; // Lumina - change config default value for technical
+         public boolean disableWorldTickingWhenEmpty = false;
+     }
+ 
+     public Hopper hopper;
+ 
+     public class Hopper extends ConfigurationPart {
+-        public boolean cooldownWhenFull = true;
++        public boolean cooldownWhenFull = false; // Lumina - change config default value for technical
+         public boolean disableMoveEvent = false;
+         public boolean ignoreOccludingBlocks = false;
+     }
+@@ -464,8 +464,8 @@ public class WorldConfiguration extends ConfigurationPart {
+         public boolean allowVehicleCollisions = true;
+         public boolean fixClimbingBypassingCrammingRule = false;
+         @RequiresSpigotInitialization(MaxEntityCollisionsInitializer.class)
+-        public int maxEntityCollisions = 8;
+-        public boolean allowPlayerCrammingDamage = false;
++        public int maxEntityCollisions = 114514; // Lumina - change config default value for technical
++        public boolean allowPlayerCrammingDamage = true; // Lumina - change config default value for technical
+     }
+ 
+     public Chunks chunks;
+@@ -480,10 +480,10 @@ public class WorldConfiguration extends ConfigurationPart {
+         // Folia end - region threading - force prevent moving into unloaded chunks
+ 
+         public AutosavePeriod autoSaveInterval = AutosavePeriod.def();
+-        public int maxAutoSaveChunksPerTick = 24;
++        public int maxAutoSaveChunksPerTick = 200; // Lumina - change config default value for technical
+         public int fixedChunkInhabitedTime = -1;
+         public boolean preventMovingIntoUnloadedChunks = false;
+-        public Duration delayChunkUnloadsBy = Duration.of("10s");
++        public Duration delayChunkUnloadsBy = Duration.of("0s"); // Lumina - change config default value for technical
+         public Reference2IntMap<EntityType<?>> entityPerChunkSaveLimit = Util.make(new Reference2IntOpenHashMap<>(BuiltInRegistries.ENTITY_TYPE.size()), map -> {
+             map.defaultReturnValue(-1);
+             map.put(EntityType.EXPERIENCE_ORB, -1);
+diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+index 44bcc7e64766647a52f01958b9e087caa94dcdf6..604b400c717b0343dbb52e805ba97e6a56e718e3 100644
+--- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
++++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
+@@ -436,14 +436,14 @@ public class SpigotWorldConfig
+     }
+ 
+     //public int currentPrimedTnt = 0; // Folia - region threading - moved to regionised world data
+-    public int maxTntTicksPerTick;
++    public int maxTntTicksPerTick = 0; // Lumina - change config default value for technical
+     private void maxTntPerTick() {
+         if ( SpigotConfig.version < 7 )
+         {
+             this.set( "max-tnt-per-tick", 100 );
+         }
+-        this.maxTntTicksPerTick = this.getInt( "max-tnt-per-tick", 100 );
+-        this.log( "Max TNT Explosions: " + this.maxTntTicksPerTick );
++        this.maxTntTicksPerTick = this.getInt( "max-tnt-per-tick", 0 ); // Lumina - change config default value for technical
++        this.log( "Max TNT Explosions: " + (this.maxTntTicksPerTick == 0 ? "infinity" : this.maxTntTicksPerTick )); // Lumina - better logging
+     }
+ 
+     public int hangingTickFrequency;
