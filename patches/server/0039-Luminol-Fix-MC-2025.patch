@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: HaHaWTH <fsjk947@gmail.com>
 Date: Fri, 15 Mar 2024 03:32:46 +0800
-Subject: [PATCH] Fix-MC-2025
+Subject: [PATCH] Luminol Fix-MC-2025
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java

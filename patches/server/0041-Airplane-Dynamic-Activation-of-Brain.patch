@@ -27,7 +27,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2b5b058c4c937eb879cba7c25d4c95a286d7d0e4..c38c1850c4bbc51c3f92dfb07f6a9e4b8edf3f40 100644
+index 657a0e0dc8350704d89ab9722a207a65f5f58455..854b7a7cec964720f926789bf09aaa881249a495 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -306,7 +306,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

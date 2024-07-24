@@ -5,7 +5,7 @@ Subject: [PATCH] Kaiiju Vanilla end portal teleportation
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index d50fef64e608a4cb7aa06e5037474061bb1d02e4..189f1a8b97d400d9e0303a345b7202614ee83606 100644
+index 13d3bcf109d3c776087089cdd690a3c7fbe48484..2a1ed00a5adaac8602df18a9a1845c4e4c2d8032 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4244,12 +4244,17 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

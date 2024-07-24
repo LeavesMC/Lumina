@@ -5,7 +5,7 @@ Subject: [PATCH] Gale Don't load chunks to activate climbing entities
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 73547f66b777d405aec5234a97dcc3a12fe485f3..53f50067fd3131b16a89b3d0dbb2d1acbb949f5c 100644
+index 73402ccbb8729eda743b9df0dad4f82fe85cbf26..972559472038ff3de12fa4684c1350fe97018bb3 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -5462,6 +5462,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
