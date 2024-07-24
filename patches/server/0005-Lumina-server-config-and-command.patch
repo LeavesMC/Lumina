@@ -528,13 +528,14 @@ index 0000000000000000000000000000000000000000..4739bdb828be18d9bec7ae2d6c6b332d
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..25eebc5f5eb63311b7002726d8a989e9b310f30c
+index 0000000000000000000000000000000000000000..2d91f7ea07e768c6e2c60386e143242fc20e9152
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Protocol.java
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,14 @@
 +package org.leavesmc.lumina.config.modules;
 +
 +import org.leavesmc.lumina.config.modules.protocol.LeavesBladerenProtocolConfig;
++import org.leavesmc.lumina.config.modules.protocol.PcaSyncProtocolConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
@@ -542,6 +543,7 @@ index 0000000000000000000000000000000000000000..25eebc5f5eb63311b7002726d8a989e9
 +    public boolean carpetProtocol = false;
 +    public boolean jadeProtocol = false;
 +    public boolean bborProtocol = false;
++    public PcaSyncProtocolConfig pcaSyncProtocol = new PcaSyncProtocolConfig();
 +    public LeavesBladerenProtocolConfig leavesBladerenProtocol = new LeavesBladerenProtocolConfig();
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/fix/FixFoliaEntityMovingFixConfig.java
@@ -640,7 +642,7 @@ index 0000000000000000000000000000000000000000..a8ae86452224380adce81229ed57757d
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..194817dc72555bfbb78e191d0c0f393e3dfe2bb5
+index 0000000000000000000000000000000000000000..92334d8b7617616f3991fd58949e3714d159eeed
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java
 @@ -0,0 +1,12 @@
@@ -715,6 +717,29 @@ index 0000000000000000000000000000000000000000..75352347781b590ddef6680bd8816bdc
 +    public boolean enableBaseProtocol = false;
 +    public boolean msptSyncProtocol = false;
 +    public int msptSyncTickInterval = 20;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/protocol/PcaSyncProtocolConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/protocol/PcaSyncProtocolConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..119b50c12f08c548e7a56dd983805324526fc35e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/protocol/PcaSyncProtocolConfig.java
+@@ -0,0 +1,17 @@
++package org.leavesmc.lumina.config.modules.protocol;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class PcaSyncProtocolConfig {
++    public boolean enabled = false;
++    public SyncOption sync = SyncOption.OPS;
++
++    public enum SyncOption {
++        NOBODY,
++        BOT,
++        OPS,
++        OPS_AND_SELF,
++        EVERYONE
++    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
 new file mode 100644
