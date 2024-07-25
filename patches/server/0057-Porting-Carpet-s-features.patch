@@ -1,0 +1,1497 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Fri, 26 Jul 2024 01:09:46 +0800
+Subject: [PATCH] Porting Carpet`s features
+
+This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet)
+License:
+MIT License
+
+Copyright (c) 2020 gnembon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
+index 374abffb9f1ce1a308822aed13038e77fe9ca08b..81410d1caa42b045e49e0edafb4ebfdb244ceb7b 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
++++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
+@@ -216,6 +216,7 @@ public final class FoliaAsyncScheduler implements AsyncScheduler {
+             try {
+                 this.run.accept(this);
+             } catch (final Throwable throwable) {
++                throwable.printStackTrace();
+                 this.plugin.getLogger().log(Level.WARNING, "Async task for " + this.plugin.getDescription().getFullName() + " generated an exception", throwable);
+             } finally {
+                 boolean removeFromTasks = false;
+diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
+index d5e8dd947cb29343074df8074e791357c72e7f7b..7fcb6b53082fdcfc5508ad4b66b255645f68ae20 100644
+--- a/src/main/java/net/minecraft/network/Connection.java
++++ b/src/main/java/net/minecraft/network/Connection.java
+@@ -156,6 +156,11 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+         this.setReadOnly();
+         this.stopReadingPackets = true;
+     }
++    // Lumina start - Porting Carpet`s features
++    public void setChannel(Channel channel) {
++        this.channel = channel;
++    }
++    // Lumina end - Porting Carpet`s features
+     // Paper end - packet limiter
+     @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 3c95ea6fdab99e414270fd5ed960c539b7ada265..459af50920a5fa8bc1466d109ab7f09858262473 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -299,6 +299,19 @@ public class ServerPlayer extends Player {
+     public @Nullable String clientBrandName = null; // Paper - Brand support
+     public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
+ 
++    // Lumina start - Porting Carpet`s features
++    private boolean isInvalidReference = false;
++    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack actionPack;
++    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack getActionPack() {
++        return actionPack;
++    }
++    public void invalidateEntityObjectReference() {
++        isInvalidReference = true;
++    }
++    public boolean isInvalidEntityObject() {
++        return isInvalidReference;
++    }
++    // Lumina end - Porting Carpet`s features
+     // Paper start - replace player chunk loader
+     private final java.util.concurrent.atomic.AtomicReference<io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances> viewDistances = new java.util.concurrent.atomic.AtomicReference<>(new io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances(-1, -1, -1));
+     public io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
+@@ -450,6 +463,7 @@ public class ServerPlayer extends Player {
+         this.adventure$displayName = net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
+         this.bukkitPickUpLoot = true;
+         this.maxHealthCache = this.getMaxHealth();
++        this.actionPack = new org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack(this); // Lumina - Porting Carpet`s features
+     }
+ 
+     // Use method to resend items in hands in case of client desync, because the item use got cancelled.
+@@ -872,6 +886,7 @@ public class ServerPlayer extends Player {
+ 
+     @Override
+     public void tick() {
++        actionPack.onUpdate(); // Lumina - Porting Carpet`s features
+         // CraftBukkit start
+         if (this.joining) {
+             this.joining = false;
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..81155eee017504b70e7bab4c8c2631ee4a0a28ff
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
+@@ -0,0 +1,6 @@
++package org.leavesmc.lumina.carpet;
++
++public class CarpetConfigModule {
++    public boolean allowListingFakePlayers = false;
++    public boolean allowSpawningOfflinePlayers = true;
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8da86b67241a411aa0a69576471fea6596bf004
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
+@@ -0,0 +1,14 @@
++package org.leavesmc.lumina.carpet;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
++import org.bukkit.plugin.Plugin;
++import org.leavesmc.lumina.carpet.command.PlayerCommand;
++
++public class CarpetServer {
++    public static CarpetConfigModule configModule = new CarpetConfigModule();
++    public static Plugin PLUGIN = new MinecraftInternalPlugin();
++    public static void registerCarpetCommands() {
++        PlayerCommand.register();
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a164a3b425fc8ce8d17b7f579058130378108d6b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
+@@ -0,0 +1,147 @@
++package org.leavesmc.lumina.carpet.command;
++
++import com.mojang.authlib.GameProfile;
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.*;
++import dev.jorel.commandapi.executors.CommandArguments;
++import dev.jorel.commandapi.wrappers.Rotation;
++import net.minecraft.SharedConstants;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.UUIDUtil;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.server.players.PlayerList;
++import net.minecraft.world.level.GameType;
++import net.minecraft.world.level.Level;
++import org.bukkit.*;
++import org.bukkit.command.CommandSender;
++import org.bukkit.entity.Player;
++import org.bukkit.permissions.ServerOperator;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Unmodifiable;
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
++
++import java.util.Arrays;
++
++import static org.leavesmc.lumina.LuminaCommand.*;
++
++public class PlayerCommand {
++    public static void register() {
++        SpawnCommand.register();
++    }
++
++    private static class SpawnCommand {
++        public static void register() {
++            createBase("spawn").withOptionalArguments(
++                    new LiteralArgument("at").combineWith(new LocationArgument("position")),
++                    new LiteralArgument("facing").combineWith(new RotationArgument("direction")),
++                    new LiteralArgument("in").combineWith(new WorldArgument("dimension")),
++                    new LiteralArgument("in")
++                            .withRequirement(ServerOperator::isOp)
++                            .combineWith(new MultiLiteralArgument("gamemode", Arrays
++                                    .stream(GameType.values())
++                                    .map(GameType::name)
++                                    .toArray(String[]::new)))
++            ).executes(SpawnCommand::spawn).register("carpet");
++        }
++
++        private static boolean canSpawn(CommandSender sender, @NotNull CommandArguments args) {
++            String playerName = (String) args.get("player");
++            if (playerName == null) {
++                sendError(sender, "Invalid player name");
++                return false;
++            }
++            MinecraftServer server = MinecraftServer.getServer();
++            PlayerList manager = server.getPlayerList();
++
++            if (manager.getPlayerByName(playerName) != null) {
++                sendInfo(sender, "r Player rb " + playerName + "r  is already logged on");
++                return false;
++            }
++            @SuppressWarnings("DataFlowIssue") GameProfile profile = server.getProfileCache().get(playerName).orElse(null);
++            if (profile == null) {
++                if (!CarpetServer.configModule.allowSpawningOfflinePlayers) {
++                    sendInfo(sender, "r Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.");
++                    return false;
++                } else {
++                    profile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(playerName), playerName);
++                }
++            }
++            if (manager.getBans().isBanned(profile)) {
++                sendInfo(sender, "r Player rb " + playerName + "r  is banned on this server");
++                return false;
++            }
++            if (manager.isUsingWhitelist() && manager.isWhiteListed(profile) && !sender.isOp()) {
++                sendInfo(sender, "r Whitelisted players can only be spawned by operators");
++                return false;
++            }
++            return true;
++        }
++
++        @SuppressWarnings("UnusedReturnValue")
++        private static boolean spawn(CommandSender sender, CommandArguments args) {
++            if (!canSpawn(sender, args)) {
++                return false;
++            }
++            Location pos = null;
++            Rotation facing = new Rotation(0, 0);
++            World world = Bukkit.getWorld(new NamespacedKey("minecraft", "overworld"));
++            GameType mode = GameType.CREATIVE;
++            boolean flying = false;
++            if (sender instanceof Player player) {
++                ServerPlayer serverPlayer = (ServerPlayer) sender;
++                pos = player.getLocation();
++                facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
++                world = player.getWorld();
++                mode = serverPlayer.gameMode.getGameModeForPlayer();
++                flying = serverPlayer.getAbilities().flying;
++            }
++            pos = (Location) args.getOrDefault("position", pos);
++            facing = (Rotation) args.getOrDefault("direction", facing);
++            world = (World) args.getOrDefault("dimension", world);
++            if (pos == null) {
++                sendError(sender, "Need position to spawn player in console.");
++                return false;
++            }
++            GameMode nullableGameMode = (GameMode) args.get("gamemode");
++            if (nullableGameMode != null) {
++                mode = GameType.byId(nullableGameMode.getValue());
++            }
++
++            if (mode == GameType.SPECTATOR) {
++                // Force override flying to true for spectator players, or they will fell out of the world.
++                flying = true;
++            } else if (mode.isSurvival()) {
++                // Force override flying to false for survival-like players, or they will fly too
++                flying = false;
++            }
++            String playerName = (String) args.get("player");
++            // noinspection DataFlowIssue
++            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
++                sendInfo(sender, "rb Player name: " + playerName + " is too long");
++                return false;
++            }
++
++            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
++                sendInfo(sender, "rb Player " + playerName + " cannot be placed outside of the world");
++                return false;
++            }
++            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
++            if (!success) {
++                sendInfo(sender, "rb Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players");
++                return false;
++            }
++            return true;
++        }
++    }
++
++    private static CommandAPICommand createBase(String literal) {
++        return new CommandAPICommand("player")
++                .withPermission("carpet.command.player")
++                .withArguments(
++                        new StringArgument("player"),
++                        new LiteralArgument(literal)
++                );
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f73003c108
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
+@@ -0,0 +1,543 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import java.util.EnumMap;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++
++import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
++import org.leavesmc.lumina.carpet.script.utils.Tracer;
++import net.minecraft.commands.arguments.EntityAnchorArgument;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
++import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.util.Mth;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.InteractionResult;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.animal.horse.AbstractHorse;
++import net.minecraft.world.entity.decoration.ItemFrame;
++import net.minecraft.world.entity.player.Inventory;
++import net.minecraft.world.entity.vehicle.Boat;
++import net.minecraft.world.entity.vehicle.Minecart;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.EntityHitResult;
++import net.minecraft.world.phys.HitResult;
++import net.minecraft.world.phys.Vec2;
++import net.minecraft.world.phys.Vec3;
++
++public class EntityPlayerActionPack {
++    private final ServerPlayer player;
++
++    private final Map<ActionType, Action> actions = new EnumMap<>(ActionType.class);
++
++    private BlockPos currentBlock;
++    private int blockHitDelay;
++    private boolean isHittingBlock;
++    private float curBlockDamageMP;
++
++    private boolean sneaking;
++    private boolean sprinting;
++    private float forward;
++    private float strafing;
++
++    private int itemUseCooldown;
++
++    public EntityPlayerActionPack(ServerPlayer playerIn) {
++        player = playerIn;
++        stopAll();
++    }
++
++    public void copyFrom(EntityPlayerActionPack other) {
++        actions.putAll(other.actions);
++        currentBlock = other.currentBlock;
++        blockHitDelay = other.blockHitDelay;
++        isHittingBlock = other.isHittingBlock;
++        curBlockDamageMP = other.curBlockDamageMP;
++
++        sneaking = other.sneaking;
++        sprinting = other.sprinting;
++        forward = other.forward;
++        strafing = other.strafing;
++
++        itemUseCooldown = other.itemUseCooldown;
++    }
++
++    public EntityPlayerActionPack start(ActionType type, Action action) {
++        Action previous = actions.remove(type);
++        if (previous != null) type.stop(player, previous);
++        if (action != null) {
++            actions.put(type, action);
++            type.start(player, action); // noop
++        }
++        return this;
++    }
++
++    public EntityPlayerActionPack setSneaking(boolean doSneak) {
++        sneaking = doSneak;
++        player.setShiftKeyDown(doSneak);
++        if (sprinting && sneaking)
++            setSprinting(false);
++        return this;
++    }
++
++    public EntityPlayerActionPack setSprinting(boolean doSprint) {
++        sprinting = doSprint;
++        player.setSprinting(doSprint);
++        if (sneaking && sprinting)
++            setSneaking(false);
++        return this;
++    }
++
++    public EntityPlayerActionPack setForward(float value) {
++        forward = value;
++        return this;
++    }
++
++    public EntityPlayerActionPack setStrafing(float value) {
++        strafing = value;
++        return this;
++    }
++
++    public EntityPlayerActionPack look(Direction direction) {
++        return switch (direction) {
++            case NORTH -> look(180, 0);
++            case SOUTH -> look(0, 0);
++            case EAST -> look(-90, 0);
++            case WEST -> look(90, 0);
++            case UP -> look(player.getYRot(), -90);
++            case DOWN -> look(player.getYRot(), 90);
++        };
++    }
++
++    public EntityPlayerActionPack look(Vec2 rotation) {
++        return look(rotation.x, rotation.y);
++    }
++
++    public EntityPlayerActionPack look(float yaw, float pitch) {
++        player.setYRot(yaw % 360); // setYaw
++        player.setXRot(Mth.clamp(pitch, -90, 90)); // setPitch
++        // maybe player.moveTo(player.getX(), player.getY(), player.getZ(), yaw, Mth.clamp(pitch,-90.0F, 90.0F));
++        return this;
++    }
++
++    public EntityPlayerActionPack lookAt(Vec3 position) {
++        player.lookAt(EntityAnchorArgument.Anchor.EYES, position);
++        return this;
++    }
++
++    public EntityPlayerActionPack turn(float yaw, float pitch) {
++        return look(player.getYRot() + yaw, player.getXRot() + pitch);
++    }
++
++    public EntityPlayerActionPack turn(Vec2 rotation) {
++        return turn(rotation.x, rotation.y);
++    }
++
++    public EntityPlayerActionPack stopMovement() {
++        setSneaking(false);
++        setSprinting(false);
++        forward = 0.0F;
++        strafing = 0.0F;
++        return this;
++    }
++
++
++    public EntityPlayerActionPack stopAll() {
++        for (ActionType type : actions.keySet()) type.stop(player, actions.get(type));
++        actions.clear();
++        return stopMovement();
++    }
++
++    public EntityPlayerActionPack mount(boolean onlyRideables) {
++        // test what happens
++        List<Entity> entities;
++        if (onlyRideables) {
++            entities = player.level().getEntities(player, player.getBoundingBox().inflate(3.0D, 1.0D, 3.0D),
++                    e -> e instanceof Minecart || e instanceof Boat || e instanceof AbstractHorse);
++        } else {
++            entities = player.level().getEntities(player, player.getBoundingBox().inflate(3.0D, 1.0D, 3.0D));
++        }
++        if (entities.size() == 0)
++            return this;
++        Entity closest = null;
++        double distance = Double.POSITIVE_INFINITY;
++        Entity currentVehicle = player.getVehicle();
++        for (Entity e : entities) {
++            if (e == player || (currentVehicle == e))
++                continue;
++            double dd = player.distanceToSqr(e);
++            if (dd < distance) {
++                distance = dd;
++                closest = e;
++            }
++        }
++        if (closest == null) return this;
++        if (closest instanceof AbstractHorse && onlyRideables)
++            ((AbstractHorse) closest).mobInteract(player, InteractionHand.MAIN_HAND);
++        else
++            player.startRiding(closest, true);
++        return this;
++    }
++
++    public EntityPlayerActionPack dismount() {
++        player.stopRiding();
++        return this;
++    }
++
++    public void onUpdate() {
++        Map<ActionType, Boolean> actionAttempts = new HashMap<>();
++        actions.values().removeIf(e -> e.done);
++        for (Map.Entry<ActionType, Action> e : actions.entrySet()) {
++            ActionType type = e.getKey();
++            Action action = e.getValue();
++            // skipping attack if use was successful
++            if (!(actionAttempts.getOrDefault(ActionType.USE, false) && type == ActionType.ATTACK)) {
++                Boolean actionStatus = action.tick(this, type);
++                if (actionStatus != null)
++                    actionAttempts.put(type, actionStatus);
++            }
++            // optionally retrying use after successful attack and unsuccessful use
++            if (type == ActionType.ATTACK
++                    && actionAttempts.getOrDefault(ActionType.ATTACK, false)
++                    && !actionAttempts.getOrDefault(ActionType.USE, true)) {
++                // according to MinecraftClient.handleInputEvents
++                Action using = actions.get(ActionType.USE);
++                if (using != null) // this is always true - we know use worked, but just in case
++                {
++                    using.retry(this, ActionType.USE);
++                }
++            }
++        }
++        float vel = sneaking ? 0.3F : 1.0F;
++        // The != 0.0F checks are needed given else real players can't control minecarts, however it works with fakes and else they don't stop immediately
++        if (forward != 0.0F || player instanceof EntityPlayerMPFake) {
++            player.zza = forward * vel;
++        }
++        if (strafing != 0.0F || player instanceof EntityPlayerMPFake) {
++            player.xxa = strafing * vel;
++        }
++    }
++
++    static HitResult getTarget(ServerPlayer player) {
++        double reach = player.gameMode.isCreative() ? 5 : 4.5f;
++        return Tracer.rayTrace(player, 1, reach, false);
++    }
++
++    private void dropItemFromSlot(int slot, boolean dropAll) {
++        Inventory inv = player.getInventory(); // getInventory;
++        if (!inv.getItem(slot).isEmpty())
++            player.drop(inv.removeItem(slot,
++                    dropAll ? inv.getItem(slot).getCount() : 1
++            ), false, true); // scatter, keep owner
++    }
++
++    public void drop(int selectedSlot, boolean dropAll) {
++        Inventory inv = player.getInventory(); // getInventory;
++        if (selectedSlot == -2) // all
++        {
++            for (int i = inv.getContainerSize(); i >= 0; i--)
++                dropItemFromSlot(i, dropAll);
++        } else // one slot
++        {
++            if (selectedSlot == -1)
++                selectedSlot = inv.selected;
++            dropItemFromSlot(selectedSlot, dropAll);
++        }
++    }
++
++    public void setSlot(int slot) {
++        player.getInventory().selected = slot - 1;
++        player.connection.send(new ClientboundSetCarriedItemPacket(slot - 1));
++    }
++
++    public enum ActionType {
++        USE(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                EntityPlayerActionPack ap = player.getActionPack();
++                if (ap.itemUseCooldown > 0) {
++                    ap.itemUseCooldown--;
++                    return true;
++                }
++                if (player.isUsingItem()) {
++                    return true;
++                }
++                HitResult hit = getTarget(player);
++                for (InteractionHand hand : InteractionHand.values()) {
++                    switch (hit.getType()) {
++                        case BLOCK: {
++                            player.resetLastActionTime();
++                            ServerLevel world = player.serverLevel();
++                            BlockHitResult blockHit = (BlockHitResult) hit;
++                            BlockPos pos = blockHit.getBlockPos();
++                            Direction side = blockHit.getDirection();
++                            if (pos.getY() < player.level().getMaxBuildHeight() - (side == Direction.UP ? 1 : 0) && world.mayInteract(player, pos)) {
++                                InteractionResult result = player.gameMode.useItemOn(player, world, player.getItemInHand(hand), hand, blockHit);
++                                if (result.consumesAction()) {
++                                    if (result.shouldSwing()) player.swing(hand);
++                                    ap.itemUseCooldown = 3;
++                                    return true;
++                                }
++                            }
++                            break;
++                        }
++                        case ENTITY: {
++                            player.resetLastActionTime();
++                            EntityHitResult entityHit = (EntityHitResult) hit;
++                            Entity entity = entityHit.getEntity();
++                            boolean handWasEmpty = player.getItemInHand(hand).isEmpty();
++                            boolean itemFrameEmpty = (entity instanceof ItemFrame) && ((ItemFrame) entity).getItem().isEmpty();
++                            Vec3 relativeHitPos = entityHit.getLocation().subtract(entity.getX(), entity.getY(), entity.getZ());
++                            if (entity.interactAt(player, relativeHitPos, hand).consumesAction()) {
++                                ap.itemUseCooldown = 3;
++                                return true;
++                            }
++                            // fix for SS itemframe always returns CONSUME even if no action is performed
++                            if (player.interactOn(entity, hand).consumesAction() && !(handWasEmpty && itemFrameEmpty)) {
++                                ap.itemUseCooldown = 3;
++                                return true;
++                            }
++                            break;
++                        }
++                    }
++                    ItemStack handItem = player.getItemInHand(hand);
++                    if (player.gameMode.useItem(player, player.level(), handItem, hand).consumesAction()) {
++                        ap.itemUseCooldown = 3;
++                        return true;
++                    }
++                }
++                return false;
++            }
++
++            @Override
++            void inactiveTick(ServerPlayer player, Action action) {
++                EntityPlayerActionPack ap = player.getActionPack();
++                ap.itemUseCooldown = 0;
++                player.releaseUsingItem();
++            }
++        },
++        ATTACK(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                HitResult hit = getTarget(player);
++                switch (hit.getType()) {
++                    case ENTITY: {
++                        EntityHitResult entityHit = (EntityHitResult) hit;
++                        if (!action.isContinuous) {
++                            player.attack(entityHit.getEntity());
++                            player.swing(InteractionHand.MAIN_HAND);
++                        }
++                        player.resetAttackStrengthTicker();
++                        player.resetLastActionTime();
++                        return true;
++                    }
++                    case BLOCK: {
++                        EntityPlayerActionPack ap = player.getActionPack();
++                        if (ap.blockHitDelay > 0) {
++                            ap.blockHitDelay--;
++                            return false;
++                        }
++                        BlockHitResult blockHit = (BlockHitResult) hit;
++                        BlockPos pos = blockHit.getBlockPos();
++                        Direction side = blockHit.getDirection();
++                        if (player.blockActionRestricted(player.level(), pos, player.gameMode.getGameModeForPlayer()))
++                            return false;
++                        if (ap.currentBlock != null && player.level().getBlockState(ap.currentBlock).isAir()) {
++                            ap.currentBlock = null;
++                            return false;
++                        }
++                        BlockState state = player.level().getBlockState(pos);
++                        boolean blockBroken = false;
++                        if (player.gameMode.getGameModeForPlayer().isCreative()) {
++                            player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
++                            ap.blockHitDelay = 5;
++                            blockBroken = true;
++                        } else if (ap.currentBlock == null || !ap.currentBlock.equals(pos)) {
++                            if (ap.currentBlock != null) {
++                                player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
++                            }
++                            player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
++                            boolean notAir = !state.isAir();
++                            if (notAir && ap.curBlockDamageMP == 0) {
++                                state.attack(player.level(), pos, player);
++                            }
++                            if (notAir && state.getDestroyProgress(player, player.level(), pos) >= 1) {
++                                ap.currentBlock = null;
++                                // instamine??
++                                blockBroken = true;
++                            } else {
++                                ap.currentBlock = pos;
++                                ap.curBlockDamageMP = 0;
++                            }
++                        } else {
++                            ap.curBlockDamageMP += state.getDestroyProgress(player, player.level(), pos);
++                            if (ap.curBlockDamageMP >= 1) {
++                                player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
++                                ap.currentBlock = null;
++                                ap.blockHitDelay = 5;
++                                blockBroken = true;
++                            }
++                            player.level().destroyBlockProgress(-1, pos, (int) (ap.curBlockDamageMP * 10));
++
++                        }
++                        player.resetLastActionTime();
++                        player.swing(InteractionHand.MAIN_HAND);
++                        return blockBroken;
++                    }
++                }
++                return false;
++            }
++
++            @Override
++            void inactiveTick(ServerPlayer player, Action action) {
++                EntityPlayerActionPack ap = player.getActionPack();
++                if (ap.currentBlock == null) return;
++                player.level().destroyBlockProgress(-1, ap.currentBlock, -1);
++                player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.DOWN, player.level().getMaxBuildHeight(), -1);
++                ap.currentBlock = null;
++            }
++        },
++        JUMP(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                if (action.limit == 1) {
++                    if (player.onGround()) player.jumpFromGround(); // onGround
++                } else {
++                    player.setJumping(true);
++                }
++                return false;
++            }
++
++            @Override
++            void inactiveTick(ServerPlayer player, Action action) {
++                player.setJumping(false);
++            }
++        },
++        DROP_ITEM(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                player.resetLastActionTime();
++                player.drop(false); // dropSelectedItem
++                return false;
++            }
++        },
++        DROP_STACK(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                player.resetLastActionTime();
++                player.drop(true); // dropSelectedItem
++                return false;
++            }
++        },
++        SWAP_HANDS(true) {
++            @Override
++            boolean execute(ServerPlayer player, Action action) {
++                player.resetLastActionTime();
++                ItemStack itemStack_1 = player.getItemInHand(InteractionHand.OFF_HAND);
++                player.setItemInHand(InteractionHand.OFF_HAND, player.getItemInHand(InteractionHand.MAIN_HAND));
++                player.setItemInHand(InteractionHand.MAIN_HAND, itemStack_1);
++                return false;
++            }
++        };
++
++        public final boolean preventSpectator;
++
++        ActionType(boolean preventSpectator) {
++            this.preventSpectator = preventSpectator;
++        }
++
++        void start(ServerPlayer player, Action action) {
++        }
++
++        abstract boolean execute(ServerPlayer player, Action action);
++
++        void inactiveTick(ServerPlayer player, Action action) {
++        }
++
++        void stop(ServerPlayer player, Action action) {
++            inactiveTick(player, action);
++        }
++    }
++
++    public static class Action {
++        public boolean done = false;
++        public final int limit;
++        public final int interval;
++        public final int offset;
++        private int count;
++        private int next;
++        private final boolean isContinuous;
++
++        private Action(int limit, int interval, int offset, boolean continuous) {
++            this.limit = limit;
++            this.interval = interval;
++            this.offset = offset;
++            next = interval + offset;
++            isContinuous = continuous;
++        }
++
++        public static Action once() {
++            return new Action(1, 1, 0, false);
++        }
++
++        public static Action continuous() {
++            return new Action(-1, 1, 0, true);
++        }
++
++        public static Action interval(int interval) {
++            return new Action(-1, interval, 0, false);
++        }
++
++        public static Action interval(int interval, int offset) {
++            return new Action(-1, interval, offset, false);
++        }
++
++        Boolean tick(EntityPlayerActionPack actionPack, ActionType type) {
++            next--;
++            Boolean cancel = null;
++            if (next <= 0) {
++                if (interval == 1 && !isContinuous) {
++                    // need to allow entity to tick, otherwise won't have effect (bow)
++                    // actions are 20 tps, so need to clear status mid tick, allowing entities process it till next time
++                    if (!type.preventSpectator || !actionPack.player.isSpectator()) {
++                        type.inactiveTick(actionPack.player, this);
++                    }
++                }
++
++                if (!type.preventSpectator || !actionPack.player.isSpectator()) {
++                    cancel = type.execute(actionPack.player, this);
++                }
++                count++;
++                if (count == limit) {
++                    type.stop(actionPack.player, null);
++                    done = true;
++                    return cancel;
++                }
++                next = interval;
++            } else {
++                if (!type.preventSpectator || !actionPack.player.isSpectator()) {
++                    type.inactiveTick(actionPack.player, this);
++                }
++            }
++            return cancel;
++        }
++
++        void retry(EntityPlayerActionPack actionPack, ActionType type) {
++            // assuming action run but was unsuccesful that tick, but opportunity emerged to retry it, lets retry it.
++            if (!type.preventSpectator || !actionPack.player.isSpectator()) {
++                type.execute(actionPack.player, this);
++            }
++            count++;
++            if (count == limit) {
++                type.stop(actionPack.player, null);
++                done = true;
++            }
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..884fefa485ac38b76e9da4ef6aba374a65a12c07
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
+@@ -0,0 +1,227 @@
++package org.leavesmc.lumina.carpet.patches;
++
++import com.mojang.authlib.GameProfile;
++import io.papermc.paper.threadedregions.EntityScheduler;
++import io.papermc.paper.threadedregions.scheduler.FoliaEntityScheduler;
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.UUIDUtil;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.chat.contents.TranslatableContents;
++import net.minecraft.network.protocol.PacketFlow;
++import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
++import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
++import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
++import net.minecraft.network.protocol.game.ServerboundClientCommandPacket;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.TickTask;
++import net.minecraft.server.level.ClientInformation;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.server.network.CommonListenerCookie;
++import net.minecraft.server.players.GameProfileCache;
++import net.minecraft.world.damagesource.DamageSource;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EquipmentSlot;
++import net.minecraft.world.entity.ai.attributes.Attributes;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.food.FoodData;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.GameType;
++import net.minecraft.world.level.block.entity.SkullBlockEntity;
++import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.World;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.event.player.PlayerKickEvent;
++import org.bukkit.plugin.Plugin;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++
++import java.util.Optional;
++import java.util.concurrent.CompletableFuture;
++import java.util.function.Consumer;
++
++import static net.minecraft.world.level.block.entity.SkullBlockEntity.fetchGameProfile;
++
++@SuppressWarnings("EntityConstructor")
++public class EntityPlayerMPFake extends ServerPlayer {
++    public Runnable fixStartingPosition = () -> {
++    };
++    public boolean isAShadow;
++
++    // Returns true if it was successful, false if couldn't spawn due to the player not existing in Mojang servers
++    public static boolean createFake(String username, @NotNull MinecraftServer server, Location pos, double yaw, double pitch, World world, GameType gamemode, boolean flying) {
++        // prolly half of that crap is not necessary, but it works
++        GameProfileCache.setUsesAuthentication(false);
++        GameProfile gameprofile;
++        try { //noinspection DataFlowIssue
++            gameprofile = server.getProfileCache().get(username).orElse(null); // findByName  .orElse(null)
++        } finally {
++            GameProfileCache.setUsesAuthentication(server.isDedicatedServer() && server.usesAuthentication());
++        }
++        if (gameprofile == null) {
++            if (!CarpetServer.configModule.allowSpawningOfflinePlayers) {
++                return false;
++            } else {
++                gameprofile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(username), username);
++            }
++        }
++        GameProfile finalGameProfile = gameprofile;
++        // Bukkit.getAsyncScheduler().runNow(
++        //         CarpetServer.PLUGIN,
++        //         scheduledTask -> {
++        //             GameProfile current = SkullBlockEntity.fetchGameProfile(username).join().orElse(finalGameProfile); // TODO
++        ServerLevel worldIn = ((CraftWorld) world).getHandle().getLevel();
++        Bukkit.getRegionScheduler().run(CarpetServer.PLUGIN, pos, task -> {
++            EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, finalGameProfile, ClientInformation.createDefault(), false);
++            instance.fixStartingPosition = () -> instance.moveTo(pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch);
++            server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), instance, new CommonListenerCookie(finalGameProfile, 0, instance.clientInformation(), false), Optional.empty(), username, new Location(world, pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch));
++            instance.setHealth(20.0F);
++            instance.unsetRemoved();
++            //noinspection DataFlowIssue
++            instance.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
++            instance.gameMode.changeGameModeForPlayer(gamemode);
++            server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)), worldIn.dimension());// instance.dimension);
++            server.getPlayerList().broadcastAll(new ClientboundTeleportEntityPacket(instance), worldIn.dimension());// instance.dimension);
++            // instance.world.getChunkManager(). updatePosition(instance);
++            instance.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f); // show all model layers (incl. capes)
++            instance.getAbilities().flying = flying;
++        });
++        //         }
++        // );
++        return true;
++    }
++
++    private static @NotNull CompletableFuture<Optional<GameProfile>> fetchGameProfile(final String name) {
++        return SkullBlockEntity.fetchGameProfile(name);
++    }
++
++    public static @NotNull EntityPlayerMPFake createShadow(MinecraftServer server, @NotNull ServerPlayer player) {
++        //noinspection DataFlowIssue
++        player.getServer().getPlayerList().remove(player);
++        player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"), PlayerKickEvent.Cause.DUPLICATE_LOGIN);
++        ServerLevel worldIn = player.serverLevel();
++        GameProfile gameprofile = player.getGameProfile();
++        EntityPlayerMPFake playerShadow = new EntityPlayerMPFake(server, worldIn, gameprofile, player.clientInformation(), true);
++        //noinspection DataFlowIssue
++        playerShadow.setChatSession(player.getChatSession());
++        server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), playerShadow, new CommonListenerCookie(gameprofile, 0, player.clientInformation(), true), Optional.empty(), player.getScoreboardName(), ((org.bukkit.entity.Player) player).getLocation());
++        playerShadow.setHealth(player.getHealth());
++        playerShadow.gameMode.changeGameModeForPlayer(player.gameMode.getGameModeForPlayer());
++        playerShadow.getActionPack().copyFrom(player.getActionPack());
++        // this might create problems if a player logs back in...
++        //noinspection DataFlowIssue
++        playerShadow.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
++        playerShadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, player.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION));
++        server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(playerShadow, (byte) (player.yHeadRot * 256 / 360)), playerShadow.level().dimension());
++        server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, playerShadow));
++        // player.world.getChunkManager().updatePosition(playerShadow);
++        playerShadow.getAbilities().flying = player.getAbilities().flying;
++        return playerShadow;
++    }
++
++    @Contract("_, _, _, _ -> new")
++    public static @NotNull EntityPlayerMPFake respawnFake(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation cli) {
++        return new EntityPlayerMPFake(server, level, profile, cli, false);
++    }
++
++    private EntityPlayerMPFake(MinecraftServer server, ServerLevel worldIn, GameProfile profile, ClientInformation cli, boolean shadow) {
++        super(server, worldIn, profile, cli);
++        isAShadow = shadow;
++    }
++
++    @Override
++    public void onEquipItem(final @NotNull EquipmentSlot slot, final @NotNull ItemStack previous, final @NotNull ItemStack stack) {
++        if (!isUsingItem()) super.onEquipItem(slot, previous, stack);
++    }
++
++    @Override
++    public void kill() {
++        kill(Messenger.s("Killed"));
++    }
++
++    public void kill(@NotNull Component reason) {
++        shakeOff();
++
++        if (reason.getContents() instanceof TranslatableContents text && "multiplayer.disconnect.duplicate_login".equals(text.getKey())) {
++            this.connection.onDisconnect(reason);
++        } else {
++            this.getBukkitEntity().taskScheduler.schedule(
++                    (Consumer<? extends Entity>) scheduledTask -> this.connection.onDisconnect(reason),
++                    null,
++                    1
++            );
++            // this.server.tell(new TickTask(this.tickCount, () -> this.connection.onDisconnect(reason)));
++        }
++    }
++
++    @Override
++    public void tick() {
++        if (this.tickCount % 10 == 0) {
++            this.connection.resetPosition();
++            //noinspection resource
++            this.serverLevel().getChunkSource().move(this);
++        }
++        try {
++            super.tick();
++            this.doTick();
++        } catch (NullPointerException ignored) {
++            // happens with that paper port thingy - not sure what that would fix, but hey
++            // the game not gonna crash violently.
++        }
++
++
++    }
++
++    private void shakeOff() {
++        if (getVehicle() instanceof Player) stopRiding();
++        for (Entity passenger : getIndirectPassengers()) {
++            if (passenger instanceof Player) passenger.stopRiding();
++        }
++    }
++
++    @Override
++    public void die(@NotNull DamageSource cause) {
++        shakeOff();
++        super.die(cause);
++        setHealth(20);
++        this.foodData = new FoodData();
++        kill(this.getCombatTracker().getDeathMessage());
++    }
++
++    @Override
++    public @NotNull String getIpAddress() {
++        return "127.0.0.1";
++    }
++
++    @Override
++    public boolean allowsListing() {
++        return CarpetServer.configModule.allowListingFakePlayers;
++    }
++
++    @Override
++    protected void checkFallDamage(double y, boolean onGround, @NotNull BlockState state, @NotNull BlockPos pos) {
++        doCheckFallDamage(0.0, y, 0.0, onGround);
++    }
++
++    @Override
++    public Entity changeDimension(@NotNull ServerLevel serverLevel) {
++        super.changeDimension(serverLevel);
++        if (wonGame) {
++            ServerboundClientCommandPacket p = new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.PERFORM_RESPAWN);
++            connection.handleClientCommand(p);
++        }
++
++        // If above branch was taken, *this* has been removed and replaced, the new instance has been set
++        // on 'our' connection (which is now theirs, but we still have a ref).
++        if (connection.player.isChangingDimension()) {
++            connection.player.hasChangedDimension();
++        }
++        return connection.player;
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7df2dd9009f227f9cd8f87849475f7d1c83d4519
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
+@@ -0,0 +1,32 @@
++package org.leavesmc.lumina.carpet.patches;
++
++import io.netty.channel.embedded.EmbeddedChannel;
++import net.minecraft.network.Connection;
++import net.minecraft.network.PacketListener;
++import net.minecraft.network.ProtocolInfo;
++import net.minecraft.network.protocol.PacketFlow;
++
++public class FakeClientConnection extends Connection {
++    public FakeClientConnection(PacketFlow p) {
++        super(p);
++        // compat with adventure-platform-fabric. This does NOT trigger other vanilla handlers for establishing a channel
++        // also makes #isOpen return true, allowing enderpearls to teleport fake players
++        this.setChannel(new EmbeddedChannel());
++    }
++
++    @Override
++    public void setReadOnly() {
++    }
++
++    @Override
++    public void handleDisconnection() {
++    }
++
++    @Override
++    public void setListenerForServerboundHandshake(PacketListener packetListener) {
++    }
++
++    @Override
++    public <T extends PacketListener> void setupInboundProtocol(ProtocolInfo<T> protocolInfo, T packetListener) {
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc9b7281eadf2ca97ded226c19559b0d3d5334b5
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java
+@@ -0,0 +1,74 @@
++package org.leavesmc.lumina.carpet.script.utils;
++
++import java.util.Optional;
++import java.util.function.Predicate;
++
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.level.ClipContext;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.EntityHitResult;
++import net.minecraft.world.phys.HitResult;
++import net.minecraft.world.phys.Vec3;
++
++public class Tracer {
++    public static HitResult rayTrace(Entity source, float partialTicks, double reach, boolean fluids) {
++        BlockHitResult blockHit = rayTraceBlocks(source, partialTicks, reach, fluids);
++        double maxSqDist = reach * reach;
++        if (blockHit != null) {
++            maxSqDist = blockHit.getLocation().distanceToSqr(source.getEyePosition(partialTicks));
++        }
++        EntityHitResult entityHit = rayTraceEntities(source, partialTicks, reach, maxSqDist);
++        return entityHit == null ? blockHit : entityHit;
++    }
++
++    public static BlockHitResult rayTraceBlocks(Entity source, float partialTicks, double reach, boolean fluids) {
++        Vec3 pos = source.getEyePosition(partialTicks);
++        Vec3 rotation = source.getViewVector(partialTicks);
++        Vec3 reachEnd = pos.add(rotation.x * reach, rotation.y * reach, rotation.z * reach);
++        return source.level().clip(new ClipContext(pos, reachEnd, ClipContext.Block.OUTLINE, fluids ?
++                ClipContext.Fluid.ANY : ClipContext.Fluid.NONE, source));
++    }
++
++    public static EntityHitResult rayTraceEntities(Entity source, float partialTicks, double reach, double maxSqDist) {
++        Vec3 pos = source.getEyePosition(partialTicks);
++        Vec3 reachVec = source.getViewVector(partialTicks).scale(reach);
++        AABB box = source.getBoundingBox().expandTowards(reachVec).inflate(1);
++        return rayTraceEntities(source, pos, pos.add(reachVec), box, e -> !e.isSpectator() && e.isPickable(), maxSqDist);
++    }
++
++    public static EntityHitResult rayTraceEntities(Entity source, Vec3 start, Vec3 end, AABB box, Predicate<Entity> predicate, double maxSqDistance) {
++        Level world = source.level();
++        double targetDistance = maxSqDistance;
++        Entity target = null;
++        Vec3 targetHitPos = null;
++        for (Entity current : world.getEntities(source, box, predicate)) {
++            AABB currentBox = current.getBoundingBox().inflate(current.getPickRadius());
++            Optional<Vec3> currentHit = currentBox.clip(start, end);
++            if (currentBox.contains(start)) {
++                if (targetDistance >= 0) {
++                    target = current;
++                    targetHitPos = currentHit.orElse(start);
++                    targetDistance = 0;
++                }
++            } else if (currentHit.isPresent()) {
++                Vec3 currentHitPos = currentHit.get();
++                double currentDistance = start.distanceToSqr(currentHitPos);
++                if (currentDistance < targetDistance || targetDistance == 0) {
++                    if (current.getRootVehicle() == source.getRootVehicle()) {
++                        if (targetDistance == 0) {
++                            target = current;
++                            targetHitPos = currentHitPos;
++                        }
++                    } else {
++                        target = current;
++                        targetHitPos = currentHitPos;
++                        targetDistance = currentDistance;
++                    }
++                }
++            }
++        }
++        return target == null ? null : new EntityHitResult(target, targetHitPos);
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java b/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2312d378eb061ba013a7c595aff16abf782ac600
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java
+@@ -0,0 +1,306 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import net.minecraft.ChatFormatting;
++import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.core.BlockPos;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.chat.MutableComponent;
++import net.minecraft.network.chat.ClickEvent;
++import net.minecraft.network.chat.HoverEvent;
++import net.minecraft.network.chat.Style;
++import net.minecraft.network.chat.TextColor;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.MobCategory;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.phys.Vec3;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.List;
++import java.util.function.BiFunction;
++import java.util.function.Function;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
++
++public class Messenger {
++    public static final Logger LOG = LoggerFactory.getLogger("Messaging System");
++
++    private static final Pattern colorExtract = Pattern.compile("#([0-9a-fA-F]{6})");
++
++    public enum CarpetFormatting {
++        ITALIC('i', (s, f) -> s.withItalic(true)),
++        STRIKE('s', (s, f) -> s.applyFormat(ChatFormatting.STRIKETHROUGH)),
++        UNDERLINE('u', (s, f) -> s.applyFormat(ChatFormatting.UNDERLINE)),
++        BOLD('b', (s, f) -> s.withBold(true)),
++        OBFUSCATE('o', (s, f) -> s.applyFormat(ChatFormatting.OBFUSCATED)),
++
++        WHITE('w', (s, f) -> s.withColor(ChatFormatting.WHITE)),
++        YELLOW('y', (s, f) -> s.withColor(ChatFormatting.YELLOW)),
++        LIGHT_PURPLE('m', (s, f) -> s.withColor(ChatFormatting.LIGHT_PURPLE)), // magenta
++        RED('r', (s, f) -> s.withColor(ChatFormatting.RED)),
++        AQUA('c', (s, f) -> s.withColor(ChatFormatting.AQUA)), // cyan
++        GREEN('l', (s, f) -> s.withColor(ChatFormatting.GREEN)), // lime
++        BLUE('t', (s, f) -> s.withColor(ChatFormatting.BLUE)), // light blue, teal
++        DARK_GRAY('f', (s, f) -> s.withColor(ChatFormatting.DARK_GRAY)),
++        GRAY('g', (s, f) -> s.withColor(ChatFormatting.GRAY)),
++        GOLD('d', (s, f) -> s.withColor(ChatFormatting.GOLD)),
++        DARK_PURPLE('p', (s, f) -> s.withColor(ChatFormatting.DARK_PURPLE)), // purple
++        DARK_RED('n', (s, f) -> s.withColor(ChatFormatting.DARK_RED)),  // brown
++        DARK_AQUA('q', (s, f) -> s.withColor(ChatFormatting.DARK_AQUA)),
++        DARK_GREEN('e', (s, f) -> s.withColor(ChatFormatting.DARK_GREEN)),
++        DARK_BLUE('v', (s, f) -> s.withColor(ChatFormatting.DARK_BLUE)), // navy
++        BLACK('k', (s, f) -> s.withColor(ChatFormatting.BLACK)),
++
++        COLOR('#', (s, f) -> {
++            TextColor color;
++            try {
++                color = TextColor.parseColor("#" + f).getOrThrow(RuntimeException::new);
++            } catch (RuntimeException e) {
++                return s;
++            }
++            return color == null ? s : s.withColor(color);
++        }, s -> {
++            Matcher m = colorExtract.matcher(s);
++            return m.find() ? m.group(1) : null;
++        }),
++        ;
++
++        public char code;
++        public BiFunction<Style, String, Style> applier;
++        public Function<String, String> container;
++
++        CarpetFormatting(char code, BiFunction<Style, String, Style> applier) {
++            this(code, applier, s -> s.indexOf(code) >= 0 ? Character.toString(code) : null);
++        }
++
++        CarpetFormatting(char code, BiFunction<Style, String, Style> applier, Function<String, String> container) {
++            this.code = code;
++            this.applier = applier;
++            this.container = container;
++        }
++
++        public Style apply(String format, Style previous) {
++            String fmt;
++            if ((fmt = container.apply(format)) != null) return applier.apply(previous, fmt);
++            return previous;
++        }
++    }
++
++    ;
++
++    public static Style parseStyle(String style) {
++        Style myStyle = Style.EMPTY.withColor(ChatFormatting.WHITE);
++        for (CarpetFormatting cf : CarpetFormatting.values()) myStyle = cf.apply(style, myStyle);
++        return myStyle;
++    }
++
++    public static String heatmap_color(double actual, double reference) {
++        String color = "g";
++        if (actual >= 0.0D) color = "e";
++        if (actual > 0.5D * reference) color = "y";
++        if (actual > 0.8D * reference) color = "r";
++        if (actual > reference) color = "m";
++        return color;
++    }
++
++    public static String creatureTypeColor(MobCategory type) {
++        return switch (type) {
++            case MONSTER -> "n";
++            case CREATURE -> "e";
++            case AMBIENT -> "f";
++            case WATER_CREATURE -> "v";
++            case WATER_AMBIENT -> "q";
++            default -> "w"; // missing MISC and UNDERGROUND_WATER_CREATURE
++        };
++    }
++
++    private static MutableComponent getChatComponentFromDesc(String message, MutableComponent previousMessage) {
++        if (message.equalsIgnoreCase("")) {
++            return Component.literal("");
++        }
++        if (Character.isWhitespace(message.charAt(0))) {
++            message = "w" + message;
++        }
++        int limit = message.indexOf(' ');
++        String desc = message;
++        String str = "";
++        if (limit >= 0) {
++            desc = message.substring(0, limit);
++            str = message.substring(limit + 1);
++        }
++        if (previousMessage == null) {
++            MutableComponent text = Component.literal(str);
++            text.setStyle(parseStyle(desc));
++            return text;
++        }
++        Style previousStyle = previousMessage.getStyle();
++        MutableComponent ret = previousMessage;
++        previousMessage.setStyle(switch (desc.charAt(0)) {
++            case '?' ->
++                    previousStyle.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, message.substring(1)));
++            case '!' ->
++                    previousStyle.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, message.substring(1)));
++            case '^' ->
++                    previousStyle.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, c(message.substring(1))));
++            case '@' -> previousStyle.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, message.substring(1)));
++            case '&' ->
++                    previousStyle.withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, message.substring(1)));
++            default -> { // Create a new component
++                ret = Component.literal(str);
++                ret.setStyle(parseStyle(desc));
++                yield previousStyle; // no op for the previous style
++            }
++        });
++        return ret;
++    }
++
++    public static Component tp(String desc, Vec3 pos) {
++        return tp(desc, pos.x, pos.y, pos.z);
++    }
++
++    public static Component tp(String desc, BlockPos pos) {
++        return tp(desc, pos.getX(), pos.getY(), pos.getZ());
++    }
++
++    public static Component tp(String desc, double x, double y, double z) {
++        return tp(desc, (float) x, (float) y, (float) z);
++    }
++
++    public static Component tp(String desc, float x, float y, float z) {
++        return getCoordsTextComponent(desc, x, y, z, false);
++    }
++
++    public static Component tp(String desc, int x, int y, int z) {
++        return getCoordsTextComponent(desc, x, y, z, true);
++    }
++
++    /// to be continued
++    public static Component dbl(String style, double double_value) {
++        return c(String.format("%s %.1f", style, double_value), String.format("^w %f", double_value));
++    }
++
++    public static Component dbls(String style, double... doubles) {
++        StringBuilder str = new StringBuilder(style + " [ ");
++        String prefix = "";
++        for (double dbl : doubles) {
++            str.append(String.format("%s%.1f", prefix, dbl));
++            prefix = ", ";
++        }
++        str.append(" ]");
++        return c(str.toString());
++    }
++
++    public static Component dblf(String style, double... doubles) {
++        StringBuilder str = new StringBuilder(style + " [ ");
++        String prefix = "";
++        for (double dbl : doubles) {
++            str.append(String.format("%s%f", prefix, dbl));
++            prefix = ", ";
++        }
++        str.append(" ]");
++        return c(str.toString());
++    }
++
++    public static Component dblt(String style, double... doubles) {
++        List<Object> components = new ArrayList<>();
++        components.add(style + " [ ");
++        String prefix = "";
++        for (double dbl : doubles) {
++
++            components.add(String.format("%s %s%.1f", style, prefix, dbl));
++            components.add("?" + dbl);
++            components.add("^w " + dbl);
++            prefix = ", ";
++        }
++        // components.remove(components.size()-1);
++        components.add(style + "  ]");
++        return c(components.toArray(new Object[0]));
++    }
++
++    private static Component getCoordsTextComponent(String style, float x, float y, float z, boolean isInt) {
++        String text;
++        String command;
++        if (isInt) {
++            text = String.format("%s [ %d, %d, %d ]", style, (int) x, (int) y, (int) z);
++            command = String.format("!/tp %d %d %d", (int) x, (int) y, (int) z);
++        } else {
++            text = String.format("%s [ %.1f, %.1f, %.1f]", style, x, y, z);
++            command = String.format("!/tp %.3f %.3f %.3f", x, y, z);
++        }
++        return c(text, command);
++    }
++
++    // message source
++    public static void m(CommandSourceStack source, Object... fields) {
++        if (source != null)
++            source.sendSuccess(() -> Messenger.c(fields), source.getServer() != null && source.getServer().overworld() != null);
++    }
++
++    public static void m(Player player, Object... fields) {
++        player.sendSystemMessage(Messenger.c(fields));
++    }
++
++    /*
++    composes single line, multicomponent message, and returns as one chat messagge
++     */
++    public static Component c(Object... fields) {
++        MutableComponent message = Component.literal("");
++        MutableComponent previousComponent = null;
++        for (Object o : fields) {
++            if (o instanceof MutableComponent) {
++                message.append((MutableComponent) o);
++                previousComponent = (MutableComponent) o;
++                continue;
++            }
++            String txt = o.toString();
++            MutableComponent comp = getChatComponentFromDesc(txt, previousComponent);
++            if (comp != previousComponent) message.append(comp);
++            previousComponent = comp;
++        }
++        return message;
++    }
++
++    // simple text
++
++    public static Component s(String text) {
++        return s(text, "");
++    }
++
++    public static Component s(String text, String style) {
++        MutableComponent message = Component.literal(text);
++        message.setStyle(parseStyle(style));
++        return message;
++    }
++
++
++    public static void send(Player player, Collection<Component> lines) {
++        lines.forEach(message -> player.sendSystemMessage(message));
++    }
++
++    public static void send(CommandSourceStack source, Collection<Component> lines) {
++        lines.stream().forEachOrdered((s) -> source.sendSuccess(() -> s, false));
++    }
++
++
++    public static void print_server_message(MinecraftServer server, String message) {
++        if (server == null)
++            LOG.error("Message not delivered: " + message);
++        server.sendSystemMessage(Component.literal(message));
++        Component txt = c("gi " + message);
++        for (Player entityplayer : server.getPlayerList().getPlayers()) {
++            entityplayer.sendSystemMessage(txt);
++        }
++    }
++
++    public static void print_server_message(MinecraftServer server, Component message) {
++        if (server == null)
++            LOG.error("Message not delivered: " + message.getString());
++        server.sendSystemMessage(message);
++        for (Player entityplayer : server.getPlayerList().getPlayers()) {
++            entityplayer.sendSystemMessage(message);
++        }
++    }
++}
++

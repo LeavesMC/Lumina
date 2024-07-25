@@ -87,10 +87,10 @@ index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab77ea818d3
+index 0000000000000000000000000000000000000000..3826b3e3f6d1b57e510de8ec37f1222cb8ea43c3
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,188 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
@@ -102,6 +102,7 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.command.ConsoleCommandSender;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.config.LuminaConfig;
 +import org.slf4j.Logger;
 +
@@ -116,6 +117,7 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +
 +    public void registerCommands() {
 +        registerLuminaCommand();
++        CarpetServer.registerCarpetCommands(); // TODO: move to CarpetServer later
 +    }
 +
 +    private void registerLuminaCommand() {
@@ -125,12 +127,12 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +                        .withSubcommand(new CommandAPICommand("set")
 +                                .withPermission("lumina.config.set")
 +                                .withArguments(new StringArgument("node")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes)))
-+                                .withArguments(new GreedyStringArgument("value")
++                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
++                                ).withArguments(new GreedyStringArgument("value")
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
 +                                            String node = (String) info.previousArgs().get("node");
 +                                            LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                                            if (node == null || nodeInfo == null) {
++                                            if (node == null || node.isEmpty() || nodeInfo == null) {
 +                                                return new String[]{};
 +                                            }
 +                                            return nodeInfo.suggestions();
@@ -145,7 +147,7 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +                                    String value = (String) args.get("value");
 +                                    Class<?> type = nodeInfo.type();
 +                                    Object parent = nodeInfo.parent();
-+                                    if (value == null) {
++                                    if (value == null || value.isEmpty()) {
 +                                        sendError(sender, "No value specified, expected: " + type.getSimpleName());
 +                                        return;
 +                                    }
@@ -211,8 +213,8 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +                        ).withSubcommand(new CommandAPICommand("get")
 +                                .withPermission("lumina.config.get")
 +                                .withArguments(new StringArgument("node")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes)))
-+                                .executes((sender, args) -> {
++                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
++                                ).executes((sender, args) -> {
 +                                    String node = (String) args.get("node");
 +                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
@@ -258,19 +260,19 @@ index 0000000000000000000000000000000000000000..3879e94473e6e8499a53d9c89fb6fab7
 +                ).register();
 +    }
 +
-+    private void sendError(@NotNull CommandSender sender, String message) {
++    public static void sendError(@NotNull CommandSender sender, String message) {
 +        sendMessage(sender, message, NamedTextColor.RED);
 +    }
 +
-+    private void sendSuccess(@NotNull CommandSender sender, String message) {
++    public static void sendSuccess(@NotNull CommandSender sender, String message) {
 +        sendMessage(sender, message, NamedTextColor.DARK_GREEN);
 +    }
 +
-+    private void sendInfo(@NotNull CommandSender sender, String message) {
++    public static void sendInfo(@NotNull CommandSender sender, String message) {
 +        sendMessage(sender, message, NamedTextColor.WHITE);
 +    }
 +
-+    private void sendMessage(@NotNull CommandSender sender, String message, TextColor color) {
++    public static void sendMessage(@NotNull CommandSender sender, String message, TextColor color) {
 +        sender.sendMessage(Component
 +                .empty()
 +                .color(color)
