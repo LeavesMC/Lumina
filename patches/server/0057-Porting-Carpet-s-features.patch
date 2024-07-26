@@ -3,8 +3,10 @@ From: MC_XiaoHei <xiaohei.xor7@outlook.com>
 Date: Fri, 26 Jul 2024 01:09:46 +0800
 Subject: [PATCH] Porting Carpet's features
 
-This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet)
-License:
+This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet) and Leaves(https://github.com/LeavesMC/Leaves)
+Leaves License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
+
+fabric-carpet License:
 MIT License
 
 Copyright (c) 2020 gnembon
@@ -27,18 +29,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
-index 374abffb9f1ce1a308822aed13038e77fe9ca08b..81410d1caa42b045e49e0edafb4ebfdb244ceb7b 100644
---- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
-+++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaAsyncScheduler.java
-@@ -216,6 +216,7 @@ public final class FoliaAsyncScheduler implements AsyncScheduler {
-             try {
-                 this.run.accept(this);
-             } catch (final Throwable throwable) {
-+                throwable.printStackTrace();
-                 this.plugin.getLogger().log(Level.WARNING, "Async task for " + this.plugin.getDescription().getFullName() + " generated an exception", throwable);
-             } finally {
-                 boolean removeFromTasks = false;
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
 index d5e8dd947cb29343074df8074e791357c72e7f7b..9b4739cd72523de9ed1b150bc3ca241d6bc1b0cd 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
@@ -56,18 +46,10 @@ index d5e8dd947cb29343074df8074e791357c72e7f7b..9b4739cd72523de9ed1b150bc3ca241d
      @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
  
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a005bdf2b 100644
+index 8056ddc2164789ac8efab4f5bf2069c4768f7657..aa4f88632335b706b5796ce0cccb9d1bcaa2d684 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -310,7 +310,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-     public volatile Thread shutdownThread; // Paper
-     public volatile boolean abnormalExit = false; // Paper
-     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
--
-     // Folia start - regionised ticking
-     public final io.papermc.paper.threadedregions.RegionizedServer regionizedServer = new io.papermc.paper.threadedregions.RegionizedServer();
- 
-@@ -449,6 +448,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -449,6 +449,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected abstract boolean initServer() throws IOException;
  
      protected void loadLevel(String s) { // CraftBukkit
@@ -75,7 +57,7 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a
          if (!JvmProfiler.INSTANCE.isRunning()) {
              ;
          }
-@@ -469,7 +469,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -469,7 +470,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                  MinecraftServer.LOGGER.warn("Failed to stop JFR profiling", throwable);
              }
          }
@@ -84,7 +66,7 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a
      }
  
      protected void forceDifficulty() {}
-@@ -998,6 +998,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -998,6 +999,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      // Folia end - region threading
  
      public void stopServer() {
@@ -92,6 +74,18 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a
          // Folia start - region threading
          // halt scheduler
          // don't wait, we may be on a scheduler thread
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 25aadc085d6af9f6c619bd2f5347180989514441..bed1a0366daa4467ce54b3e67ffd804503cbabee 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             return false;
+         }
+ 
++        org.leavesmc.lumina.carpet.CarpetServer.onGameStarted(); // Lumina - Porting Carpet's features
+         // Lumina start - enable CommandAPI
+         commandAPIPlugin = org.bukkit.plugin.java.CommandAPIPluginFactory.create();
+         dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 index 3c95ea6fdab99e414270fd5ed960c539b7ada265..f9cde77604a6e68560698e3c7d3ffe5b03d786ed 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
@@ -200,27 +194,23 @@ index e314f36951e9ac15c57137e24fce8c410373130a..be62dda906a9253dbd644ae127c00861
      public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = ItemStack.LIST_STREAM_CODEC.map((list) -> {
          return Ingredient.fromValues(list.stream().map(Ingredient.ItemValue::new));
 diff --git a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
-index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..1002c967438421cf8e3c2844abe525d9d5d77ede 100644
+index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..809ea2940d2ac028edf77bcd30bb97f700886ece 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -24,12 +24,16 @@ import java.util.stream.Stream;
- import javax.annotation.Nullable;
- import net.minecraft.core.HolderLookup;
- import net.minecraft.core.NonNullList;
+@@ -38,6 +38,12 @@ import org.slf4j.Logger;
+ import com.google.common.collect.LinkedHashMultimap;
+ import com.google.common.collect.Maps;
+ // CraftBukkit end
++// Lumina start - Porting Carpet's features
++import net.minecraft.world.item.Item;
 +import net.minecraft.core.Registry;
 +import net.minecraft.core.RegistryAccess;
 +import net.minecraft.core.registries.Registries;
- import net.minecraft.resources.RegistryOps;
- import net.minecraft.resources.ResourceLocation;
- import net.minecraft.server.packs.resources.ResourceManager;
- import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
- import net.minecraft.util.profiling.ProfilerFiller;
- import net.minecraft.world.Container;
-+import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.Level;
- import org.slf4j.Logger;
-@@ -53,6 +57,27 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
++// Lumina end - Porting Carpet's features
+ 
+ public class RecipeManager extends SimpleJsonResourceReloadListener {
+ 
+@@ -53,6 +59,27 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
          this.registries = registryLookup;
      }
  
@@ -282,6 +272,139 @@ index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..c56ffe58c426760c0f3ff2243535943e
      @Override
      public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
          RandomSource randomSource = context.random();
+diff --git a/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..25a56039f950d8dae0494233daac802141ad09f2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
+@@ -0,0 +1,127 @@
++package org.leavesmc.leaves.protocol;
++
++import net.minecraft.nbt.CompoundTag;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.leaves.protocol.core.LeavesCustomPayload;
++import org.leavesmc.leaves.protocol.core.LeavesProtocol;
++import org.leavesmc.leaves.protocol.core.ProtocolHandler;
++import org.leavesmc.leaves.protocol.core.ProtocolUtils;
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.config.LuminaConfig;
++
++import java.util.HashMap;
++import java.util.Locale;
++import java.util.Map;
++
++@LeavesProtocol(namespace = "carpet")
++public class CarpetServerProtocol {
++
++    public static final String PROTOCOL_ID = "carpet";
++    public static final String VERSION = "leaves-carpet-1.0.0";
++
++    private static final ResourceLocation HELLO_ID = CarpetServerProtocol.id("hello");
++
++    private static final String HI = "69";
++    private static final String HELLO = "420";
++
++    @Contract("_ -> new")
++    public static @NotNull ResourceLocation id(String path) {
++        return new ResourceLocation(PROTOCOL_ID, path);
++    }
++
++    @ProtocolHandler.PlayerJoin
++    public static void onPlayerJoin(ServerPlayer player) {
++        if (LuminaConfig.configModule.protocol.carpetProtocol) {
++            CompoundTag data = new CompoundTag();
++            data.putString(HI, VERSION);
++            ProtocolUtils.sendPayloadPacket(player, new CarpetPayload(data));
++            CarpetServer.onPlayerLoggedIn(player);
++        }
++    }
++
++    @ProtocolHandler.PayloadReceiver(payload = CarpetPayload.class, payloadId = "hello")
++    private static void handleHello(@NotNull ServerPlayer player, @NotNull CarpetServerProtocol.CarpetPayload payload) {
++        if (LuminaConfig.configModule.protocol.carpetProtocol) {
++            if (payload.nbt.contains(HELLO)) {
++                CarpetServer.LOGGER.info("Player {} joined with carpet {}", player.getScoreboardName(), payload.nbt.getString(HELLO));
++                CompoundTag data = new CompoundTag();
++                CarpetRules.write(data);
++                ProtocolUtils.sendPayloadPacket(player, new CarpetPayload(data));
++            }
++        }
++    }
++
++    @ProtocolHandler.Ticker
++    private static void tick() {
++        CarpetServer.tick(MinecraftServer.getServer());
++    }
++
++    public static class CarpetRules {
++
++        private static final Map<String, CarpetRule> rules = new HashMap<>();
++
++        public static void write(@NotNull CompoundTag tag) {
++            CompoundTag rulesNbt = new CompoundTag();
++            rules.values().forEach(rule -> rule.writeNBT(rulesNbt));
++
++            tag.put("Rules", rulesNbt);
++        }
++
++        public static void register(CarpetRule rule) {
++            rules.put(rule.name, rule);
++        }
++    }
++
++    public record CarpetRule(String identifier, String name, String value) {
++
++        @NotNull
++        @Contract("_, _, _ -> new")
++        public static CarpetRule of(String identifier, String name, Enum<?> value) {
++            return new CarpetRule(identifier, name, value.name().toLowerCase(Locale.ROOT));
++        }
++
++        @NotNull
++        @Contract("_, _, _ -> new")
++        public static CarpetRule of(String identifier, String name, boolean value) {
++            return new CarpetRule(identifier, name, Boolean.toString(value));
++        }
++
++        public void writeNBT(@NotNull CompoundTag rules) {
++            CompoundTag rule = new CompoundTag();
++            String key = name;
++
++            while (rules.contains(key)) {
++                key = key + "2";
++            }
++
++            rule.putString("Value", value);
++            rule.putString("Manager", identifier);
++            rule.putString("Rule", name);
++            rules.put(key, rule);
++        }
++    }
++
++    public record CarpetPayload(CompoundTag nbt) implements LeavesCustomPayload<CarpetPayload> {
++
++        @New
++        public CarpetPayload(ResourceLocation location, FriendlyByteBuf buf) {
++            this(buf.readNbt());
++        }
++
++        @Override
++        public void write(FriendlyByteBuf buf) {
++            buf.writeNbt(nbt);
++        }
++
++        @Override
++        @NotNull
++        public ResourceLocation id() {
++            return HELLO_ID;
++        }
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..7ec6ddca72a2073d1f2d5bea20b71e888bf36db1
@@ -776,10 +899,10 @@ index 0000000000000000000000000000000000000000..7ec6ddca72a2073d1f2d5bea20b71e88
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d3012273f
+index 0000000000000000000000000000000000000000..05bf284a13b48744aa24843c4502b4c3d386bad3
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,123 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -793,7 +916,6 @@ index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
 +import org.leavesmc.lumina.carpet.logging.HUDController;
 +import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
-+import org.leavesmc.lumina.carpet.network.ServerNetworkHandler;
 +import org.leavesmc.lumina.carpet.script.utils.ParticleParser;
 +import org.leavesmc.lumina.carpet.utils.MobAI;
 +import org.leavesmc.lumina.carpet.utils.SpawnReporter;
@@ -806,8 +928,6 @@ index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d
 +    public static Block structureBlockIgnoredBlock;
 +    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
 +    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
-+    public static final String carpetVersion = ""; // TODO
-+    // public static CarpetScriptServer scriptServer; // TODO
 +    // public static carpet.settings.SettingsManager settingsManager; // to change type to api type, can't change right now because of binary and source compat // TODO
 +    // public static final List<CarpetExtension> extensions = new ArrayList<>(); // TODO
 +
@@ -826,35 +946,26 @@ index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d
 +    public static void onGameStarted() {
 +        // settingsManager = new carpet.settings.SettingsManager(CarpetSettings.carpetVersion, "carpet", "Carpet Mod");
 +        // settingsManager.parseSettingsClass(CarpetSettings.class);
-+        // extensions.forEach(CarpetExtension::onGameStarted);
-+        // //FabricAPIHooks.initialize();
-+        // CarpetScriptServer.parseFunctionClasses(); // TODO
++        // extensions.forEach(CarpetExtension::onGameStarted); // TODO
 +    }
 +
 +    public static void onServerLoaded(MinecraftServer server) {
-+        // CarpetServer.minecraft_server = server; // Do not need
 +        // should not be needed - that bit needs refactoring, but not now.
 +        SpawnReporter.resetSpawnStats(server, true);
 +
 +        // forEachManager(sm -> sm.attachServer(server));
-+        // extensions.forEach(e -> e.onServerLoaded(server));
-+        // scriptServer = new CarpetScriptServer(server);
-+        // Carpet.MinecraftServer_addScriptServer(server, scriptServer); // TODO
++        // extensions.forEach(e -> e.onServerLoaded(server)); // TODO
 +        MobAI.resetTrackers();
 +        LoggerRegistry.initLoggers();
 +    }
 +
 +    public static void onServerLoadedWorlds(MinecraftServer server) {
 +        HopperCounter.resetAll(server, true);
-+        // extensions.forEach(e -> e.onServerLoadedWorlds(server));
-+        // // initialize scarpet rules after all extensions are loaded
-+        // forEachManager(SettingsManager::initializeScarpetRules);
-+        // scriptServer.initializeForWorld(); // TODO
++        // extensions.forEach(e -> e.onServerLoadedWorlds(server)); // TODO
 +    }
 +
 +    public static void tick(MinecraftServer server) {
 +        HUDController.update_hud(server, null);
-+        // if (scriptServer != null) scriptServer.tick();
 +
 +        // //in case something happens
 +        // CarpetSettings.impendingFillSkipUpdates.set(false); // I REALLY DON'T KNOW WHAT'S THIS
@@ -870,39 +981,16 @@ index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
-+        ServerNetworkHandler.onPlayerJoin(player);
 +        LoggerRegistry.playerConnected(player);
-+        // extensions.forEach(e -> e.onPlayerLoggedIn(player));
-+        // scriptServer.onPlayerJoin(player); // TODO
++        // extensions.forEach(e -> e.onPlayerLoggedIn(player)); // TODO
 +    }
 +
 +    public static void onPlayerLoggedOut(ServerPlayer player, Component reason) {
-+        ServerNetworkHandler.onPlayerLoggedOut(player);
 +        LoggerRegistry.playerDisconnected(player);
-+        // extensions.forEach(e -> e.onPlayerLoggedOut(player));
-+        // // first case client, second case server
-+        // CarpetScriptServer runningScriptServer = (player.getServer() == null) ? scriptServer : Vanilla.MinecraftServer_getScriptServer(player.getServer()); // TODO
-+        // if (runningScriptServer != null && !runningScriptServer.stopAll) {
-+        //     runningScriptServer.onPlayerLoggedOut(player, reason);
-+        // } // TODO
-+    }
-+
-+    public static void clientPreClosing() {
-+        // if (scriptServer != null) scriptServer.onClose();
-+        // scriptServer = null; // TODO
++        // extensions.forEach(e -> e.onPlayerLoggedOut(player)); // TODO
 +    }
 +
 +    public static void onServerClosed(MinecraftServer server) {
-+        // if (minecraft_server != null) { // We can call it at correct time
-+
-+        // if (scriptServer != null) scriptServer.onClose();
-+        // this is a mess, will cleanip onlly when global reference is gone
-+        // if (!Vanilla.MinecraftServer_getScriptServer(server).stopAll) {
-+        //     Vanilla.MinecraftServer_getScriptServer(server).onClose();
-+        // }
-+        // scriptServer = null; // TODO
-+        ServerNetworkHandler.close();
-+
 +        LoggerRegistry.stopLoggers();
 +        HUDController.resetScarpetHUDs();
 +        ParticleParser.resetCache();
@@ -926,7 +1014,6 @@ index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d
 +    }
 +
 +    public static void onReload(MinecraftServer server) {
-+        // scriptServer.reload(server);
 +        // extensions.forEach(e -> e.onReload(server)); // TODO
 +    }
 +
@@ -3273,368 +3360,6 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +    }
 +}
 +
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java b/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..3f209c97cfed6215951b471541846da3a6421607
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java
-@@ -0,0 +1,112 @@
-+package org.leavesmc.lumina.carpet.network;
-+
-+import org.leavesmc.lumina.carpet.CarpetServer;
-+import org.leavesmc.lumina.carpet.script.utils.ShapesRenderer;
-+import net.minecraft.client.player.LocalPlayer;
-+import net.minecraft.nbt.CompoundTag;
-+import net.minecraft.nbt.ListTag;
-+import net.minecraft.nbt.Tag;
-+import net.minecraft.network.FriendlyByteBuf;
-+import net.minecraft.network.chat.Component;
-+import net.minecraft.network.codec.StreamCodec;
-+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-+import net.minecraft.resources.ResourceLocation;
-+
-+public class CarpetClient
-+{
-+    public record CarpetPayload(CompoundTag data) implements CustomPacketPayload
-+    {
-+        public static final StreamCodec<FriendlyByteBuf, CarpetPayload> STREAM_CODEC = CustomPacketPayload.codec(CarpetPayload::write, CarpetPayload::new);
-+
-+        public static final Type<CarpetPayload> TYPE = new Type<>(CARPET_CHANNEL);
-+
-+        public CarpetPayload(FriendlyByteBuf input)
-+        {
-+            this(input.readNbt());
-+        }
-+
-+        public void write(FriendlyByteBuf output)
-+        {
-+            output.writeNbt(data);
-+        }
-+
-+        @Override public Type<CarpetPayload> type()
-+        {
-+            return TYPE;
-+        }
-+    }
-+
-+    public static final String HI = "69";
-+    public static final String HELLO = "420";
-+
-+    public static ShapesRenderer shapes = null;
-+
-+    private static LocalPlayer clientPlayer = null;
-+    private static boolean isServerCarpet = false;
-+    public static String serverCarpetVersion;
-+    public static final ResourceLocation CARPET_CHANNEL = new ResourceLocation("carpet", "hello");
-+
-+    public static void gameJoined(LocalPlayer player)
-+    {
-+        clientPlayer = player;
-+    }
-+
-+    public static void disconnect()
-+    {
-+        if (isServerCarpet) // multiplayer connection
-+        {
-+            isServerCarpet = false;
-+            clientPlayer = null;
-+            CarpetServer.onServerClosed(null);
-+            CarpetServer.onServerDoneClosing(null);
-+        }
-+        else // singleplayer disconnect
-+        {
-+            CarpetServer.clientPreClosing();
-+        }
-+    }
-+
-+    public static void setCarpet()
-+    {
-+        isServerCarpet = true;
-+    }
-+
-+    public static LocalPlayer getPlayer()
-+    {
-+        return clientPlayer;
-+    }
-+
-+    public static boolean isCarpet()
-+    {
-+        return isServerCarpet;
-+    }
-+
-+    public static boolean sendClientCommand(String command)
-+    {
-+        if (!isServerCarpet && CarpetServer.minecraft_server == null)
-+        {
-+            return false;
-+        }
-+        ClientNetworkHandler.clientCommand(command);
-+        return true;
-+    }
-+
-+    public static void onClientCommand(Tag t)
-+    {
-+        CarpetSettings.LOG.info("Server Response:");
-+        CompoundTag tag = (CompoundTag) t;
-+        CarpetSettings.LOG.info(" - id: " + tag.getString("id"));
-+        if (tag.contains("error"))
-+        {
-+            CarpetSettings.LOG.warn(" - error: " + tag.getString("error"));
-+        }
-+        if (tag.contains("output"))
-+        {
-+            ListTag outputTag = (ListTag) tag.get("output");
-+            for (int i = 0; i < outputTag.size(); i++)
-+            {
-+                CarpetSettings.LOG.info(" - response: " + Component.Serializer.fromJson(outputTag.getString(i), clientPlayer.registryAccess()).getString());
-+            }
-+        }
-+    }
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java b/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a6c18c62e2e99a1a4636049941f226bf518ea01b
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java
-@@ -0,0 +1,238 @@
-+package org.leavesmc.lumina.carpet.network;
-+
-+import org.leavesmc.lumina.carpet.CarpetServer;
-+import org.leavesmc.lumina.carpet.script.utils.SnoopyCommandSource;
-+
-+import java.util.ArrayList;
-+import java.util.HashMap;
-+import java.util.HashSet;
-+import java.util.List;
-+import java.util.Map;
-+import java.util.Set;
-+import java.util.function.BiConsumer;
-+
-+import net.minecraft.nbt.CompoundTag;
-+import net.minecraft.nbt.ListTag;
-+import net.minecraft.nbt.StringTag;
-+import net.minecraft.nbt.Tag;
-+import net.minecraft.network.chat.Component;
-+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
-+
-+public class ServerNetworkHandler
-+{
-+    private static final Map<ServerPlayer, String> remoteCarpetPlayers = new HashMap<>();
-+    private static final Set<ServerPlayer> validCarpetPlayers = new HashSet<>();
-+
-+    private static final Map<String, BiConsumer<ServerPlayer, Tag>> dataHandlers = Map.of(
-+            CarpetClient.HELLO, (p, t) -> onHello(p, t.getAsString()),
-+            "clientCommand", (p, t) -> handleClientCommand(p, (CompoundTag) t)
-+    );
-+
-+    public static void onPlayerJoin(ServerPlayer playerEntity)
-+    {
-+        if (!playerEntity.connection.getConnection().isMemoryConnection())
-+        {
-+            CompoundTag data = new CompoundTag();
-+            data.putString(CarpetClient.HI, CarpetServer.carpetVersion);
-+            playerEntity.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(data)));
-+        }
-+        else
-+        {
-+            validCarpetPlayers.add(playerEntity);
-+        }
-+    }
-+
-+    public static void onHello(ServerPlayer playerEntity, String version)
-+    {
-+        validCarpetPlayers.add(playerEntity);
-+        remoteCarpetPlayers.put(playerEntity, version);
-+        if (version.equals(CarpetServer.carpetVersion))
-+        {
-+            CarpetServer.LOGGER.info("Player " + playerEntity.getName().getString() + " joined with a matching carpet client");
-+        }
-+        else
-+        {
-+            CarpetServer.LOGGER.warn("Player " + playerEntity.getName().getString() + " joined with another carpet version: " + version);
-+        }
-+        DataBuilder data = DataBuilder.create(playerEntity.server); // tickrate related settings are sent on world change
-+        CarpetServer.forEachManager(sm -> sm.getCarpetRules().forEach(data::withRule));
-+        playerEntity.connection.send(data.build());
-+    }
-+
-+    public static void sendPlayerLevelData(ServerPlayer player, ServerLevel level)
-+    {
-+        // if (CarpetSettings.superSecretSetting || !validCarpetPlayers.contains(player))
-+        // {
-+            //return;
-+        // }
-+        // noop, used to send ticking information
-+        //DataBuilder data = DataBuilder.create(player.server);//.withTickRate().withFrozenState().withTickPlayerActiveTimeout(); // .withSuperHotState()
-+        //player.connection.send(data.build());
-+    }
-+
-+    private static void handleClientCommand(ServerPlayer player, CompoundTag commandData)
-+    {
-+        String command = commandData.getString("command");
-+        String id = commandData.getString("id");
-+        List<Component> output = new ArrayList<>();
-+        Component[] error = {null};
-+        if (player.getServer() == null)
-+        {
-+            error[0] = Component.literal("No Server");
-+        }
-+        else
-+        {
-+            player.getServer().getCommands().performPrefixedCommand(
-+                    new SnoopyCommandSource(player, error, output), command
-+            );
-+        }
-+        CompoundTag result = new CompoundTag();
-+        result.putString("id", id);
-+        if (error[0] != null)
-+        {
-+            result.putString("error", error[0].getContents().toString());
-+        }
-+        ListTag outputResult = new ListTag();
-+        for (Component line : output)
-+        {
-+            outputResult.add(StringTag.valueOf(Component.Serializer.toJson(line, player.registryAccess())));
-+        }
-+        if (!output.isEmpty())
-+        {
-+            result.put("output", outputResult);
-+        }
-+        player.connection.send(DataBuilder.create(player.server).withCustomNbt("clientCommand", result).build());
-+        // run command plug to command output,
-+    }
-+
-+    public static void onClientData(ServerPlayer player, CompoundTag compound)
-+    {
-+        for (String key : compound.getAllKeys())
-+        {
-+            if (dataHandlers.containsKey(key))
-+            {
-+                dataHandlers.get(key).accept(player, compound.get(key));
-+            }
-+            else
-+            {
-+                CarpetServer.LOGGER.warn("Unknown carpet client data: " + key);
-+            }
-+        }
-+    }
-+
-+    public static void updateRuleWithConnectedClients(CarpetRule<?> rule)
-+    {
-+        if (CarpetSettings.superSecretSetting)
-+        {
-+            return;
-+        }
-+        for (ServerPlayer player : remoteCarpetPlayers.keySet())
-+        {
-+            player.connection.send(DataBuilder.create(player.server).withRule(rule).build());
-+        }
-+    }
-+
-+    public static void broadcastCustomCommand(String command, Tag data)
-+    {
-+        for (ServerPlayer player : validCarpetPlayers)
-+        {
-+            player.connection.send(DataBuilder.create(player.server).withCustomNbt(command, data).build());
-+        }
-+    }
-+
-+    public static void sendCustomCommand(ServerPlayer player, String command, Tag data)
-+    {
-+        if (isValidCarpetPlayer(player))
-+        {
-+            player.connection.send(DataBuilder.create(player.server).withCustomNbt(command, data).build());
-+        }
-+    }
-+
-+    public static void onPlayerLoggedOut(ServerPlayer player)
-+    {
-+        validCarpetPlayers.remove(player);
-+        if (!player.connection.getConnection().isMemoryConnection())
-+        {
-+            remoteCarpetPlayers.remove(player);
-+        }
-+    }
-+
-+    public static void close()
-+    {
-+        remoteCarpetPlayers.clear();
-+        validCarpetPlayers.clear();
-+    }
-+
-+    public static boolean isValidCarpetPlayer(ServerPlayer player)
-+    {
-+        return validCarpetPlayers.contains(player);
-+
-+    }
-+
-+    public static String getPlayerStatus(ServerPlayer player)
-+    {
-+        if (remoteCarpetPlayers.containsKey(player))
-+        {
-+            return "carpet " + remoteCarpetPlayers.get(player);
-+        }
-+        if (validCarpetPlayers.contains(player))
-+        {
-+            return "carpet " + CarpetServer.carpetVersion;
-+        }
-+        return "vanilla";
-+    }
-+
-+    private static class DataBuilder
-+    {
-+        private CompoundTag tag;
-+        // unused now, but hey
-+        private MinecraftServer server;
-+
-+        private static DataBuilder create(final MinecraftServer server)
-+        {
-+            return new DataBuilder(server);
-+        }
-+
-+        private DataBuilder(MinecraftServer server)
-+        {
-+            tag = new CompoundTag();
-+            this.server = server;
-+        }
-+
-+        private DataBuilder withRule(CarpetRule<?> rule)
-+        {
-+            CompoundTag rules = (CompoundTag) tag.get("Rules");
-+            if (rules == null)
-+            {
-+                rules = new CompoundTag();
-+                tag.put("Rules", rules);
-+            }
-+            String identifier = rule.settingsManager().identifier();
-+            String key = rule.name();
-+            while (rules.contains(key))
-+            {
-+                key = key + "2";
-+            }
-+            CompoundTag ruleNBT = new CompoundTag();
-+            ruleNBT.putString("Value", RuleHelper.toRuleString(rule.value()));
-+            ruleNBT.putString("Manager", identifier);
-+            ruleNBT.putString("Rule", rule.name());
-+            rules.put(key, ruleNBT);
-+            return this;
-+        }
-+
-+        public DataBuilder withCustomNbt(String key, Tag value)
-+        {
-+            tag.put(key, value);
-+            return this;
-+        }
-+
-+        private ClientboundCustomPayloadPacket build()
-+        {
-+            return new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag));
-+        }
-+    }
-+}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..37f42c967b714dec77d72d4cecafb7231211a9a7
@@ -4174,218 +3899,6 @@ index 0000000000000000000000000000000000000000..61d41fcfcb1351453a83926506d8fb5f
 +    {
 +        particleCache.clear();
 +    }
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..2d46fd99091d9daa4901d32b5a1de6736c951b57
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java
-@@ -0,0 +1,206 @@
-+package org.leavesmc.lumina.carpet.script.utils;
-+
-+import net.minecraft.commands.CommandResultCallback;
-+import net.minecraft.commands.CommandSigningContext;
-+import net.minecraft.commands.CommandSource;
-+import net.minecraft.commands.CommandSourceStack;
-+import net.minecraft.commands.arguments.EntityAnchorArgument;
-+import net.minecraft.network.chat.Component;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.util.Mth;
-+import net.minecraft.util.TaskChainer;
-+import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.level.dimension.DimensionType;
-+import net.minecraft.world.phys.Vec2;
-+import net.minecraft.world.phys.Vec3;
-+import org.jetbrains.annotations.Nullable;
-+
-+import java.util.List;
-+import java.util.function.BinaryOperator;
-+import java.util.function.Supplier;
-+
-+public class SnoopyCommandSource extends CommandSourceStack
-+{
-+    private final CommandSource output;
-+    private final Vec3 position;
-+    private final ServerLevel world;
-+    private final int level;
-+    private final String simpleName;
-+    private final Component name;
-+    private final MinecraftServer server;
-+    // skipping silent since snooper is never silent
-+    private final Entity entity;
-+    private final CommandResultCallback resultConsumer;
-+    private final EntityAnchorArgument.Anchor entityAnchor;
-+    private final Vec2 rotation;
-+    // good stuff
-+    private final Component[] error;
-+    private final List<Component> chatOutput;
-+    private final CommandSigningContext signingContext;
-+
-+    private final TaskChainer taskChainer;
-+
-+    public SnoopyCommandSource(CommandSourceStack original, Component[] error, List<Component> chatOutput)
-+    {
-+        super(CommandSource.NULL, original.getPosition(), original.getRotation(), original.getLevel(), Vanilla.MinecraftServer_getRunPermissionLevel(original.getServer()),
-+                original.getTextName(), original.getDisplayName(), original.getServer(), original.getEntity(), false,
-+                CommandResultCallback.EMPTY, EntityAnchorArgument.Anchor.FEET, CommandSigningContext.ANONYMOUS, TaskChainer.immediate(original.getServer()));
-+        this.output = CommandSource.NULL;
-+        this.position = original.getPosition();
-+        this.world = original.getLevel();
-+        this.level = Vanilla.MinecraftServer_getRunPermissionLevel(original.getServer());
-+        this.simpleName = original.getTextName();
-+        this.name = original.getDisplayName();
-+        this.server = original.getServer();
-+        this.entity = original.getEntity();
-+        this.resultConsumer = CommandResultCallback.EMPTY;
-+        this.entityAnchor = original.getAnchor();
-+        this.rotation = original.getRotation();
-+        this.error = error;
-+        this.chatOutput = chatOutput;
-+        this.signingContext = original.getSigningContext();
-+        this.taskChainer = TaskChainer.immediate(original.getServer());
-+    }
-+
-+    public SnoopyCommandSource(ServerPlayer player, Component[] error, List<Component> output)
-+    {
-+        super(player, player.position(), player.getRotationVector(),
-+                player.level() instanceof final ServerLevel serverLevel ? serverLevel : null,
-+                player.server.getProfilePermissions(player.getGameProfile()), player.getName().getString(), player.getDisplayName(),
-+                player.level().getServer(), player);
-+        this.output = player;
-+        this.position = player.position();
-+        this.world = player.level() instanceof final ServerLevel serverLevel ? serverLevel : null;
-+        this.level = player.server.getProfilePermissions(player.getGameProfile());
-+        this.simpleName = player.getName().getString();
-+        this.name = player.getDisplayName();
-+        this.server = player.level().getServer();
-+        this.entity = player;
-+        this.resultConsumer = CommandResultCallback.EMPTY;
-+        this.entityAnchor = EntityAnchorArgument.Anchor.FEET;
-+        this.rotation = player.getRotationVector(); // not a client call really
-+        this.error = error;
-+        this.chatOutput = output;
-+        this.signingContext = CommandSigningContext.ANONYMOUS;
-+        this.taskChainer = TaskChainer.immediate(player.server);
-+    }
-+
-+    private SnoopyCommandSource(CommandSource output, Vec3 pos, Vec2 rot, ServerLevel world, int level, String simpleName, Component name, MinecraftServer server, @Nullable Entity entity, CommandResultCallback consumer, EntityAnchorArgument.Anchor entityAnchor, CommandSigningContext context, TaskChainer chainer,
-+                                Component[] error, List<Component> chatOutput
-+    )
-+    {
-+        super(output, pos, rot, world, level,
-+                simpleName, name, server, entity, false,
-+                consumer, entityAnchor, context, chainer);
-+        this.output = output;
-+        this.position = pos;
-+        this.rotation = rot;
-+        this.world = world;
-+        this.level = level;
-+        this.simpleName = simpleName;
-+        this.name = name;
-+        this.server = server;
-+        this.entity = entity;
-+        this.resultConsumer = consumer;
-+        this.entityAnchor = entityAnchor;
-+        this.error = error;
-+        this.chatOutput = chatOutput;
-+        this.signingContext = context;
-+        this.taskChainer = chainer;
-+    }
-+
-+    @Override
-+    public CommandSourceStack withEntity(Entity entity)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, entity.getName().getString(), entity.getDisplayName(), server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withPosition(Vec3 position)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withRotation(Vec2 rotation)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withCallback(CommandResultCallback consumer)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, consumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withCallback(CommandResultCallback consumer, BinaryOperator<CommandResultCallback> binaryOperator)
-+    {
-+        CommandResultCallback resultConsumer = binaryOperator.apply(this.resultConsumer, consumer);
-+        return this.withCallback(resultConsumer);
-+    }
-+
-+    //@Override // only used in fuctions and we really don't care to track these actually, besides the basic output
-+    // also other overrides target ONLY execute command, which withSilent doesn't care bout.
-+    //public ServerCommandSource withSilent() { return this; }
-+
-+    @Override
-+    public CommandSourceStack withPermission(int level)
-+    {
-+        return this;
-+    }
-+
-+    @Override
-+    public CommandSourceStack withMaximumPermission(int level)
-+    {
-+        return this;
-+    }
-+
-+    @Override
-+    public CommandSourceStack withAnchor(EntityAnchorArgument.Anchor anchor)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, anchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withSigningContext(CommandSigningContext commandSigningContext, TaskChainer taskChainer)
-+    {
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, commandSigningContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack withLevel(ServerLevel world)
-+    {
-+        double d = DimensionType.getTeleportationScale(this.world.dimensionType(), world.dimensionType());
-+        Vec3 position = new Vec3(this.position.x * d, this.position.y, this.position.z * d);
-+        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
-+    }
-+
-+    @Override
-+    public CommandSourceStack facing(Vec3 position)
-+    {
-+        Vec3 vec3d = this.entityAnchor.apply(this);
-+        double d = position.x - vec3d.x;
-+        double e = position.y - vec3d.y;
-+        double f = position.z - vec3d.z;
-+        double g = Math.sqrt(d * d + f * f);
-+        float h = Mth.wrapDegrees((float) (-(Mth.atan2(e, g) * 57.2957763671875D)));
-+        float i = Mth.wrapDegrees((float) (Mth.atan2(f, d) * 57.2957763671875D) - 90.0F);
-+        return this.withRotation(new Vec2(h, i));
-+    }
-+
-+    @Override
-+    public void sendFailure(Component message)
-+    {
-+        error[0] = message;
-+    }
-+
-+    @Override
-+    public void sendSuccess(Supplier<Component> message, boolean broadcastToOps)
-+    {
-+        chatOutput.add(message.get());
-+    }
-+
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java
 new file mode 100644
