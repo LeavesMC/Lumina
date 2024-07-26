@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MC_XiaoHei <xiaohei.xor7@outlook.com>
 Date: Fri, 26 Jul 2024 01:09:46 +0800
-Subject: [PATCH] Porting Carpet`s features
+Subject: [PATCH] Porting Carpet's features
 
 This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet)
 License:
@@ -40,30 +40,67 @@ index 374abffb9f1ce1a308822aed13038e77fe9ca08b..81410d1caa42b045e49e0edafb4ebfdb
              } finally {
                  boolean removeFromTasks = false;
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index d5e8dd947cb29343074df8074e791357c72e7f7b..7fcb6b53082fdcfc5508ad4b66b255645f68ae20 100644
+index d5e8dd947cb29343074df8074e791357c72e7f7b..9b4739cd72523de9ed1b150bc3ca241d6bc1b0cd 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -156,6 +156,11 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
          this.setReadOnly();
          this.stopReadingPackets = true;
      }
-+    // Lumina start - Porting Carpet`s features
++    // Lumina start - Porting Carpet's features
 +    public void setChannel(Channel channel) {
 +        this.channel = channel;
 +    }
-+    // Lumina end - Porting Carpet`s features
++    // Lumina end - Porting Carpet's features
      // Paper end - packet limiter
      @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
- 
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a005bdf2b 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -310,7 +310,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public volatile Thread shutdownThread; // Paper
+     public volatile boolean abnormalExit = false; // Paper
+     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
+-
+     // Folia start - regionised ticking
+     public final io.papermc.paper.threadedregions.RegionizedServer regionizedServer = new io.papermc.paper.threadedregions.RegionizedServer();
+
+@@ -449,6 +448,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     protected abstract boolean initServer() throws IOException;
+
+     protected void loadLevel(String s) { // CraftBukkit
++        org.leavesmc.lumina.carpet.CarpetServer.onServerLoaded(this); // Lumina - Porting Carpet's features
+         if (!JvmProfiler.INSTANCE.isRunning()) {
+             ;
+         }
+@@ -469,7 +469,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 MinecraftServer.LOGGER.warn("Failed to stop JFR profiling", throwable);
+             }
+         }
+-
++        org.leavesmc.lumina.carpet.CarpetServer.onServerLoadedWorlds(this); // Lumina - Porting Carpet's features
+     }
+
+     protected void forceDifficulty() {}
+@@ -998,6 +998,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     // Folia end - region threading
+
+     public void stopServer() {
++        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(this); // Lumina - Porting Carpet's features
+         // Folia start - region threading
+         // halt scheduler
+         // don't wait, we may be on a scheduler thread
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 3c95ea6fdab99e414270fd5ed960c539b7ada265..459af50920a5fa8bc1466d109ab7f09858262473 100644
+index 3c95ea6fdab99e414270fd5ed960c539b7ada265..f9cde77604a6e68560698e3c7d3ffe5b03d786ed 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -299,6 +299,19 @@ public class ServerPlayer extends Player {
      public @Nullable String clientBrandName = null; // Paper - Brand support
      public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
- 
-+    // Lumina start - Porting Carpet`s features
+
++    // Lumina start - Porting Carpet's features
 +    private boolean isInvalidReference = false;
 +    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack actionPack;
 +    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack getActionPack() {
@@ -75,7 +112,7 @@ index 3c95ea6fdab99e414270fd5ed960c539b7ada265..459af50920a5fa8bc1466d109ab7f098
 +    public boolean isInvalidEntityObject() {
 +        return isInvalidReference;
 +    }
-+    // Lumina end - Porting Carpet`s features
++    // Lumina end - Porting Carpet's features
      // Paper start - replace player chunk loader
      private final java.util.concurrent.atomic.AtomicReference<io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances> viewDistances = new java.util.concurrent.atomic.AtomicReference<>(new io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances(-1, -1, -1));
      public io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
@@ -83,50 +120,693 @@ index 3c95ea6fdab99e414270fd5ed960c539b7ada265..459af50920a5fa8bc1466d109ab7f098
          this.adventure$displayName = net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
          this.bukkitPickUpLoot = true;
          this.maxHealthCache = this.getMaxHealth();
-+        this.actionPack = new org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack(this); // Lumina - Porting Carpet`s features
++        this.actionPack = new org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack(this); // Lumina - Porting Carpet's features
      }
- 
+
      // Use method to resend items in hands in case of client desync, because the item use got cancelled.
 @@ -872,6 +886,7 @@ public class ServerPlayer extends Player {
- 
+
      @Override
      public void tick() {
-+        actionPack.onUpdate(); // Lumina - Porting Carpet`s features
++        actionPack.onUpdate(); // Lumina - Porting Carpet's features
          // CraftBukkit start
          if (this.joining) {
              this.joining = false;
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..0b7a7f739bde72fd20a8d92f3c8fe5c75c325bb8 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -375,7 +375,11 @@ public abstract class PlayerList {
+         LevelData worlddata = worldserver1.getLevelData();
+
+         player.loadGameTypes((CompoundTag) optional.orElse(null)); // CraftBukkit - decompile error
+-        ServerGamePacketListenerImpl playerconnection = new ServerGamePacketListenerImpl(this.server, connection, player, clientData);
++        // Lumina start - Porting Carpet's features
++        ServerGamePacketListenerImpl playerconnection;
++        if (player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake fake) playerconnection = new org.leavesmc.lumina.carpet.patches.NetHandlerPlayServerFake(this.server, connection, fake, clientData);
++        else playerconnection = new ServerGamePacketListenerImpl(this.server, connection, player, clientData);
++        // Lumina end - Porting Carpet's features
+         // Folia start - rewrite login process
+         // only after setting the connection listener to game type, add the connection to this regions list
+         worldserver1.getCurrentWorldData().connections.add(connection);
+@@ -668,6 +672,7 @@ public abstract class PlayerList {
+         } else {
+             optional = this.playerIo.load(player);
+         }
++        if (player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) ((org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) player).fixStartingPosition.run(); // Lumina - Porting Carpet's features
+
+         return optional;
+     }
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..81155eee017504b70e7bab4c8c2631ee4a0a28ff
+index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e98e68a49
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,488 @@
 +package org.leavesmc.lumina.carpet;
 +
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.entity.StructureBlockEntity;
++import net.minecraft.world.level.block.piston.PistonStructureResolver;
++import net.minecraft.world.level.border.BorderStatus;
++import net.minecraft.world.level.border.WorldBorder;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.config.Validator;
++import org.leavesmc.lumina.config.annotations.Suggestion;
++import org.leavesmc.lumina.config.annotations.Validate;
++import org.spongepowered.configurate.objectmapping.meta.Comment;
++
++import java.util.Optional;
++
 +public class CarpetConfigModule {
-+    public boolean allowListingFakePlayers = false;
++    @Comment("Sets the language for Carpet")
++    public Lang language = Lang.zh_cn;
++
++    @Comment("Dropping entire stacks works also from on the crafting UI result slot")
++    public boolean ctrlQCraftingFix = false;
++
++    @Comment("Parrots don't get of your shoulders until you receive proper damage")
++    public boolean persistentParrots = false;
++
++    @Comment("Players absorb XP instantly, without delay")
++    public boolean xpNoCooldown = false;
++
++    @Validate(ShulkerBoxValidator.class)
++    @Comment("""
++            When set more than 1, empty shulker boxes can stack when thrown on the ground,
++            or when manipulated inside the inventories""")
++    public int shulkerBoxStackSize = 1;
++
++    @Comment("Explosions won't destroy blocks")
++    public boolean explosionNoBlockDamage = false;
++
++    @Comment("Experience will drop from all experience barring blocks with any explosion type")
++    public boolean xpFromExplosions = false;
++
++    @Comment("Removes random TNT momentum when primed")
++    public boolean tntPrimerMomentumRemoved = false;
++
++    @Comment("TNT causes less lag when exploding in the same spot and in liquids")
++    public boolean optimizedTNT = false;
++
++    @Validate(TNTRandomRangeValidator.class)
++    @Comment("Sets the tnt random explosion range to a fixed value, set to -1 for default behavior")
++    public double tntRandomRange = -1;
++
++    @Validate(TNTAngleValidator.class)
++    @Comment("Sets the horizontal random angle on TNT for debugging of TNT contraptions, set to -1 for default behavior")
++    public double hardcodeTNTangle = -1.0D;
++
++    @Comment("Merges stationary primed TNT entities")
++    public boolean mergeTNT = false;
++
++    @Comment("""
++            Lag optimizations for redstone dust by Theosib
++            also fixes some locational behaviours or vanilla redstone MC-11193
++            so behaviour of locational vanilla contraptions is not guaranteed""")
++    public boolean fastRedstoneDust = false;
++
++    @Comment("Only husks spawn in desert temples")
++    public boolean huskSpawningInTemples = false;
++
++    @Comment("Shulkers will respawn in end cities")
++    public boolean shulkerSpawningInEndCities = false;
++
++    @Comment("""
++            Piglins will respawn in bastion remnants
++            Includes piglins, brutes, and a few hoglins""")
++    public boolean piglinsSpawningInBastions = false;
++
++    @Comment("TNT doesn't update when placed against a power source")
++    public boolean tntDoNotUpdate = false;
++
++    @Comment("""
++            Prevents players from rubberbanding when moving too fast or being kicked out for 'flying'
++            Puts more trust in clients positioning, increases player allowed mining distance to 32 blocks""")
++    public boolean antiCheatDisabled = false;
++
++    @Validate(QuasiConnectivityValidator.class)
++    @Comment("""
++            Pistons, droppers, and dispensers check for power to the block(s) above them.
++            Defines the range at which pistons, droppers, and dispensers check for 'quasi power""")
++    public int quasiConnectivity = 1;
++
++    @Comment("""
++            Players can flip and rotate blocks when holding cactus
++            Doesn't cause block updates when rotated/flipped
++            Applies to pistons, observers, droppers, repeaters, stairs, glazed terracotta etc...""")
++    public boolean flippinCactus = false;
++
++    @Comment("""
++            hoppers pointing to wool will count items passing through them
++            Enables /counter command, and actions while placing red and green carpets on wool blocks
++            Use /counter <color?> reset to reset the counter, and /counter <color?> to query
++            In survival, place green carpet on same color wool to query, red to reset the counters
++            Counters are global and shared between players, 16 channels available
++            Items counted are destroyed, count up to one stack per tick per hopper""")
++    public boolean hopperCounters = false;
++
++    @Comment("""
++            Allows Budding Amethyst blocks to be moved by pistons
++            as well as adds extra drop when mining with silk touch pickaxe""")
++    public boolean movableAmethyst = false;
++
++    @Comment("Guardians turn into Elder Guardian when struck by lightning")
++    public boolean renewableSponges = false;
++
++    @Comment("Pistons can push block entities, like hoppers, chests etc.")
++    public boolean movableBlockEntities = false;
++
++    @Comment("""
++            Chains will stick to each other on the long ends
++            and will stick to other blocks that connect to them directly.
++            With stick_to_all: it will stick even if not visually connected""")
++    public ChainStoneMode chainStone = ChainStoneMode.FALSE;
++
++    @Comment("Saplings turn into dead shrubs in hot climates and no water access")
++    public boolean desertShrubs = false;
++
++    @Comment("Silverfish drop a gravel item when breaking out of a block")
++    public boolean silverFishDropGravel = false;
++
++    @Comment("summoning a lightning bolt has all the side effects of natural lightning")
++    public boolean summonNaturalLightning = false;
++
++    @Comment("Enables /spawn command for spawn tracking")
++    public boolean commandSpawn = true;
++
++    @Comment("Enables /log command to monitor events via chat and overlays")
++    public boolean commandLog = true;
++
++    @Comment("""
++            Enables /distance command to measure in game distance between points
++            Also enables brown carpet placement action if 'carpets' rule is turned on as well""")
++    public boolean commandDistance = true;
++
++    @Comment("""
++            "Enables /info command for blocks
++            Also enables gray carpet placement action if 'carpets' rule is turned on as well""")
++    public boolean commandInfo = true;
++
++    @Comment("""
++            Enables /perimeterinfo command
++            that scans the area around the block for potential spawnable spots""")
++    public boolean commandPerimeterInfo = true;
++
++    @Comment("""
++            Enables /draw commands
++            allows for drawing simple shapes or other shapes which are sorta difficult to do normally""")
++    public boolean commandDraw = true;
++
++    @Comment("Enables /player command to control/spawn players")
++    public boolean commandPlayer = true;
++
++    @Comment("Spawn offline players in online mode if online-mode player with specified name does not exist")
 +    public boolean allowSpawningOfflinePlayers = true;
++
++    @Comment("Allows listing fake players on the multiplayer screen")
++    public boolean allowListingFakePlayers = false;
++
++    @Comment("Allows to track mobs AI via /track command")
++    public boolean commandTrackAI = true;
++
++    @Comment("lacing carpets may issue carpet commands for non-op players")
++    public boolean carpets = false;
++
++    @Comment("Glass can be broken faster with pickaxes")
++    public boolean missingTools = false;
++
++    @Comment("fill/clone/setblock and structure blocks cause block updates")
++    public boolean fillUpdates = true;
++
++    @Comment("placing blocks cause block updates")
++    public boolean interactionUpdates = true;
++
++    @Comment("Disables breaking of blocks caused by flowing liquids")
++    public boolean liquidDamageDisabled = false;
++
++    @Comment("smooth client animations with low tps settings, works only in SP, and will slow down players")
++    public boolean smoothClientAnimations = true;
++
++    @Validate(PushLimitValidator.class)
++    @Suggestion({"10", "12", "14", "100"})
++    @Comment("Customizable piston push limit")
++    public int pushLimit = PistonStructureResolver.MAX_PUSH_DEPTH;
++
++    @Validate(PushLimitValidator.class)
++    @Suggestion({"9", "15", "30"})
++    @Comment("Customizable powered rail power range")
++    public int railPowerLimit = 9;
++
++    @Validate(ForceloadLimitValidator.class)
++    @Comment("Customizable forceload chunk limit")
++    public int forceloadLimit = 256;
++
++    @Validate(NonNegativeNumberValidator.class)
++    @Suggestion({"0", "1", "20"})
++    @Comment("Customizable maximal entity collision limits, 0 for no limits")
++    public int maxEntityCollisions = 0;
++
++    @Comment("Cactus in dispensers rotates blocks.Rotates block anti-clockwise if possible")
++    public boolean rotatorBlock = false;
++
++    @Comment("""
++            Coral structures will grow with bonemeal from coral plants
++            Expanded also allows growing from coral fans for sustainable farming outside of warm oceans""")
++    public RenewableCoralMode renewableCoral = RenewableCoralMode.FALSE;
++
++    @Comment("Nether basalt generator without soul sand below will convert into blackstone instead")
++    public boolean renewableBlackstone = false;
++
++    @Comment("Lava and water generate deepslate and cobbled deepslate instead below Y0")
++    public boolean renewableDeepslate = false;
++
++    @Comment("fixes block placement rotation issue when player rotates quickly while placing blocks")
++    public boolean placementRotationFix = false;
++
++    @Comment("Spawning requires much less CPU and Memory")
++    public boolean lagFreeSpawning = false;
++
++    @Comment("Increases for testing purposes number of blue skulls shot by the wither")
++    public boolean moreBlueSkulls = false;
++
++    @Comment("""
++            Can allow to phase through walls in creative mode
++            On servers it needs to be set on both client and server to function properly.
++            Needs carpet client. Has no effect when set on the server only.""")
++    public boolean creativeNoClip = false;
++
++    @Comment("""
++            Removes obnoxious messages from the logs
++            Doesn't display 'Maximum sound pool size 247 reached'
++            Which is normal with decent farms and contraptions""")
++    public boolean cleanLogs = false;
++
++    @Validate(StructureBlockLimitValidator.class)
++    @Suggestion({"48", "96", "192", "256"})
++    @Comment("""
++            Customizable structure block limit of each axis
++            WARNING: Needs to be permanent for correct loading.
++            Setting 'structureBlockIgnored' to air is recommended
++            when saving massive structures.
++            Required on client of player editing the Structure Block.
++            'structureBlockOutlineDistance' may be required for
++            correct rendering of long structures.""")
++    public int structureBlockLimit = StructureBlockEntity.MAX_SIZE_PER_AXIS;
++
++    @Validate(StructureBlockIgnoredValidator.class)
++    @Suggestion({"minecraft:structure_void", "minecraft:air"})
++    @Comment("Changes the block ignored by the Structure Block")
++    public String structureBlockIgnored = "minecraft:structure_void";
++
++    @Validate(NonNegativeNumberValidator.class)
++    @Suggestion({"96", "192", "2048"})
++    @Comment("Customizable Structure Block outline render distance, required on client to work properly")
++    public int structureBlockOutlineDistance = 96;
++
++    @Comment("""
++            Lightning kills the items that drop when lightning kills an entity
++            Setting to true will prevent lightning from killing drops
++            Fixes [MC-206922](https://bugs.mojang.com/browse/MC-206922).""")
++    public boolean lightningKillsDropsFix = false;
++
++    @Validate(UpdateSuppressionBlockModes.class)
++    @Suggestion({"-1", "0", "10", "50"})
++    @Comment("""
++            Placing an activator rail on top of a barrier block will fill the neighbor updater stack when the rail turns off.
++            The integer entered is the amount of updates that should be left in the stack. set to -1 to disable this""")
++    public int updateSuppressionBlocker = -1;
++
++    @Comment("""
++            Creative players load chunks, or they don't! Just like spectators!
++            Toggling behaves exactly as if the player is in spectator mode,
++            also toggling the gamerule spectatorsGenerateChunks.""")
++    public boolean creativePlayersLoadChunks = true;
++
++    @Validate(PushLimitValidator.class)
++    @Suggestion({"8", "16", "32"})
++    @Comment("Customizable sculk sensor range")
++    public int sculkSensorRange = 8;
++
++    @Validate(WorldBorderValidator.class)
++    @Comment("""
++            Makes world borders move based on in game time instead of real time
++            This has the effect that when the tick rate changes the world border speed also changes proportional to it""")
++    public boolean tickSyncedWorldBorders = false;
++
++    // refers to "[MC-215169](https://bugs.mojang.com/browse/MC-215169)." - unconfirmed yet that its a java bug
++    @Comment("""
++            Allows to grow nether fungi with 3x3 base with bonemeal
++            Setting to 'all' will make all nether fungi grow into 3x3 trees
++            Setting to 'random' will make 6% of all nether fungi grow into 3x3 trees
++            (this being consistent with worldgen)""")
++    public FungusGrowthMode thickFungusGrowth = FungusGrowthMode.FALSE;
++
++    public static class ShulkerBoxValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue > 0 && newValue <= 64;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a number from 1 to 64, but got " + newValue;
++        }
++    }
++
++    public static class TNTRandomRangeValidator extends Validator<Double> {
++        @Override
++        public boolean validate(Double newValue, Double oldValue) {
++            return newValue == -1 || newValue >= 0;
++        }
++
++        @Override
++        public String getErrorMessage(Double newValue) {
++            return "Value can't be negative, or -1, but got " + newValue;
++        }
++    }
++
++    public static class TNTAngleValidator extends Validator<Double> {
++        @Override
++        public boolean validate(Double newValue, Double oldValue) {
++            return (newValue >= 0 && newValue < Math.PI * 2) || newValue == -1;
++        }
++
++        @Override
++        public String getErrorMessage(Double newValue) {
++            return "Value must be a number between 0 and 2Pi(include 0), or -1, but got " + newValue;
++        }
++    }
++
++    public static class QuasiConnectivityValidator extends Validator<Integer> {
++        private int maxRange = 1;
++
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            int minRange = 0;
++            int maxRange = 1;
++
++            if (!MinecraftServer.getServer().isReady()) {
++                maxRange = Integer.MAX_VALUE;
++            } else {
++                for (Level level : MinecraftServer.getServer().getAllLevels()) {
++                    maxRange = Math.max(maxRange, level.getHeight() - 1);
++                }
++            }
++
++            this.maxRange = maxRange;
++
++            return newValue >= minRange && newValue <= maxRange;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a number from 0 to the max level height(now " + maxRange + "), but got " + newValue;
++        }
++    }
++
++
++    public static class PushLimitValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue >= 1 && newValue <= 1024;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a number from 1 to 1024, but got " + newValue;
++        }
++    }
++
++    public static class ForceloadLimitValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue >= 0 && newValue <= 20000000;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a number from 0 to 20M, but got " + newValue;
++        }
++    }
++
++    public static class NonNegativeNumberValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue >= 0;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a non-negative number, but got " + newValue;
++        }
++    }
++
++    public static class StructureBlockLimitValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue >= StructureBlockEntity.MAX_SIZE_PER_AXIS;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "You have to choose a value greater or equal to 48, but got " + newValue;
++        }
++    }
++
++    public static class StructureBlockIgnoredValidator extends Validator<String> {
++        @Override
++        public boolean validate(String newValue, String oldValue) {
++            Optional<Block> ignoredBlock = MinecraftServer.getServer()
++                    .registryAccess()
++                    .registryOrThrow(Registries.BLOCK)
++                    .getOptional(ResourceLocation.tryParse(newValue));
++            if (ignoredBlock.isEmpty()) {
++                return false;
++            }
++            CarpetServer.structureBlockIgnoredBlock = ignoredBlock.get();
++            return true;
++        }
++
++        @Override
++        public String getErrorMessage(String newValue) {
++            return "Unknown block: " + newValue;
++        }
++    }
++
++    public static class UpdateSuppressionBlockModes extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            return newValue < -1;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "This value represents the amount of updates required before the logger logs them. Must be -1 or larger, but got " + newValue;
++        }
++    }
++
++    public static class WorldBorderValidator extends Validator<Boolean> {
++        @Override
++        public boolean validate(@NotNull Boolean newValue, @NotNull Boolean oldValue) {
++            if (oldValue.booleanValue() != newValue.booleanValue()) {
++                // Needed for the update
++                CarpetServer.configModule.tickSyncedWorldBorders = newValue;
++                for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++                    WorldBorder worldBorder = level.getWorldBorder();
++                    if (worldBorder.getStatus() != BorderStatus.STATIONARY) {
++                        double from = worldBorder.getSize();
++                        double to = worldBorder.getLerpTarget();
++                        long time = worldBorder.getLerpRemainingTime();
++                        worldBorder.lerpSizeBetween(from, to, time);
++                    }
++                }
++            }
++            return true;
++        }
++    }
++
++    public enum Lang {
++        zh_cn, zh_tw, en_us, fr_fr, pt_br
++    }
++
++    public enum ChainStoneMode {
++        TRUE, FALSE, STICK_TO_ALL;
++
++        public boolean enabled() {
++            return this != FALSE;
++        }
++    }
++
++    public enum RenewableCoralMode {
++        FALSE, EXPANDED, TRUE
++    }
++
++    public enum FungusGrowthMode {
++        FALSE, RANDOM, ALL
++    }
 +}
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c8da86b67241a411aa0a69576471fea6596bf004
+index 0000000000000000000000000000000000000000..54be16305640ed325e0dc1b8e3dff9b8792fb09c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,150 @@
 +package org.leavesmc.lumina.carpet;
 +
-+import dev.jorel.commandapi.CommandAPICommand;
++import com.mojang.logging.LogUtils;
++import net.kyori.adventure.text.Component;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.level.block.Block;
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
++import org.leavesmc.lumina.carpet.utils.MobAI;
++import org.slf4j.Logger;
 +
 +public class CarpetServer {
 +    public static CarpetConfigModule configModule = new CarpetConfigModule();
 +    public static Plugin PLUGIN = new MinecraftInternalPlugin();
++    public static final Logger LOGGER = LogUtils.getLogger();
++    public static Block structureBlockIgnoredBlock;
++    // public static CarpetScriptServer scriptServer; // TODO
++    // public static carpet.settings.SettingsManager settingsManager; // to change type to api type, can't change right now because of binary and source compat // TODO
++    // public static final List<CarpetExtension> extensions = new ArrayList<>(); // TODO
++
++    // public static void manageExtension(CarpetExtension extension) {
++    //     extensions.add(extension);
++    //     // Stop the stupid practice of extensions mixing into Carpet just to register themselves
++    //     if (StackWalker.getInstance().walk(stream -> stream.skip(1)
++    //             .anyMatch(el -> el.getClassName() == CarpetServer.class.getName())))
++    //     {
++    //         CarpetSettings.LOG.warn("""
++    //                 Extension '%s' is registering itself using a mixin into Carpet instead of a regular ModInitializer!
++    //                 This is stupid and will crash the game in future versions!""".formatted(extension.getClass().getSimpleName()));
++    //     }
++    // } // TODO
++
++    public static void onGameStarted() {
++        // settingsManager = new carpet.settings.SettingsManager(CarpetSettings.carpetVersion, "carpet", "Carpet Mod");
++        // settingsManager.parseSettingsClass(CarpetSettings.class);
++        // extensions.forEach(CarpetExtension::onGameStarted);
++        // //FabricAPIHooks.initialize();
++        // CarpetScriptServer.parseFunctionClasses(); // TODO
++    }
++
++    public static void onServerLoaded(MinecraftServer server) {
++        // CarpetServer.minecraft_server = server; // Do not need
++        // should not be needed - that bit needs refactoring, but not now.
++        SpawnReporter.resetSpawnStats(server, true);
++
++        // forEachManager(sm -> sm.attachServer(server));
++        // extensions.forEach(e -> e.onServerLoaded(server));
++        // scriptServer = new CarpetScriptServer(server);
++        // Carpet.MinecraftServer_addScriptServer(server, scriptServer); // TODO
++        MobAI.resetTrackers();
++        LoggerRegistry.initLoggers();
++    }
++
++    public static void onServerLoadedWorlds(MinecraftServer server) {
++        HopperCounter.resetAll(server, true);
++        // extensions.forEach(e -> e.onServerLoadedWorlds(server));
++        // // initialize scarpet rules after all extensions are loaded
++        // forEachManager(SettingsManager::initializeScarpetRules);
++        // scriptServer.initializeForWorld(); // TODO
++    }
++
++    public static void tick(MinecraftServer server) {
++        HUDController.update_hud(server, null);
++        // if (scriptServer != null) scriptServer.tick();
++
++        // //in case something happens
++        // CarpetSettings.impendingFillSkipUpdates.set(false); // I REALLY DON'T KNOW WHAT'S THIS
++
++        // extensions.forEach(e -> e.onTick(server)); // TODO
++    }
++
 +    public static void registerCarpetCommands() {
++        if (configModule == null) {
++            return;
++        }
 +        PlayerCommand.register();
 +    }
++
++    public static void onPlayerLoggedIn(ServerPlayer player) {
++        ServerNetworkHandler.onPlayerJoin(player);
++        LoggerRegistry.playerConnected(player);
++        // extensions.forEach(e -> e.onPlayerLoggedIn(player));
++        // scriptServer.onPlayerJoin(player); // TODO
++    }
++
++    public static void onPlayerLoggedOut(ServerPlayer player, Component reason) {
++        ServerNetworkHandler.onPlayerLoggedOut(player);
++        LoggerRegistry.playerDisconnected(player);
++        // extensions.forEach(e -> e.onPlayerLoggedOut(player));
++        // // first case client, second case server
++        // CarpetScriptServer runningScriptServer = (player.getServer() == null) ? scriptServer : Vanilla.MinecraftServer_getScriptServer(player.getServer()); // TODO
++        // if (runningScriptServer != null && !runningScriptServer.stopAll) {
++        //     runningScriptServer.onPlayerLoggedOut(player, reason);
++        // } // TODO
++    }
++
++    public static void clientPreClosing() {
++        // if (scriptServer != null) scriptServer.onClose();
++        // scriptServer = null; // TODO
++    }
++
++    public static void onServerClosed(MinecraftServer server) {
++        // if (minecraft_server != null) { // We can call it at correct time
++
++        // if (scriptServer != null) scriptServer.onClose();
++        // this is a mess, will cleanip onlly when global reference is gone
++        // if (!Vanilla.MinecraftServer_getScriptServer(server).stopAll) {
++        //     Vanilla.MinecraftServer_getScriptServer(server).onClose();
++        // }
++        // scriptServer = null; // TODO
++        ServerNetworkHandler.close();
++
++        LoggerRegistry.stopLoggers();
++        HUDController.resetScarpetHUDs();
++        ParticleParser.resetCache();
++        // extensions.forEach(e -> e.onServerClosed(server)); // TODO
++    }
++
++    // not API
++    // carpet's included
++    // public static void forEachManager(Consumer<SettingsManager> consumer) {
++    //     consumer.accept(settingsManager);
++    //     for (CarpetExtension e : extensions) {
++    //         SettingsManager manager = e.extensionSettingsManager();
++    //         if (manager != null) {
++    //             consumer.accept(manager);
++    //         }
++    //     }
++    // } // TODO
++
++    public static void registerExtensionLoggers() {
++        // extensions.forEach(CarpetExtension::registerLoggers); // TODO
++    }
++
++    public static void onReload(MinecraftServer server) {
++        // scriptServer.reload(server);
++        // extensions.forEach(e -> e.onReload(server)); // TODO
++    }
++
++    // private static final Set<CarpetExtension> warnedOutdatedManagerProviders = new HashSet<>(); // TODO
++
++    // static void warnOutdatedManager(CarpetExtension ext) {
++    //     if (warnedOutdatedManagerProviders.add(ext))
++    //         CarpetSettings.LOG.warn("""
++    //                 %s is providing a SettingsManager from an outdated method in CarpetExtension!
++    //                 This behaviour will not work in later Carpet versions and the manager won't be registered!""".formatted(ext.getClass().getName()));
++    // } // TODO
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
@@ -832,10 +1512,10 @@ index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..884fefa485ac38b76e9da4ef6aba374a65a12c07
+index 0000000000000000000000000000000000000000..37f42c967b714dec77d72d4cecafb7231211a9a7
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-@@ -0,0 +1,227 @@
+@@ -0,0 +1,228 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import com.mojang.authlib.GameProfile;
@@ -963,6 +1643,7 @@ index 0000000000000000000000000000000000000000..884fefa485ac38b76e9da4ef6aba374a
 +        return playerShadow;
 +    }
 +
++    // in carpet this will inject to PlayerList, but maybe it isn't necessary
 +    @Contract("_, _, _, _ -> new")
 +    public static @NotNull EntityPlayerMPFake respawnFake(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation cli) {
 +        return new EntityPlayerMPFake(server, level, profile, cli, false);
@@ -1103,6 +1784,223 @@ index 0000000000000000000000000000000000000000..7df2dd9009f227f9cd8f87849475f7d1
 +    }
 +}
 \ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..83c53a2021a34da59fc58354a212cab118a7d30a
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
+@@ -0,0 +1,49 @@
++package org.leavesmc.lumina.carpet.patches;
++
++import net.minecraft.network.Connection;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.chat.contents.TranslatableContents;
++import net.minecraft.network.protocol.Packet;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.server.network.CommonListenerCookie;
++import net.minecraft.server.network.ServerGamePacketListenerImpl;
++import net.minecraft.world.entity.RelativeMovement;
++import org.bukkit.event.player.PlayerKickEvent;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Set;
++
++public class NetHandlerPlayServerFake extends ServerGamePacketListenerImpl {
++    public NetHandlerPlayServerFake(final MinecraftServer minecraftServer, final Connection connection, final ServerPlayer serverPlayer, final CommonListenerCookie i) {
++        super(minecraftServer, connection, serverPlayer, i);
++    }
++
++    @Override
++    public void send(final @NotNull Packet<?> packetIn) {
++    }
++
++    @SuppressWarnings("deprecation")
++    @Override
++    public void disconnect(@NotNull Component message) {
++        if (message.getContents() instanceof TranslatableContents text && (text.getKey().equals("multiplayer.disconnect.idling") || text.getKey().equals("multiplayer.disconnect.duplicate_login"))) {
++            ((EntityPlayerMPFake) player).kill(message);
++        }
++    }
++
++    @Override
++    public void disconnect(@NotNull Component message, PlayerKickEvent.@NotNull Cause cause) {
++        disconnect(message);
++    }
++
++    @SuppressWarnings("resource")
++    @Override
++    public void teleport(double d, double e, double f, float g, float h, @NotNull Set<RelativeMovement> set) {
++        super.teleport(d, e, f, g, h, set);
++        if (player.serverLevel().getPlayerByUUID(player.getUUID()) != null) {
++            resetPosition();
++            player.serverLevel().getChunkSource().move(player);
++        }
++    }
++
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/Colors.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Colors.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a85fc086dfd15b30d6066fd888fb17507dd0e26d
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Colors.java
+@@ -0,0 +1,155 @@
++package org.leavesmc.lumina.carpet.script.utils;
++
++import net.minecraft.world.level.block.SoundType;
++import net.minecraft.world.level.material.MapColor;
++
++import java.util.Map;
++
++import static java.util.Map.entry;
++
++public class Colors {
++    public static final Map<SoundType, String> soundName = Map.<SoundType, String>ofEntries(
++            entry(SoundType.WOOD, "wood"),
++            entry(SoundType.GRAVEL, "gravel"),
++            entry(SoundType.GRASS, "grass"),
++            entry(SoundType.LILY_PAD, "lily_pad"),
++            entry(SoundType.STONE, "stone"),
++            entry(SoundType.METAL, "metal"),
++            entry(SoundType.GLASS, "glass"),
++            entry(SoundType.WOOL, "wool"),
++            entry(SoundType.SAND, "sand"),
++            entry(SoundType.SNOW, "snow"),
++            entry(SoundType.POWDER_SNOW, "powder_snow"),
++            entry(SoundType.LADDER, "ladder"),
++            entry(SoundType.ANVIL, "anvil"),
++            entry(SoundType.SLIME_BLOCK, "slime"),
++            entry(SoundType.HONEY_BLOCK, "honey"),
++            entry(SoundType.WET_GRASS, "sea_grass"),
++            entry(SoundType.CORAL_BLOCK, "coral"),
++            entry(SoundType.BAMBOO, "bamboo"),
++            entry(SoundType.BAMBOO_SAPLING, "shoots"),
++            entry(SoundType.SCAFFOLDING, "scaffolding"),
++            entry(SoundType.SWEET_BERRY_BUSH, "berry"),
++            entry(SoundType.CROP, "crop"),
++            entry(SoundType.HARD_CROP, "stem"),
++            entry(SoundType.VINE, "vine"),
++            entry(SoundType.NETHER_WART, "wart"),
++            entry(SoundType.LANTERN, "lantern"),
++            entry(SoundType.STEM, "fungi_stem"),
++            entry(SoundType.NYLIUM, "nylium"),
++            entry(SoundType.FUNGUS, "fungus"),
++            entry(SoundType.ROOTS, "roots"),
++            entry(SoundType.SHROOMLIGHT, "shroomlight"),
++            entry(SoundType.WEEPING_VINES, "weeping_vine"),
++            entry(SoundType.TWISTING_VINES, "twisting_vine"),
++            entry(SoundType.SOUL_SAND, "soul_sand"),
++            entry(SoundType.SOUL_SOIL, "soul_soil"),
++            entry(SoundType.BASALT, "basalt"),
++            entry(SoundType.WART_BLOCK, "wart"),
++            entry(SoundType.NETHERRACK, "netherrack"),
++            entry(SoundType.NETHER_BRICKS, "nether_bricks"),
++            entry(SoundType.NETHER_SPROUTS, "nether_sprouts"),
++            entry(SoundType.NETHER_ORE, "nether_ore"),
++            entry(SoundType.BONE_BLOCK, "bone"),
++            entry(SoundType.NETHERITE_BLOCK, "netherite"),
++            entry(SoundType.ANCIENT_DEBRIS, "ancient_debris"),
++            entry(SoundType.LODESTONE, "lodestone"),
++            entry(SoundType.CHAIN, "chain"),
++            entry(SoundType.NETHER_GOLD_ORE, "nether_gold_ore"),
++            entry(SoundType.GILDED_BLACKSTONE, "gilded_blackstone"),
++            entry(SoundType.CANDLE, "candle"),
++            entry(SoundType.AMETHYST, "amethyst"),
++            entry(SoundType.AMETHYST_CLUSTER, "amethyst_cluster"),
++            entry(SoundType.SMALL_AMETHYST_BUD, "small_amethyst_bud"),
++            entry(SoundType.MEDIUM_AMETHYST_BUD, "medium_amethyst_bud"),
++            entry(SoundType.LARGE_AMETHYST_BUD, "large_amethyst_bud"),
++
++            entry(SoundType.TUFF, "tuff"),
++            entry(SoundType.CALCITE, "calcite"),
++            entry(SoundType.DRIPSTONE_BLOCK, "dripstone"),
++            entry(SoundType.POINTED_DRIPSTONE, "pointed_dripstone"),
++            entry(SoundType.COPPER, "copper"),
++            entry(SoundType.CAVE_VINES, "cave_vine"),
++            entry(SoundType.SPORE_BLOSSOM, "spore_blossom"),
++            entry(SoundType.AZALEA, "azalea"),
++            entry(SoundType.FLOWERING_AZALEA, "flowering_azalea"),
++            entry(SoundType.MOSS_CARPET, "moss_carpet"),
++            entry(SoundType.MOSS, "moss"),
++            entry(SoundType.BIG_DRIPLEAF, "big_dripleaf"),
++            entry(SoundType.SMALL_DRIPLEAF, "small_dripleaf"),
++            entry(SoundType.ROOTED_DIRT, "rooted_dirt"),
++            entry(SoundType.HANGING_ROOTS, "hanging_roots"),
++            entry(SoundType.AZALEA_LEAVES, "azalea_leaves"),
++            entry(SoundType.SCULK_SENSOR, "sculk_sensor"),
++            entry(SoundType.GLOW_LICHEN, "glow_lichen"),
++            entry(SoundType.DEEPSLATE, "deepslate"),
++            entry(SoundType.DEEPSLATE_BRICKS, "deepslate_bricks"),
++            entry(SoundType.DEEPSLATE_TILES, "deepslate_tiles"),
++            entry(SoundType.POLISHED_DEEPSLATE, "polished_deepslate")
++    );
++
++    public static final Map<MapColor, String> mapColourName = Map.<MapColor, String>ofEntries(
++            entry(MapColor.NONE, "air"),
++            entry(MapColor.GRASS, "grass"),
++            entry(MapColor.SAND, "sand"),
++            entry(MapColor.WOOL, "wool"),
++            entry(MapColor.FIRE, "tnt"),
++            entry(MapColor.ICE, "ice"),
++            entry(MapColor.METAL, "iron"),
++            entry(MapColor.PLANT, "foliage"),
++            entry(MapColor.SNOW, "snow"),
++            entry(MapColor.CLAY, "clay"),
++            entry(MapColor.DIRT, "dirt"),
++            entry(MapColor.STONE, "stone"),
++            entry(MapColor.WATER, "water"),
++            entry(MapColor.WOOD, "wood"),
++            entry(MapColor.QUARTZ, "quartz"),
++            entry(MapColor.COLOR_ORANGE, "adobe"),
++            entry(MapColor.COLOR_MAGENTA, "magenta"),
++            entry(MapColor.COLOR_LIGHT_BLUE, "light_blue"),
++            entry(MapColor.COLOR_YELLOW, "yellow"),
++            entry(MapColor.COLOR_LIGHT_GREEN, "lime"),
++            entry(MapColor.COLOR_PINK, "pink"),
++            entry(MapColor.COLOR_GRAY, "gray"),
++            entry(MapColor.COLOR_LIGHT_GRAY, "light_gray"),
++            entry(MapColor.COLOR_CYAN, "cyan"),
++            entry(MapColor.COLOR_PURPLE, "purple"),
++            entry(MapColor.COLOR_BLUE, "blue"),
++            entry(MapColor.COLOR_BROWN, "brown"),
++            entry(MapColor.COLOR_GREEN, "green"),
++            entry(MapColor.COLOR_RED, "red"),
++            entry(MapColor.COLOR_BLACK, "black"),
++            entry(MapColor.GOLD, "gold"),
++            entry(MapColor.DIAMOND, "diamond"),
++            entry(MapColor.LAPIS, "lapis"),
++            entry(MapColor.EMERALD, "emerald"),
++            entry(MapColor.PODZOL, "obsidian"),
++            entry(MapColor.NETHER, "netherrack"), // TODO fix these
++            entry(MapColor.TERRACOTTA_WHITE, "white_terracotta"),
++            entry(MapColor.TERRACOTTA_ORANGE, "orange_terracotta"),
++            entry(MapColor.TERRACOTTA_MAGENTA, "magenta_terracotta"),
++            entry(MapColor.TERRACOTTA_LIGHT_BLUE, "light_blue_terracotta"),
++            entry(MapColor.TERRACOTTA_YELLOW, "yellow_terracotta"),
++            entry(MapColor.TERRACOTTA_LIGHT_GREEN, "lime_terracotta"),
++            entry(MapColor.TERRACOTTA_PINK, "pink_terracotta"),
++            entry(MapColor.TERRACOTTA_GRAY, "gray_terracotta"),
++            entry(MapColor.TERRACOTTA_LIGHT_GRAY, "light_gray_terracotta"),
++            entry(MapColor.TERRACOTTA_CYAN, "cyan_terracotta"),
++            entry(MapColor.TERRACOTTA_PURPLE, "purple_terracotta"),
++            entry(MapColor.TERRACOTTA_BLUE, "blue_terracotta"),
++            entry(MapColor.TERRACOTTA_BROWN, "brown_terracotta"),
++            entry(MapColor.TERRACOTTA_GREEN, "green_terracotta"),
++            entry(MapColor.TERRACOTTA_RED, "red_terracotta"),
++            entry(MapColor.TERRACOTTA_BLACK, "black_terracotta"),
++            entry(MapColor.CRIMSON_NYLIUM, "crimson_nylium"),
++            entry(MapColor.CRIMSON_STEM, "crimson_stem"),
++            entry(MapColor.CRIMSON_HYPHAE, "crimson_hyphae"),
++            entry(MapColor.WARPED_NYLIUM, "warped_nylium"),
++            entry(MapColor.WARPED_STEM, "warped_stem"),
++            entry(MapColor.WARPED_HYPHAE, "warped_hyphae"),
++            entry(MapColor.WARPED_WART_BLOCK, "warped_wart"),
++            entry(MapColor.DEEPSLATE, "deepslate"),
++            entry(MapColor.RAW_IRON, "raw_iron"),
++            entry(MapColor.GLOW_LICHEN, "glow_lichen")
++    );
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..cc9b7281eadf2ca97ded226c19559b0d3d5334b5
@@ -1183,12 +2081,284 @@ index 0000000000000000000000000000000000000000..cc9b7281eadf2ca97ded226c19559b0d
 +        return target == null ? null : new EntityHitResult(target, targetHitPos);
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/BlockInfo.java b/src/main/java/org/leavesmc/lumina/carpet/utils/BlockInfo.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..029be60570be67ce8f85df7932e7d6945de43f96
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/BlockInfo.java
+@@ -0,0 +1,112 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import java.util.ArrayList;
++import java.util.List;
++
++import org.leavesmc.lumina.carpet.script.utils.Colors;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Registry;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.MobSpawnType;
++import net.minecraft.world.entity.PathfinderMob;
++import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
++import net.minecraft.world.entity.ai.util.DefaultRandomPos;
++import net.minecraft.world.entity.monster.ZombifiedPiglin;
++import net.minecraft.world.level.LightLayer;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.pathfinder.PathComputationType;
++import net.minecraft.world.phys.Vec3;
++
++public class BlockInfo
++{
++    public static List<Component> blockInfo(BlockPos pos, ServerLevel world)
++    {
++        BlockState state = world.getBlockState(pos);
++        Block block = state.getBlock();
++        String metastring = "";
++        final Registry<Block> blocks = world.registryAccess().registryOrThrow(Registries.BLOCK);
++        for (net.minecraft.world.level.block.state.properties.Property<?> iproperty : state.getProperties())
++        {
++            metastring += ", "+iproperty.getName() + '='+state.getValue(iproperty);
++        }
++        List<Component> lst = new ArrayList<>();
++        lst.add(Messenger.s(""));
++        lst.add(Messenger.s("====================================="));
++        lst.add(Messenger.s(String.format("Block info for %s%s (id %d%s):", blocks.getKey(block),metastring, blocks.getId(block), metastring )));
++        lst.add(Messenger.s(String.format(" - Map colour: %s", Colors.mapColourName.get(state.getMapColor(world, pos)))));
++        lst.add(Messenger.s(String.format(" - Sound type: %s", Colors.soundName.get(state.getSoundType()))));
++        lst.add(Messenger.s(""));
++        lst.add(Messenger.s(String.format(" - Full block: %s", state.isCollisionShapeFullBlock(world, pos)))); //  isFullCube() )));
++        lst.add(Messenger.s(String.format(" - Normal cube: %s", state.isRedstoneConductor(world, pos)))); //isNormalCube()))); isSimpleFullBlock
++        lst.add(Messenger.s(String.format(" - Is liquid: %s", state.is(Blocks.WATER) || state.is(Blocks.LAVA))));
++        lst.add(Messenger.s(""));
++        lst.add(Messenger.s(String.format(" - Light in: %d, above: %d",
++                Math.max(world.getBrightness(LightLayer.BLOCK, pos),world.getBrightness(LightLayer.SKY, pos)) ,
++                Math.max(world.getBrightness(LightLayer.BLOCK, pos.above()),world.getBrightness(LightLayer.SKY, pos.above())))));
++        lst.add(Messenger.s(String.format(" - Brightness in: %.2f, above: %.2f", world.getLightLevelDependentMagicValue(pos), world.getLightLevelDependentMagicValue(pos.above()))));
++        lst.add(Messenger.s(String.format(" - Is opaque: %s", state.isSolid() )));
++        //lst.add(Messenger.s(String.format(" - Light opacity: %d", state.getOpacity(world,pos))));
++        //lst.add(Messenger.s(String.format(" - Emitted light: %d", state.getLightValue())));
++        //lst.add(Messenger.s(String.format(" - Picks neighbour light value: %s", state.useNeighborBrightness(world, pos))));
++        lst.add(Messenger.s(""));
++        lst.add(Messenger.s(String.format(" - Causes suffocation: %s", state.isSuffocating(world, pos)))); //canSuffocate
++        lst.add(Messenger.s(String.format(" - Blocks movement on land: %s", !state.isPathfindable(PathComputationType.LAND))));
++        lst.add(Messenger.s(String.format(" - Blocks movement in air: %s", !state.isPathfindable(PathComputationType.AIR))));
++        lst.add(Messenger.s(String.format(" - Blocks movement in liquids: %s", !state.isPathfindable(PathComputationType.WATER))));
++        lst.add(Messenger.s(String.format(" - Can burn: %s", state.ignitedByLava())));
++        lst.add(Messenger.s(String.format(" - Hardness: %.2f", state.getDestroySpeed(world, pos))));
++        lst.add(Messenger.s(String.format(" - Blast resistance: %.2f", block.getExplosionResistance())));
++        lst.add(Messenger.s(String.format(" - Ticks randomly: %s", state.isRandomlyTicking())));
++        lst.add(Messenger.s(""));
++        lst.add(Messenger.s(String.format(" - Can provide power: %s", state.isSignalSource())));
++        lst.add(Messenger.s(String.format(" - Strong power level: %d", world.getDirectSignalTo(pos))));
++        lst.add(Messenger.s(String.format(" - Redstone power level: %d", world.getBestNeighborSignal(pos))));
++        lst.add(Messenger.s(""));
++        lst.add(wander_chances(pos.above(), world));
++
++        return lst;
++    }
++
++    private static Component wander_chances(BlockPos pos, ServerLevel worldIn)
++    {
++        PathfinderMob creature = new ZombifiedPiglin(EntityType.ZOMBIFIED_PIGLIN, worldIn);
++        creature.finalizeSpawn(worldIn, worldIn.getCurrentDifficultyAt(pos), MobSpawnType.NATURAL, null);
++        creature.moveTo(pos, 0.0F, 0.0F);
++        RandomStrollGoal wander = new RandomStrollGoal(creature, 0.8D);
++        int success = 0;
++        for (int i=0; i<1000; i++)
++        {
++
++            Vec3 vec = DefaultRandomPos.getPos(creature, 10, 7); // TargetFinder.findTarget(creature, 10, 7);
++            if (vec == null)
++            {
++                continue;
++            }
++            success++;
++        }
++        long total_ticks = 0;
++        for (int trie=0; trie<1000; trie++)
++        {
++            int i;
++            for (i=1;i<30*20*60; i++) //*60 used to be 5 hours, limited to 30 mins
++            {
++                if (wander.canUse())
++                {
++                    break;
++                }
++            }
++            total_ticks += 3*i;
++        }
++        creature.discard(); // discarded // remove(Entity.RemovalReason.field_26999); // 2nd option - DISCARDED
++        long total_time = (total_ticks)/1000/20;
++        return Messenger.s(String.format(" - Wander chance above: %.1f%%\n - Average standby above: %s",
++                (100.0F*success)/1000,
++                ((total_time>5000)?"INFINITY":(total_time +" s"))
++        ));
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/CarpetRulePrinter.java b/src/main/java/org/leavesmc/lumina/carpet/utils/CarpetRulePrinter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1affe86d3db96ccf54f2f74741ef82e0e94c064d
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/CarpetRulePrinter.java
+@@ -0,0 +1,63 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import joptsimple.OptionParser;
++import joptsimple.OptionSet;
++import joptsimple.OptionSpec;
++import joptsimple.util.PathConverter;
++
++import java.io.IOException;
++import java.io.PrintStream;
++import java.lang.System;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++/**
++ * Provides a command line interface to generate a dump with all rules
++ * in a pretty markdown format to a specified file, with an optional
++ * category filter
++ */
++public class CarpetRulePrinter {
++    public void onInitializeServer() {
++        // When launching, we use the "--" separator to prevent the game rejecting to launch because of unknown options
++        // Clear it in case it's present given else our option parser would also ignore them!
++        String[] args = new String[]{};
++        // Arrays.stream(FabricLoader.getInstance().getLaunchArguments(true)).filter(opt -> !opt.equals("--")).toArray(String[]::new); // TODO
++
++        // Prepare an OptionParser for our parameters
++        OptionParser parser = new OptionParser();
++        OptionSpec<Void> shouldDump = parser.accepts("carpetDumpRules");
++        OptionSpec<Path> pathSpec = parser.accepts("dumpPath").withRequiredArg().withValuesConvertedBy(new PathConverter());
++        OptionSpec<String> filterSpec = parser.accepts("dumpFilter").withRequiredArg();
++        parser.allowsUnrecognizedOptions(); // minecraft may need more stuff later that we don't want to special-case
++        OptionSet options = parser.parse(args);
++        // If our flag isn't set, continue regular launch
++        if (!options.has(shouldDump)) return;
++
++
++        Logger logger = LoggerFactory.getLogger("Carpet Rule Printer");
++        logger.info("Starting in rule dump mode...");
++        // at this point, onGameStarted() already ran given it as an entrypoint runs before
++        PrintStream outputStream;
++        try {
++            Path path = options.valueOf(pathSpec).toAbsolutePath();
++            logger.info("Printing rules to: " + path);
++            Files.createDirectories(path.getParent());
++            outputStream = new PrintStream(Files.newOutputStream(path));
++        } catch (IOException e) {
++            throw new IllegalStateException(e);
++        }
++        // Ensure translations fallbacks have been generated given we run before the validator that ensures that has.
++        // Remove after removing old setting system, given there'll be no fallbacks
++        Translations.updateLanguage();
++        String filter = options.valueOf(filterSpec);
++        if (filter != null) logger.info("Applying category filter: " + filter);
++        // CarpetServer.settingsManager.dumpAllRulesToStream(outputStream, filter); // TODO
++        outputStream.close();
++        logger.info("Rules have been printed");
++        System.exit(0);
++    }
++}
++
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java b/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c38c4d459eb10876cc0e9a8d9d0c4be52ba1240c
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java
+@@ -0,0 +1,57 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++
++import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.network.chat.Component;
++import net.minecraft.util.Mth;
++import net.minecraft.world.phys.Vec3;
++
++public class DistanceCalculator {
++    public static final HashMap<String, Vec3> START_POINT_STORAGE = new HashMap<>();
++
++    public static boolean hasStartingPoint(CommandSourceStack source) {
++        return START_POINT_STORAGE.containsKey(source.getTextName());
++    }
++
++    public static List<Component> findDistanceBetweenTwoPoints(Vec3 pos1, Vec3 pos2) {
++        double dx = Mth.abs((float) pos1.x - (float) pos2.x);
++        double dy = Mth.abs((float) pos1.y - (float) pos2.y);
++        double dz = Mth.abs((float) pos1.z - (float) pos2.z);
++        double manhattan = dx + dy + dz;
++        double spherical = Math.sqrt(dx * dx + dy * dy + dz * dz);
++        double cylindrical = Math.sqrt(dx * dx + dz * dz);
++        List<Component> res = new ArrayList<>();
++        res.add(Messenger.c("w Distance between ",
++                Messenger.tp("c", pos1), "w  and ",
++                Messenger.tp("c", pos2), "w :"));
++        res.add(Messenger.c("w  - Spherical: ", String.format("wb %.2f", spherical)));
++        res.add(Messenger.c("w  - Cylindrical: ", String.format("wb %.2f", cylindrical)));
++        res.add(Messenger.c("w  - Manhattan: ", String.format("wb %.1f", manhattan)));
++        return res;
++    }
++
++    public static int distance(CommandSourceStack source, Vec3 pos1, Vec3 pos2) {
++        Messenger.send(source, findDistanceBetweenTwoPoints(pos1, pos2));
++        return 1;
++    }
++
++    public static int setStart(CommandSourceStack source, Vec3 pos) {
++        START_POINT_STORAGE.put(source.getTextName(), pos);
++        Messenger.m(source, "gi Initial point set to: ", Messenger.tp("g", pos));
++        return 1;
++    }
++
++    public static int setEnd(CommandSourceStack source, Vec3 pos) {
++        if (!hasStartingPoint(source)) {
++            START_POINT_STORAGE.put(source.getTextName(), pos);
++            Messenger.m(source, "gi There was no initial point for " + source.getTextName());
++            Messenger.m(source, "gi Initial point set to: ", Messenger.tp("g", pos));
++            return 0;
++        }
++        Messenger.send(source, findDistanceBetweenTwoPoints(START_POINT_STORAGE.get(source.getTextName()), pos));
++        return 1;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/EvictingQueue.java b/src/main/java/org/leavesmc/lumina/carpet/utils/EvictingQueue.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3da1c5a39484ae2e0b394ab02f48e0fac0872e15
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/EvictingQueue.java
+@@ -0,0 +1,15 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import java.util.LinkedHashMap;
++import java.util.Map;
++
++public class EvictingQueue<K> extends LinkedHashMap<K, Integer> {
++    public void put(K key) {
++        super.put(key, 1);
++    }
++
++    @Override
++    protected boolean removeEldestEntry(Map.Entry<K, Integer> eldest) {
++        return this.size() > 10;
++    }
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java b/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2312d378eb061ba013a7c595aff16abf782ac600
+index 0000000000000000000000000000000000000000..0eb66c8bd216e84e5ad946b9cc4c2507a4fd0702
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/Messenger.java
-@@ -0,0 +1,306 @@
+@@ -0,0 +1,307 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
 +import net.minecraft.ChatFormatting;
@@ -1204,6 +2374,7 @@ index 0000000000000000000000000000000000000000..2312d378eb061ba013a7c595aff16abf
 +import net.minecraft.world.entity.MobCategory;
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.phys.Vec3;
++import org.bukkit.command.CommandSender;
 +import org.slf4j.Logger;
 +import org.slf4j.LoggerFactory;
 +
@@ -1495,3 +2666,988 @@ index 0000000000000000000000000000000000000000..2312d378eb061ba013a7c595aff16abf
 +    }
 +}
 +
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..37f872e12f345f7342dde52fa0c6083a2564afbb
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
+@@ -0,0 +1,74 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import com.google.common.collect.Sets;
++
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
++import java.util.stream.Stream;
++
++import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++
++public class MobAI {
++    private static Map<EntityType<?>, Set<TrackingType>> aiTrackers = new HashMap<>();
++
++    public static void resetTrackers() {
++        aiTrackers.clear();
++    }
++
++    public static boolean isTracking(Entity e, TrackingType type) {
++        if (e.getCommandSenderWorld().isClientSide())
++            return false;
++        Set<TrackingType> currentTrackers = aiTrackers.get(e.getType());
++        if (currentTrackers == null)
++            return false;
++        return currentTrackers.contains(type);
++    }
++
++    public static void clearTracking(final MinecraftServer server, EntityType<? extends Entity> etype) {
++        aiTrackers.remove(etype);
++        for (ServerLevel world : server.getAllLevels()) {
++            for (Entity e : world.getEntities(etype, Entity::hasCustomName)) {
++                e.setCustomNameVisible(false);
++                e.setCustomName(null);
++            }
++        }
++    }
++
++    public static void startTracking(EntityType<?> e, TrackingType type) {
++        aiTrackers.putIfAbsent(e, Sets.newHashSet());
++        aiTrackers.get(e).add(type);
++    }
++
++    public static Stream<String> availbleTypes(CommandSourceStack source) {
++        Set<EntityType<?>> types = new HashSet<>();
++        for (TrackingType type : TrackingType.values()) {
++            types.addAll(type.types);
++        }
++        return types.stream().map(t -> source.registryAccess().registryOrThrow(Registries.ENTITY_TYPE).getKey(t).getPath());
++    }
++
++    public static Stream<String> availableFor(EntityType<?> entityType) {
++        Set<TrackingType> availableOptions = new HashSet<>();
++        for (TrackingType type : TrackingType.values())
++            if (type.types.contains(entityType))
++                availableOptions.add(type);
++        return availableOptions.stream().map(t -> t.name().toLowerCase());
++    }
++
++    public enum TrackingType {
++        IRON_GOLEM_SPAWNING(Set.of(EntityType.VILLAGER)),
++        BREEDING(Set.of(EntityType.VILLAGER));
++        public final Set<EntityType<?>> types;
++
++        TrackingType(Set<EntityType<?>> applicableTypes) {
++            types = applicableTypes;
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/PerimeterDiagnostics.java b/src/main/java/org/leavesmc/lumina/carpet/utils/PerimeterDiagnostics.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d3668806d79a47fe4bc04a464d6b1a581fcfad0e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/PerimeterDiagnostics.java
+@@ -0,0 +1,161 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import java.util.ArrayList;
++import java.util.List;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.tags.FluidTags;
++import net.minecraft.world.entity.AgeableMob;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.Mob;
++import net.minecraft.world.entity.MobCategory;
++import net.minecraft.world.entity.MobSpawnType;
++import net.minecraft.world.entity.SpawnPlacements;
++import net.minecraft.world.entity.ambient.AmbientCreature;
++import net.minecraft.world.entity.animal.WaterAnimal;
++import net.minecraft.world.entity.monster.Enemy;
++import net.minecraft.world.level.NaturalSpawner;
++import net.minecraft.world.level.biome.MobSpawnSettings;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++
++public class PerimeterDiagnostics {
++    public static class Result {
++        public int liquid;
++        public int ground;
++        public int specific;
++        public List<BlockPos> samples;
++
++        Result() {
++            samples = new ArrayList<>();
++        }
++    }
++
++    private MobSpawnSettings.SpawnerData sle;
++    private ServerLevel worldServer;
++    private MobCategory ctype;
++    private Mob el;
++
++    private PerimeterDiagnostics(ServerLevel server, MobCategory ctype, Mob el) {
++        this.sle = null;
++        this.worldServer = server;
++        this.ctype = ctype;
++        this.el = el;
++    }
++
++    public static Result countSpots(ServerLevel worldserver, BlockPos epos, Mob el) {
++        BlockPos pos;
++        // List<BlockPos> samples = new ArrayList<BlockPos>();
++        // if (el != null) CarpetSettings.LOG.error(String.format("Got %s to check",el.toString()));
++        int eY = epos.getY();
++        int eX = epos.getX();
++        int eZ = epos.getZ();
++        Result result = new Result();
++
++        // int ground_spawns = 0;
++        // int liquid_spawns = 0;
++        // int specific_spawns = 0;
++        boolean add_water = false;
++        boolean add_ground = false;
++        MobCategory ctype = null;
++
++        if (el != null) {
++            if (el instanceof WaterAnimal) {
++                add_water = true;
++                ctype = MobCategory.WATER_CREATURE;
++            } else if (el instanceof AgeableMob) {
++                add_ground = true;
++                ctype = MobCategory.CREATURE;
++            } else if (el instanceof Enemy) {
++                add_ground = true;
++                ctype = MobCategory.MONSTER;
++            } else if (el instanceof AmbientCreature) {
++                ctype = MobCategory.AMBIENT;
++            }
++        }
++        PerimeterDiagnostics diagnostic = new PerimeterDiagnostics(worldserver, ctype, el);
++        EntityType<?> type = EntityType.ZOMBIE;
++        if (el != null) type = el.getType();
++        int minY = worldserver.getMinBuildHeight();
++        int maxY = worldserver.getMaxBuildHeight();
++        for (int x = -128; x <= 128; ++x) {
++            for (int z = -128; z <= 128; ++z) {
++                if (x * x + z * z > 128 * 128) // cut out a cyllinder first
++                {
++                    continue;
++                }
++                for (int y = minY; y < maxY; ++y) {
++                    if ((Math.abs(y - eY) > 128)) {
++                        continue;
++                    }
++                    int distsq = (x) * (x) + (eY - y) * (eY - y) + (z) * (z);
++                    if (distsq > 128 * 128 || distsq < 24 * 24) {
++                        continue;
++                    }
++                    pos = new BlockPos(eX + x, y, eZ + z);
++
++                    BlockState iblockstate = worldserver.getBlockState(pos);
++                    BlockState iblockstate_down = worldserver.getBlockState(pos.below());
++                    BlockState iblockstate_up = worldserver.getBlockState(pos.above());
++
++                    if (iblockstate.getFluidState().is(FluidTags.WATER) && !iblockstate_up.isRedstoneConductor(worldserver, pos)) // isSimpleFUllBLock
++                    {
++                        result.liquid++;
++                        if (add_water && diagnostic.check_entity_spawn(pos)) {
++                            result.specific++;
++                            if (result.samples.size() < 10) {
++                                result.samples.add(pos);
++                            }
++                        }
++                    } else {
++                        if (iblockstate_down.isRedstoneConductor(worldserver, pos)) // isSimpleFUllBLock
++                        {
++                            Block block = iblockstate_down.getBlock();
++                            boolean flag = block != Blocks.BEDROCK && block != Blocks.BARRIER;
++                            if (flag && NaturalSpawner.isValidEmptySpawnBlock(worldserver, pos, iblockstate, iblockstate.getFluidState(), type) && NaturalSpawner.isValidEmptySpawnBlock(worldserver, pos.above(), iblockstate_up, iblockstate_up.getFluidState(), type)) {
++                                result.ground++;
++                                if (add_ground && diagnostic.check_entity_spawn(pos)) {
++                                    result.specific++;
++                                    if (result.samples.size() < 10) {
++                                        result.samples.add(pos);
++                                    }
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
++        // ashMap<String,Integer> result= new HashMap<>();
++        // result.put("Potential in-water spawning spaces", liquid_spawns);
++        // result.put("Potential on-ground spawning spaces", ground_spawns);
++        // if (el != null) result.put(String.format("%s spawning spaces",el.getDisplayName().getUnformattedText()),specific_spawns);
++        return result;
++    }
++
++
++    private boolean check_entity_spawn(BlockPos pos) {
++        if (sle == null || !worldServer.getChunkSource().getGenerator().getMobsAt(worldServer.getBiome(pos), worldServer.structureManager(), ctype, pos).unwrap().contains(sle)) {
++            sle = null;
++            for (MobSpawnSettings.SpawnerData sle : worldServer.getChunkSource().getGenerator().getMobsAt(worldServer.getBiome(pos), worldServer.structureManager(), ctype, pos).unwrap()) {
++                if (el.getType() == sle.type) {
++                    this.sle = sle;
++                    break;
++                }
++            }
++            if (sle == null || !worldServer.getChunkSource().getGenerator().getMobsAt(worldServer.getBiome(pos), worldServer.structureManager(), ctype, pos).unwrap().contains(sle)) {
++                return false;
++            }
++        }
++
++        if (SpawnPlacements.isSpawnPositionOk(sle.type, worldServer, pos)) {
++            el.moveTo(pos.getX() + 0.5F, pos.getY(), pos.getZ() + 0.5F, 0.0F, 0.0F);
++            return el.checkSpawnObstruction(worldServer) && el.checkSpawnRules(worldServer, MobSpawnType.NATURAL) &&
++                    SpawnPlacements.checkSpawnRules(el.getType(), (ServerLevel) el.getCommandSenderWorld(), MobSpawnType.NATURAL, el.blockPosition(), el.getCommandSenderWorld().random) &&
++                    worldServer.noCollision(el); // check collision rules once they stop fiddling with them after 1.14.1
++        }
++        return false;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/SpawnReporter.java b/src/main/java/org/leavesmc/lumina/carpet/utils/SpawnReporter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a2829333c30f90e09941815b360a87526b962083
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/SpawnReporter.java
+@@ -0,0 +1,436 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import it.unimi.dsi.fastutil.objects.Object2IntMap;
++import it.unimi.dsi.fastutil.objects.Object2LongMap;
++import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Holder;
++import net.minecraft.network.chat.Component;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.tags.BlockTags;
++import net.minecraft.util.Mth;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.Mob;
++import net.minecraft.world.entity.MobCategory;
++import net.minecraft.world.entity.MobSpawnType;
++import net.minecraft.world.entity.SpawnPlacements;
++import net.minecraft.world.entity.animal.Ocelot;
++import net.minecraft.world.item.DyeColor;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.NaturalSpawner;
++import net.minecraft.world.level.StructureManager;
++import net.minecraft.world.level.biome.Biome;
++import net.minecraft.world.level.biome.MobSpawnSettings;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.ChunkGenerator;
++import net.minecraft.world.level.entity.EntityTypeTest;
++import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.structure.BoundingBox;
++import net.minecraft.world.level.levelgen.structure.structures.NetherFortressStructure;
++import org.apache.commons.lang3.tuple.Pair;
++import org.jetbrains.annotations.Nullable;
++import org.leavesmc.lumina.carpet.CarpetServer;
++
++import static net.minecraft.world.entity.MobCategory.*;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++
++public class SpawnReporter {
++    private static final MobCategory[] CACHED_MOBCATEGORY_VALUES = MobCategory.values();
++    public static boolean mockSpawns = false;
++
++    public static final HashMap<ResourceKey<Level>, Integer> chunkCounts = new HashMap<>();
++
++    public static final HashMap<Pair<ResourceKey<Level>, MobCategory>, Object2LongOpenHashMap<EntityType<?>>> spawn_stats = new HashMap<>();
++    public static double mobcap_exponent = 0.0D;
++
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_attempts = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> overall_spawn_ticks = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_ticks_full = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_ticks_fail = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_ticks_succ = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_ticks_spawns = new Object2LongOpenHashMap<>();
++    public static final Object2LongOpenHashMap<Pair<ResourceKey<Level>, MobCategory>> spawn_cap_count = new Object2LongOpenHashMap<>();
++    public static final HashMap<Pair<ResourceKey<Level>, MobCategory>, EvictingQueue<Pair<EntityType<?>, BlockPos>>> spawned_mobs = new HashMap<>();
++    public static final HashMap<MobCategory, Integer> spawn_tries = new HashMap<>();
++
++    private static int spawnTrackingStartTime = 0;
++    private static BoundingBox trackedSpawningArea = null;
++    // in case game gets each thread for each world - these need to belong to workd.
++    public static Object2LongOpenHashMap<MobCategory> local_spawns = null; // per world
++    public static HashSet<MobCategory> first_chunk_marker = null;
++
++    public static void registerSpawn(Mob mob, MobCategory cat, BlockPos pos) {
++        if (trackedSpawningArea != null && !trackedSpawningArea.isInside(pos)) {
++            return;
++        }
++        Pair<ResourceKey<Level>, MobCategory> key = Pair.of(mob.level().dimension(), cat);
++        spawn_stats.get(key).addTo(mob.getType(), 1);
++        spawned_mobs.get(key).put(Pair.of(mob.getType(), pos));
++        if (!local_spawns.containsKey(cat)) {
++            CarpetServer.LOGGER.error("Rogue spawn detected for category " + cat.getName() + " for mob " + mob.getType().getDescription().getString() + ". If you see this message let carpet peeps know about it on github issues.");
++            local_spawns.put(cat, 0L);
++        }
++        local_spawns.addTo(cat, 1);
++    }
++
++    public static final int MAGIC_NUMBER = (int) Math.pow(17.0D, 2.0D);
++    /*public static double currentMagicNumber()
++    {
++        return MAGIC_NUMBER / (Math.pow(2.0,(SpawnReporter.mobcap_exponent/4)));
++    }*/
++
++    public static List<Component> printMobcapsForDimension(ServerLevel world, boolean multiline) {
++        ResourceKey<Level> dim = world.dimension();
++        String name = dim.location().getPath();
++        List<Component> lst = new ArrayList<>();
++        if (multiline)
++            lst.add(Messenger.s(String.format("Mobcaps for %s:", name)));
++        NaturalSpawner.SpawnState lastSpawner = world.getChunkSource().getLastSpawnState();
++        Object2IntMap<MobCategory> dimCounts = lastSpawner.getMobCategoryCounts();
++        int chunkcount = chunkCounts.getOrDefault(dim, -1);
++        if (dimCounts == null || chunkcount < 0) {
++            lst.add(Messenger.c("g   --UNAVAILABLE--"));
++            return lst;
++        }
++
++        List<String> shortCodes = new ArrayList<>();
++        for (MobCategory category : cachedMobCategories()) {
++            int cur = dimCounts.getOrDefault(category, -1);
++            int max = (int) (chunkcount * ((double) category.getMaxInstancesPerChunk() / MAGIC_NUMBER)); // from ServerChunkManager.CHUNKS_ELIGIBLE_FOR_SPAWNING
++            String color = Messenger.heatmap_color(cur, max);
++            String mobColor = Messenger.creatureTypeColor(category);
++            if (multiline) {
++                int rounds = spawn_tries.get(category);
++                lst.add(Messenger.c(String.format("w   %s: ", category.getName()),
++                        (cur < 0) ? "g -" : (color + " " + cur), "g  / ", mobColor + " " + max,
++                        (rounds == 1) ? "w " : String.format("gi  (%d rounds/tick)", spawn_tries.get(category))
++                ));
++            } else {
++                shortCodes.add(color + " " + ((cur < 0) ? "-" : cur));
++                shortCodes.add("g /");
++                shortCodes.add(mobColor + " " + max);
++                shortCodes.add("g ,");
++            }
++        }
++        if (!multiline) {
++            if (shortCodes.size() > 0) {
++                shortCodes.remove(shortCodes.size() - 1);
++                lst.add(Messenger.c(shortCodes.toArray(new Object[0])));
++            } else {
++                lst.add(Messenger.c("g   --UNAVAILABLE--"));
++            }
++
++        }
++        return lst;
++    }
++
++    public static List<Component> getRecentSpawns(Level world, MobCategory category) {
++        List<Component> lst = new ArrayList<>();
++        if (!trackingSpawns()) {
++            lst.add(Messenger.s("Spawn tracking not started"));
++            return lst;
++        }
++        String categoryName = category.getName();
++
++        lst.add(Messenger.s(String.format("Recent %s spawns:", categoryName)));
++        for (Pair<EntityType<?>, BlockPos> pair : spawned_mobs.get(Pair.of(world.dimension(), category)).keySet()) {
++            lst.add(Messenger.c(
++                    "w  - ",
++                    Messenger.tp("wb", pair.getRight()),
++                    String.format("w : %s", pair.getLeft().getDescription().getString())
++            ));
++        }
++
++        if (lst.size() == 1) {
++            lst.add(Messenger.s(" - Nothing spawned yet, sorry."));
++        }
++        return lst;
++
++    }
++
++    public static List<Component> handleWoolAction(BlockPos pos, ServerLevel worldIn) {
++        DyeColor under = WoolTool.getWoolColorAtPosition(worldIn, pos.below());
++        if (under == null) {
++            if (trackingSpawns()) {
++                return makeTrackingReport(worldIn);
++            } else {
++                return printMobcapsForDimension(worldIn, true);
++            }
++        }
++        MobCategory category = getCategoryFromWoolColor(under);
++        if (category != null) {
++            if (trackingSpawns()) {
++                return getRecentSpawns(worldIn, category);
++            } else {
++                return printEntitiesByType(category, worldIn, true);
++
++            }
++
++        }
++        if (trackingSpawns()) {
++            return makeTrackingReport(worldIn);
++        } else {
++            return printMobcapsForDimension(worldIn, true);
++        }
++
++    }
++
++    public static MobCategory getCategoryFromWoolColor(DyeColor color) {
++        return switch (color) {
++            case RED -> MONSTER;
++            case GREEN -> CREATURE;
++            case BLUE -> WATER_CREATURE;
++            case BROWN -> AMBIENT;
++            case CYAN -> WATER_AMBIENT;
++            default -> null;
++        };
++    }
++
++    public static List<Component> printEntitiesByType(MobCategory cat, ServerLevel worldIn, boolean all) {
++        List<Component> lst = new ArrayList<>();
++        lst.add(Messenger.s(String.format("Loaded entities for %s category:", cat)));
++        for (Entity entity : worldIn.getEntities(EntityTypeTest.forClass(Entity.class), (e) -> e.getType().getCategory() == cat)) {
++            boolean persistent = entity instanceof Mob mob && (mob.isPersistenceRequired() || mob.requiresCustomPersistence());
++            if (!all && persistent)
++                continue;
++
++            EntityType<?> type = entity.getType();
++            BlockPos pos = entity.blockPosition();
++            lst.add(Messenger.c(
++                    "w  - ",
++                    Messenger.tp(persistent ? "gb" : "wb", pos),
++                    String.format(persistent ? "g : %s" : "w : %s", type.getDescription().getString())
++            ));
++
++        }
++        if (lst.size() == 1) {
++            lst.add(Messenger.s(" - Empty."));
++        }
++        return lst;
++    }
++
++    public static void initializeMocking() {
++        mockSpawns = true;
++    }
++
++    public static void stopMocking() {
++        mockSpawns = false;
++    }
++
++    public static void resetSpawnStats(MinecraftServer server, boolean full) {
++        if (full) {
++            for (MobCategory category : cachedMobCategories())
++                spawn_tries.put(category, 1);
++        }
++        overall_spawn_ticks.clear();
++        spawn_attempts.clear();
++        spawn_ticks_full.clear();
++        spawn_ticks_fail.clear();
++        spawn_ticks_succ.clear();
++        spawn_ticks_spawns.clear();
++        spawn_cap_count.clear();
++
++        // can't fast-path to clear given different worlds could have different amount of worlds
++        for (MobCategory category : cachedMobCategories()) {
++            for (ResourceKey<Level> world : server.levelKeys()) {
++                Pair<ResourceKey<Level>, MobCategory> key = Pair.of(world, category);
++                spawn_stats.put(key, new Object2LongOpenHashMap<>());
++                spawned_mobs.put(key, new EvictingQueue<>());
++            }
++        }
++        spawnTrackingStartTime = 0;
++    }
++
++    public static MobCategory[] cachedMobCategories() {
++        return CACHED_MOBCATEGORY_VALUES;
++    }
++
++    public static boolean trackingSpawns() {
++        return spawnTrackingStartTime != 0L;
++    }
++
++    public static void startTracking(MinecraftServer server, BoundingBox trackedArea) {
++        resetSpawnStats(server, false);
++        spawnTrackingStartTime = server.getTickCount();
++        trackedSpawningArea = trackedArea;
++    }
++
++    public static void stopTracking(MinecraftServer server) {
++        resetSpawnStats(server, false);
++        SpawnReporter.spawnTrackingStartTime = 0;
++        trackedSpawningArea = null;
++    }
++
++    private static String getWorldCode(ResourceKey<Level> world) {
++        if (world == Level.OVERWORLD) return "";
++        return "(" + Character.toUpperCase(world.location().getPath().charAt("THE_".length())) + ")";
++    }
++
++    public static List<Component> makeTrackingReport(Level worldIn) {
++        List<Component> report = new ArrayList<>();
++        if (!trackingSpawns()) {
++            report.add(Messenger.c(
++                    "w Spawn tracking is disabled, type '",
++                    "wi /spawn tracking start", "/spawn tracking start",
++                    "w ' to enable"));
++            return report;
++        }
++        int duration = worldIn.getServer().getTickCount() - spawnTrackingStartTime;
++        report.add(Messenger.c("bw --------------------"));
++        String simulated = mockSpawns ? "[SIMULATED] " : "";
++        String location = (trackedSpawningArea != null) ? String.format("[in (%d, %d, %d)x(%d, %d, %d)]",
++                trackedSpawningArea.minX(), trackedSpawningArea.minY(), trackedSpawningArea.minZ(),
++                trackedSpawningArea.maxX(), trackedSpawningArea.maxY(), trackedSpawningArea.maxZ()) : "";
++        report.add(Messenger.s(String.format("%sSpawn statistics %s: for %.1f min", simulated, location, (duration / 72000.0) * 60)));
++
++        for (MobCategory category : cachedMobCategories()) {
++            for (ResourceKey<Level> dim : worldIn.getServer().levelKeys()) {
++                Pair<ResourceKey<Level>, MobCategory> key = Pair.of(dim, category);
++                if (spawn_ticks_spawns.getLong(key) > 0L) {
++                    double hours = overall_spawn_ticks.getLong(key) / 72000.0;
++                    long spawnAttemptsForCategory = spawn_attempts.getLong(key);
++                    report.add(Messenger.s(String.format(" > %s%s (%.1f min), %.1f m/t, %%{%.1fF %.1f- %.1f+}; %.2f s/att",
++                            category.getName().substring(0, 3), getWorldCode(dim),
++                            60 * hours,
++                            (1.0D * spawn_cap_count.getLong(key)) / spawnAttemptsForCategory,
++                            (100.0D * spawn_ticks_full.getLong(key)) / spawnAttemptsForCategory,
++                            (100.0D * spawn_ticks_fail.getLong(key)) / spawnAttemptsForCategory,
++                            (100.0D * spawn_ticks_succ.getLong(key)) / spawnAttemptsForCategory,
++                            (1.0D * spawn_ticks_spawns.getLong(key)) / (spawn_ticks_fail.getLong(key) + spawn_ticks_succ.getLong(key))
++                    )));
++                    for (Object2LongMap.Entry<EntityType<?>> entry : spawn_stats.get(key).object2LongEntrySet()) {
++                        report.add(Messenger.s(String.format("   - %s: %d spawns, %d per hour",
++                                entry.getKey().getDescription().getString(),
++                                entry.getLongValue(),
++                                (72000 * entry.getLongValue() / duration))));
++                    }
++                }
++            }
++        }
++        return report;
++    }
++
++    public static void killEntity(LivingEntity entity) {
++        if (entity.isPassenger()) {
++            entity.getVehicle().discard();
++        }
++        if (entity.isVehicle()) {
++            for (Entity e : entity.getPassengers()) {
++                e.discard();
++            }
++        }
++        if (entity instanceof Ocelot) {
++            for (Entity e : entity.getCommandSenderWorld().getEntities(entity, entity.getBoundingBox())) {
++                e.discard();
++            }
++        }
++        entity.discard();
++    }
++
++    // yeeted from NaturalSpawner - temporary access fix
++    private static List<MobSpawnSettings.SpawnerData> getSpawnEntries(ServerLevel serverLevel, StructureManager structureManager, ChunkGenerator chunkGenerator, MobCategory mobCategory, BlockPos blockPos, @Nullable Holder<Biome> holder) {
++        return NaturalSpawner.isInNetherFortressBounds(blockPos, serverLevel, mobCategory, structureManager) ? NetherFortressStructure.FORTRESS_ENEMIES.unwrap() : chunkGenerator.getMobsAt(holder != null ? holder : serverLevel.getBiome(blockPos), structureManager, mobCategory, blockPos).unwrap();
++    }
++
++    public static List<Component> report(BlockPos pos, ServerLevel worldIn) {
++        List<Component> rep = new ArrayList<>();
++        int x = pos.getX();
++        int y = pos.getY();
++        int z = pos.getZ();
++        ChunkAccess chunk = worldIn.getChunk(pos);
++        int lc = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) + 1;
++        String relativeHeight = (y == lc) ? "right at it." : String.format("%d blocks %s it.", Mth.abs(y - lc), (y >= lc) ? "above" : "below");
++        rep.add(Messenger.s(String.format("Maximum spawn Y value for (%+d, %+d) is %d. You are " + relativeHeight, x, z, lc)));
++        rep.add(Messenger.s("Spawns:"));
++        for (MobCategory category : cachedMobCategories()) {
++            String categoryCode = String.valueOf(category).substring(0, 3);
++            List<MobSpawnSettings.SpawnerData> lst = getSpawnEntries(worldIn, worldIn.structureManager(), worldIn.getChunkSource().getGenerator(), category, pos, worldIn.getBiome(pos));
++            if (lst != null && !lst.isEmpty()) {
++                for (MobSpawnSettings.SpawnerData spawnEntry : lst) {
++                    if (SpawnPlacements.getPlacementType(spawnEntry.type) == null)
++                        continue; // vanilla bug
++                    boolean canSpawn = SpawnPlacements.isSpawnPositionOk(spawnEntry.type, worldIn, pos);
++                    int willSpawn = -1;
++                    boolean fits = false;
++
++                    Mob mob;
++                    try {
++                        mob = (Mob) spawnEntry.type.create(worldIn);
++                    } catch (Exception e) {
++                        CarpetServer.LOGGER.warn("Exception while creating mob for spawn reporter", e);
++                        return rep;
++                    }
++
++                    if (canSpawn) {
++                        willSpawn = 0;
++                        for (int attempt = 0; attempt < 50; ++attempt) {
++                            float f = x + 0.5F;
++                            float f1 = z + 0.5F;
++                            mob.moveTo(f, y, f1, worldIn.random.nextFloat() * 360.0F, 0.0F);
++                            fits = worldIn.noCollision(mob);
++                            EntityType<?> etype = mob.getType();
++
++                            for (int i = 0; i < 20; ++i) {
++                                if (
++                                        SpawnPlacements.checkSpawnRules(etype, worldIn, MobSpawnType.NATURAL, pos, worldIn.random) &&
++                                                SpawnPlacements.isSpawnPositionOk(etype, worldIn, pos) &&
++                                                mob.checkSpawnRules(worldIn, MobSpawnType.NATURAL)
++                                    // && mob.canSpawn(worldIn) // entity collisions // mostly - except ocelots
++                                ) {
++                                    if (etype == EntityType.OCELOT) {
++                                        BlockState blockState = worldIn.getBlockState(pos.below());
++                                        if ((pos.getY() < worldIn.getSeaLevel()) || !(blockState.is(Blocks.GRASS_BLOCK) || blockState.is(BlockTags.LEAVES))) {
++                                            continue;
++                                        }
++                                    }
++                                    willSpawn += 1;
++                                }
++                            }
++                            mob.finalizeSpawn(worldIn, worldIn.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.NATURAL, null);
++                            // the code invokes onInitialSpawn after getCanSpawHere
++                            fits = fits && worldIn.noCollision(mob);
++
++                            killEntity(mob);
++
++                            try {
++                                mob = (Mob) spawnEntry.type.create(worldIn);
++                            } catch (Exception e) {
++                                CarpetServer.LOGGER.warn("Exception while creating mob for spawn reporter", e);
++                                return rep;
++                            }
++                        }
++                    }
++
++                    String mobTypeName = mob.getType().getDescription().getString();
++                    // String pack_size = Integer.toString(mob.getMaxSpawnClusterSize());//String.format("%d-%d", animal.minGroupCount, animal.maxGroupCount);
++                    int weight = spawnEntry.getWeight().asInt();
++                    if (canSpawn) {
++                        String color = (fits && willSpawn > 0) ? "e" : "gi";
++                        rep.add(Messenger.c(
++                                String.format("%s %s: %s (%d:%d-%d/%d), can: ", color, categoryCode, mobTypeName, weight, spawnEntry.minCount, spawnEntry.maxCount, mob.getMaxSpawnClusterSize()),
++                                "l YES",
++                                color + " , fit: ",
++                                (fits ? "l YES" : "r NO"),
++                                color + " , will: ",
++                                ((willSpawn > 0) ? "l " : "r ") + Math.round((double) willSpawn) / 10 + "%"
++                        ));
++                    } else {
++                        rep.add(Messenger.c(String.format("gi %s: %s (%d:%d-%d/%d), can: ", categoryCode, mobTypeName, weight, spawnEntry.minCount, spawnEntry.maxCount, mob.getMaxSpawnClusterSize()), "n NO"));
++                    }
++                    killEntity(mob);
++                }
++            }
++        }
++        return rep;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/TranslationKeys.java b/src/main/java/org/leavesmc/lumina/carpet/utils/TranslationKeys.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..284086d7deea77d43a6e3fa541e88f4a24cfdfe5
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/TranslationKeys.java
+@@ -0,0 +1,31 @@
++package org.leavesmc.lumina.carpet.utils;
++
++/**
++ * This is not public API!
++ */
++public final class TranslationKeys {
++    public static final String BASE_RULE_NAMESPACE = "%s.rule.";
++    public static final String BASE_RULE_PATTERN   = BASE_RULE_NAMESPACE + "%s."; // [settingsManager].rule.[name]
++    public static final String RULE_NAME_PATTERN   = BASE_RULE_PATTERN + "name";
++    public static final String RULE_DESC_PATTERN   = BASE_RULE_PATTERN + "desc";
++    public static final String RULE_EXTRA_PREFIX_PATTERN = BASE_RULE_PATTERN + "extra.";
++    public static final String CATEGORY_PATTERN    = "%s.category.%s"; //[settingsManager].category.[name]
++
++    // Settings command
++    private static final String SETTINGS_BASE           = "carpet.settings.command.";
++    public static final String BROWSE_CATEGORIES        = SETTINGS_BASE + "browse_categories";
++    public static final String VERSION                  = SETTINGS_BASE + "version";
++    public static final String LIST_ALL_CATEGORY        = SETTINGS_BASE + "list_all_category";
++    public static final String CURRENT_SETTINGS_HEADER  = SETTINGS_BASE + "current_settings_header";
++    public static final String SWITCH_TO                = SETTINGS_BASE + "switch_to";
++    public static final String UNKNOWN_RULE             = SETTINGS_BASE + "unknown_rule";
++    public static final String CURRENT_FROM_FILE_HEADER = SETTINGS_BASE + "current_from_file_header";
++    public static final String MOD_SETTINGS_MATCHING    = SETTINGS_BASE + "mod_settings_matching";
++    public static final String ALL_MOD_SETTINGS         = SETTINGS_BASE + "all_mod_settings";
++    public static final String TAGS                     = SETTINGS_BASE + "tags";
++    public static final String CHANGE_PERMANENTLY       = SETTINGS_BASE + "change_permanently";
++    public static final String CHANGE_PERMANENTLY_HOVER = SETTINGS_BASE + "change_permanently_tooltip";
++    public static final String DEFAULT_SET              = SETTINGS_BASE + "default_set";
++    public static final String DEFAULT_REMOVED          = SETTINGS_BASE + "default_removed";
++    public static final String CURRENT_VALUE            = SETTINGS_BASE + "current_value";
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/Translations.java b/src/main/java/org/leavesmc/lumina/carpet/utils/Translations.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..520f1f9b7a621cc4b2d215303dd21333bc8afb58
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/Translations.java
+@@ -0,0 +1,118 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++// import org.leavesmc.lumina.carpet.CarpetSettings; // TODO
++import com.google.gson.Gson;
++import com.google.gson.GsonBuilder;
++import com.google.gson.reflect.TypeToken;
++
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.nio.charset.StandardCharsets;
++import java.util.Collections;
++import java.util.HashMap;
++import java.util.Map;
++
++public class Translations {
++    private static Map<String, String> translationMap = Collections.emptyMap();
++
++    public static String tr(String key) {
++        return translationMap.getOrDefault(key, key);
++    }
++
++    public static String trOrNull(String key) {
++        return translationMap.get(key);
++    }
++
++    public static String tr(String key, String str) {
++        return translationMap.getOrDefault(key, str);
++    }
++
++    public static boolean hasTranslations() {
++        return !translationMap.isEmpty();
++    }
++
++    public static boolean hasTranslation(String key) {
++        return translationMap.containsKey(key);
++    }
++
++    public static Map<String, String> getTranslationFromResourcePath(String path) {
++        InputStream langFile = Translations.class.getClassLoader().getResourceAsStream(path);
++        if (langFile == null) {
++            // we don't have that language
++            return Collections.emptyMap();
++        }
++        Gson gson = new GsonBuilder().setLenient().create();
++        return gson.fromJson(new InputStreamReader(langFile, StandardCharsets.UTF_8),
++                new TypeToken<Map<String, String>>() {
++                });
++    }
++
++    public static void updateLanguage() {
++        Map<String, String> translations = new HashMap<>();
++        translations.putAll(getTranslationFromResourcePath(String.format("assets/carpet/lang/%s.json", CarpetServer.configModule.language)));
++
++        // for (CarpetExtension ext : CarpetServer.extensions)
++        // {
++        //     Map<String, String> extMappings = ext.canHasTranslations(CarpetSettings.language);
++        //     if (extMappings == null) continue; // would be nice to get rid of this, but too many extensions return null where they don't know they do
++        //     boolean warned = false;
++        //     for (var entry : extMappings.entrySet()) {
++        //         var key = entry.getKey();
++        //         // Migrate the old format
++        //         if (!key.startsWith("carpet.")) {
++        //             if (key.startsWith("rule.")) {
++        //                 // default to carpet's settings manager. Custom managers are really uncommon and the known ones don't provide translations anyway
++        //                 key = TranslationKeys.BASE_RULE_NAMESPACE.formatted("carpet") + key.substring(5);
++        //             } else if (key.startsWith("category.")) {
++        //                 key = TranslationKeys.CATEGORY_PATTERN.formatted("carpet", key.substring(9));
++        //             }
++        //             if (!warned && key != entry.getKey()) {
++        //                 CarpetSettings.LOG.warn("""
++        //                         Found outdated translation keys in extension '%s'!
++        //                         These won't be supported in a later Carpet version!
++        //                         Carpet will now try to map them to the correct keys in a best-effort basis""".formatted(ext.getClass().getName()));
++        //                 warned = true;
++        //             }
++        //         }
++        //         translations.putIfAbsent(key, entry.getValue());
++        //     }
++        // }
++        translations.keySet().removeIf(e -> {
++            if (e.startsWith("//")) {
++                CarpetServer.LOGGER.warn("""
++                        Found translation key starting with // while preparing translations!
++                        Doing this is deprecated and may cause issues in later versions! Consider settings GSON to "lenient" mode and
++                        using regular comments instead!
++                        Translation key is '%s'""".formatted(e));
++                return true;
++            } else
++                return false;
++        });
++        // Remove after deprecated settings api is removed
++        addFallbacksTo(translations);
++        translationMap = translations;
++    }
++
++    public static boolean isValidLanguage(String newValue) {
++        // will put some validations for availble languages at some point
++        return true;
++    }
++
++    // fallbacks for old rules that don't define rule descriptions or stuff in language files yet
++    // to be removed when old settings system is removed and translation refactor is finished
++
++    private static final Map<String, String> FALLBACKS = new HashMap<>();
++
++    /**
++     * @deprecated if you compile against this method I'll steal your kneecaps
++     */
++    @Deprecated(forRemoval = true)
++    public static void registerFallbackTranslation(String key, String description) {
++        FALLBACKS.put(key, description);
++    }
++
++    private static void addFallbacksTo(Map<String, String> translationMap) {
++        FALLBACKS.forEach(translationMap::putIfAbsent);
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c8f713b4f3919c21757ac00edef7254444b0b63
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
+@@ -0,0 +1,129 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.helpers.HopperCounter;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++
++import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.core.BlockPos;
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.tags.BlockTags;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.DyeColor;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.material.MapColor;
++import net.minecraft.world.phys.Vec3;
++
++import javax.annotation.Nullable;
++
++import static java.util.Map.entry;
++
++/**
++ * A series of utility functions and variables for dealing predominantly with hopper counters and determining which counter
++ * to add their items to, as well as helping dealing with carpet functionality.
++ */
++public class WoolTool
++{
++    /**
++     * A map from a wool {@link Block} to its {@link DyeColor} which is used in {@link WoolTool#getWoolColorAtPosition}
++     * to get the colour of wool at a position.
++     */
++    private static final Map<Block, DyeColor> WOOL_BLOCK_TO_DYE = Map.ofEntries(
++            entry(Blocks.WHITE_WOOL, DyeColor.WHITE),
++            entry(Blocks.ORANGE_WOOL, DyeColor.ORANGE),
++            entry(Blocks.MAGENTA_WOOL, DyeColor.MAGENTA),
++            entry(Blocks.LIGHT_BLUE_WOOL, DyeColor.LIGHT_BLUE),
++            entry(Blocks.YELLOW_WOOL, DyeColor.YELLOW),
++            entry(Blocks.LIME_WOOL, DyeColor.LIME),
++            entry(Blocks.PINK_WOOL, DyeColor.PINK),
++            entry(Blocks.GRAY_WOOL, DyeColor.GRAY),
++            entry(Blocks.LIGHT_GRAY_WOOL, DyeColor.LIGHT_GRAY),
++            entry(Blocks.CYAN_WOOL, DyeColor.CYAN),
++            entry(Blocks.PURPLE_WOOL, DyeColor.PURPLE),
++            entry(Blocks.BLUE_WOOL, DyeColor.BLUE),
++            entry(Blocks.BROWN_WOOL, DyeColor.BROWN),
++            entry(Blocks.GREEN_WOOL, DyeColor.GREEN),
++            entry(Blocks.RED_WOOL, DyeColor.RED),
++            entry(Blocks.BLACK_WOOL, DyeColor.BLACK)
++    );
++
++    /**
++     * The method which gets triggered when a player places a carpet, and decides what to do based on the carpet's colour:
++     * <ul>
++     *     <li>Red - Resets the counter of the colour of wool underneath the carpet (if there is no wool, then nothing happens)</li>
++     *     <li>Green - Prints the contents of the counter of the colour of wool underneath the carpet</li>
++     * </ul>
++     */
++    public static void carpetPlacedAction(DyeColor color, Player placer, BlockPos pos, ServerLevel worldIn)
++    {
++        if (!CarpetServer.configModule.carpets)
++        {
++            return;
++        }
++        switch (color)
++        {
++            case PINK:
++                if (!CarpetServer.configModule.commandSpawn)
++                    Messenger.send(placer, SpawnReporter.report(pos, worldIn));
++
++                break;
++            case BLACK:
++                if (!CarpetServer.configModule.commandSpawn)
++                    Messenger.send(placer, SpawnReporter.handleWoolAction(pos, worldIn));
++                break;
++            case BROWN:
++                if (!CarpetServer.configModule.commandDistance)
++                {
++                    CommandSourceStack source = placer.createCommandSourceStack();
++                    if (!DistanceCalculator.hasStartingPoint(source) || placer.isShiftKeyDown()) {
++                        DistanceCalculator.setStart(source, Vec3.atLowerCornerOf(pos) ); // zero padded pos
++                    }
++                    else {
++                        DistanceCalculator.setEnd(source, Vec3.atLowerCornerOf(pos));
++                    }
++                }
++                break;
++            case GRAY:
++                if (!CarpetServer.configModule.commandInfo)
++                    Messenger.send(placer, BlockInfo.blockInfo(pos.below(), worldIn));
++                break;
++            case GREEN:
++                if (CarpetServer.configModule.hopperCounters)
++                {
++                    DyeColor under = getWoolColorAtPosition(worldIn, pos.below());
++                    if (under == null) return;
++                    HopperCounter counter = HopperCounter.getCounter(under);
++                    Messenger.send(placer, counter.format(worldIn.getServer(), false, false));
++                }
++                break;
++            case RED:
++                if (CarpetServer.configModule.hopperCounters)
++                {
++                    DyeColor under = getWoolColorAtPosition(worldIn, pos.below());
++                    if (under == null) return;
++                    HopperCounter counter = HopperCounter.getCounter(under);
++                    counter.reset(placer.getServer());
++                    List<Component> res = new ArrayList<>();
++                    res.add(Messenger.s(String.format("%s counter reset",under.toString())));
++                    Messenger.send(placer, res);
++                }
++                break;
++        }
++    }
++
++    /**
++     * Gets the colour of wool at the position, for hoppers to be able to decide whether to add their items to the global counter.
++     */
++    @Nullable
++    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos)
++    {
++        BlockState state = worldIn.getBlockState(pos);
++        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
++    }
++}

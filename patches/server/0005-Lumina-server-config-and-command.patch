@@ -35,9 +35,9 @@ index e3228efcb0d85c0c43cd4e52fe0b877414a5ebe5..bdc35ec969486f6f026f6fb9bb0b9c22
  import org.bukkit.loot.LootTable;
  import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.utils.ReflectTargetField;
- 
+
  // Mojang-Mapped reflection
- 
+
 @@ -222,8 +216,10 @@ public class NMS_1_20_R4 extends NMS_Common {
          // entitySelectorUsesSelector = EntitySelector::usesSelector;
          Field usesSelector = null;
@@ -62,7 +62,7 @@ index 8302e4bedc03795c4cda526466fa4dc279b2dd21..17351285d16956d22eca0d5dce336699
 -    public final boolean usesSelector; // Lumina - Command API
 +    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
 +    private final boolean usesSelector;
- 
+
      public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
          this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
@@ -87,10 +87,10 @@ index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3826b3e3f6d1b57e510de8ec37f1222cb8ea43c3
+index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52d0fba3d8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,188 @@
+@@ -0,0 +1,223 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
@@ -104,6 +104,7 @@ index 0000000000000000000000000000000000000000..3826b3e3f6d1b57e510de8ec37f1222c
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.config.LuminaConfig;
++import org.leavesmc.lumina.config.Validator;
 +import org.slf4j.Logger;
 +
 +import java.util.Arrays;
@@ -166,37 +167,71 @@ index 0000000000000000000000000000000000000000..3826b3e3f6d1b57e510de8ec37f1222c
 +                                        } else {
 +                                            switch (type.getSimpleName()) {
 +                                                case "boolean" -> {
++                                                    boolean newValue;
 +                                                    if ("true".equals(value)) {
-+                                                        nodeInfo.field().setBoolean(parent, true);
++                                                        newValue = true;
 +                                                    } else if ("false".equals(value)) {
-+                                                        nodeInfo.field().setBoolean(parent, false);
++                                                        newValue = false;
 +                                                    } else {
 +                                                        sendError(sender, "Expected boolean, but entered: " + value);
++                                                        return;
 +                                                    }
++                                                    Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
++                                                    if (result.type() != Validator.ValidationResultType.PASS) {
++                                                        sendError(sender, result.message());
++                                                        return;
++                                                    }
++                                                    nodeInfo.field().setBoolean(parent, newValue);
 +                                                }
 +                                                case "int" -> {
 +                                                    try {
-+                                                        nodeInfo.field().setInt(parent, Integer.parseInt(value));
++                                                        int newValue = Integer.parseInt(value);
++                                                        Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
++                                                        if (result.type() != Validator.ValidationResultType.PASS) {
++                                                            sendError(sender, result.message());
++                                                            return;
++                                                        }
++                                                        nodeInfo.field().setInt(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
 +                                                        sendError(sender, "Expected int, but entered: " + value);
 +                                                    }
 +                                                }
 +                                                case "long" -> {
 +                                                    try {
-+                                                        nodeInfo.field().setLong(parent, Long.parseLong(value));
++                                                        long newValue = Long.parseLong(value);
++                                                        Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
++                                                        if (result.type() != Validator.ValidationResultType.PASS) {
++                                                            sendError(sender, result.message());
++                                                            return;
++                                                        }
++                                                        nodeInfo.field().setLong(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
 +                                                        sendError(sender, "Expected long, but entered: " + value);
 +                                                    }
 +                                                }
 +                                                case "double" -> {
 +                                                    try {
-+                                                        nodeInfo.field().setDouble(parent, Double.parseDouble(value));
++                                                        double newValue = Double.parseDouble(value);
++                                                        Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
++                                                        if (result.type() != Validator.ValidationResultType.PASS) {
++                                                            sendError(sender, result.message());
++                                                            return;
++                                                        }
++                                                        nodeInfo.field().setDouble(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
 +                                                        sendError(sender, "Expected double, but entered: " + value);
 +                                                    }
 +                                                }
-+                                                case "String" -> nodeInfo.field().set(parent, value);
-+                                                default -> throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                                                case "String" -> {
++                                                    Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
++                                                    if (result.type() != Validator.ValidationResultType.PASS) {
++                                                        sendError(sender, result.message());
++                                                        return;
++                                                    }
++                                                    nodeInfo.field().set(parent, value);
++                                                }
++                                                default ->
++                                                        throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
 +                                            }
 +                                        }
 +                                        sendSuccess(sender, "Already set " + node + " to " + value);
@@ -303,10 +338,10 @@ index 0000000000000000000000000000000000000000..ca9b57fbd49d9307712b917f8169b24e
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b7185500430b2d0409352542884d37a0ca3851d6
+index 0000000000000000000000000000000000000000..6d9a6e1e0aafe8dc61b65568c9ed17670c55dc3c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,168 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -314,6 +349,8 @@ index 0000000000000000000000000000000000000000..b7185500430b2d0409352542884d37a0
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.config.annotations.Suggestion;
++import org.leavesmc.lumina.config.annotations.Validate;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
@@ -321,7 +358,9 @@ index 0000000000000000000000000000000000000000..b7185500430b2d0409352542884d37a0
 +import org.spongepowered.configurate.yaml.NodeStyle;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
++import java.lang.annotation.Annotation;
 +import java.lang.reflect.Field;
++import java.lang.reflect.InvocationTargetException;
 +import java.nio.file.Files;
 +import java.nio.file.Path;
 +import java.nio.file.Paths;
@@ -429,20 +468,215 @@ index 0000000000000000000000000000000000000000..b7185500430b2d0409352542884d37a0
 +            String fieldName = field.getName();
 +            Class<?> fieldType = field.getType();
 +            String key = parentKey == null ? toHyphen(fieldName) : parentKey + "." + toHyphen(fieldName);
-+            if ("boolean".equals(fieldType.getSimpleName())) {
-+                nodeInfos.put(key, new ConfigNodeInfo(new String[]{"true", "false"}, fieldType, field, parent));
-+            } else if (CONFIG_FIELD_TYPES.contains(fieldType)) {
-+                nodeInfos.put(key, new ConfigNodeInfo(new String[]{field.get(parent).toString()}, fieldType, field, parent));
-+            } else if (fieldType.isEnum()) {
-+                nodeInfos.put(key, new ConfigNodeInfo((Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new)), fieldType, field, parent));
++            boolean haveSuggestions = false;
++            String[] suggestions = null;
++            Validator<?> validator = new Validator<>();
++            for (Annotation annotation : field.getAnnotations()) {
++                if (annotation instanceof Suggestion value) {
++                    haveSuggestions = true;
++                    suggestions = value.value();
++                } else if (annotation instanceof Validate value) {
++                    try {
++                        validator = value.value().getDeclaredConstructor().newInstance();
++                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
++                        throw new RuntimeException(e);
++                    }
++                }
++            }
++            if (!haveSuggestions) {
++                if ("boolean".equals(fieldType.getSimpleName())) {
++                    suggestions = new String[]{"true", "false"};
++                    haveSuggestions = true;
++                } else if (CONFIG_FIELD_TYPES.contains(fieldType)) {
++                    suggestions = new String[]{field.get(parent).toString()};
++                    haveSuggestions = true;
++                } else if (fieldType.isEnum()) {
++                    suggestions = Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new);
++                    haveSuggestions = true;
++                }
++            }
++            if (haveSuggestions) {
++                nodeInfos.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
 +            } else {
 +                generateNodeInfos(fieldType, key, field.get(parent));
 +            }
 +        }
 +    }
 +
-+    public record ConfigNodeInfo(String[] suggestions, Class<?> type, Field field, Object parent) {
++    public record ConfigNodeInfo(
++            String[] suggestions,
++            Class<?> type,
++            Field field, Object parent,
++            Validator<?> validator) {
 +    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/Validator.java b/src/main/java/org/leavesmc/lumina/config/Validator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d58e875318
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/Validator.java
+@@ -0,0 +1,121 @@
++package org.leavesmc.lumina.config;
++
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++
++public class Validator<T> {
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
++    public boolean validate(T newValue, T oldValue) {
++        return true;
++    }
++
++    public String getErrorMessage(T newValue) {
++        return "Invalid value: " + newValue;
++    }
++
++    @SuppressWarnings("unchecked")
++    public static ValidationResult validateString(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, String newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<String> validator = (Validator<String>) nodeInfo.validator();
++                if (!validator.validate(newValue, (String) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    @SuppressWarnings("unchecked")
++    public static ValidationResult validateBoolean(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Boolean newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<Boolean> validator = (Validator<Boolean>) nodeInfo.validator();
++                if (!validator.validate(newValue, (Boolean) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    @SuppressWarnings("unchecked")
++    public static ValidationResult validateInteger(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Integer newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<Integer> validator = (Validator<Integer>) nodeInfo.validator();
++                if (!validator.validate(newValue, (Integer) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    @SuppressWarnings("unchecked")
++    public static ValidationResult validateLong(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Long newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<Long> validator = (Validator<Long>) nodeInfo.validator();
++                if (!validator.validate(newValue, (Long) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    @SuppressWarnings("unchecked")
++    public static ValidationResult validateDouble(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Double newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<Double> validator = (Validator<Double>) nodeInfo.validator();
++                if (!validator.validate(newValue, (Double) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    @SuppressWarnings("unchecked")
++    public static <E> ValidationResult validate(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, E newValue) {
++        if (nodeInfo.validator() != null) {
++            try {
++                Validator<E> validator = (Validator<E>) nodeInfo.validator();
++                if (!validator.validate(newValue, (E) nodeInfo.field().get(nodeInfo.parent()))) {
++                    return ValidationResult.failed(validator.getErrorMessage(newValue));
++                }
++            } catch (IllegalAccessException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return ValidationResult.pass();
++    }
++
++    public enum ValidationResultType {
++        PASS, FAILED
++    }
++
++    public record ValidationResult(ValidationResultType type, String message) {
++        @Contract(" -> new")
++        public static @NotNull ValidationResult pass() {
++            return new ValidationResult(ValidationResultType.PASS, null);
++        }
++
++        @Contract("_ -> new")
++        public static @NotNull ValidationResult failed(String message) {
++            return new ValidationResult(ValidationResultType.FAILED, message);
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/annotations/Suggestion.java b/src/main/java/org/leavesmc/lumina/config/annotations/Suggestion.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7a2e319e7dbc733b9ec9f9b67ec4ddf182dc6df
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/annotations/Suggestion.java
+@@ -0,0 +1,15 @@
++package org.leavesmc.lumina.config.annotations;
++
++import java.lang.annotation.ElementType;
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++import java.lang.annotation.Target;
++
++/**
++ * 在用户使用命令修改Config时提供常量字符串列表建议
++ */
++@Retention(RetentionPolicy.RUNTIME)
++@Target(ElementType.FIELD)
++public @interface Suggestion {
++    String[] value() default {};
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/annotations/Validate.java b/src/main/java/org/leavesmc/lumina/config/annotations/Validate.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6fff13fd26a134118dac8949ee061c92055fdbde
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/annotations/Validate.java
+@@ -0,0 +1,14 @@
++package org.leavesmc.lumina.config.annotations;
++
++import org.leavesmc.lumina.config.Validator;
++
++import java.lang.annotation.ElementType;
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++import java.lang.annotation.Target;
++
++@Retention(RetentionPolicy.RUNTIME)
++@Target(ElementType.FIELD)
++public @interface Validate {
++    Class<? extends Validator> value() default Validator.class;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Fix.java b/src/main/java/org/leavesmc/lumina/config/modules/Fix.java
 new file mode 100644
@@ -611,36 +845,6 @@ index 0000000000000000000000000000000000000000..5e79b3e1dfa56896c20e3b7e9c9d0cc3
 +    public boolean enabled = false;
 +    public long warnPeriodTicks = 5 * 20;
 +    public long timeOutTicks = 30 * 20;
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a8ae86452224380adce81229ed57757d6d4fa0ef
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/modules/performance/AsyncPathProcessingConfig.java
-@@ -0,0 +1,24 @@
-+package org.leavesmc.lumina.config.modules.performance;
-+
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.spongepowered.configurate.objectmapping.meta.PostProcess;
-+
-+@ConfigSerializable
-+public class AsyncPathProcessingConfig {
-+    public boolean enabled = false;
-+    public int maxThreadNumber = 0;
-+    public int keepalive = 60;
-+
-+    @PostProcess
-+    public void onLoaded() {
-+        if (!enabled) {
-+            maxThreadNumber = 0;
-+            return;
-+        }
-+        if (maxThreadNumber < 0) {
-+            maxThreadNumber = Math.max(Runtime.getRuntime().availableProcessors() + maxThreadNumber, 1);
-+        } else if (maxThreadNumber == 0) {
-+            maxThreadNumber = Math.max(Runtime.getRuntime().availableProcessors() / 4, 1);
-+        }
-+    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/performance/DynamicEntityActivationRangeConfig.java
 new file mode 100644
