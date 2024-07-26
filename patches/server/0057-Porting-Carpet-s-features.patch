@@ -54,7 +54,7 @@ index d5e8dd947cb29343074df8074e791357c72e7f7b..9b4739cd72523de9ed1b150bc3ca241d
 +    // Lumina end - Porting Carpet's features
      // Paper end - packet limiter
      @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
-
+ 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a005bdf2b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
@@ -66,10 +66,10 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a
 -
      // Folia start - regionised ticking
      public final io.papermc.paper.threadedregions.RegionizedServer regionizedServer = new io.papermc.paper.threadedregions.RegionizedServer();
-
+ 
 @@ -449,6 +448,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected abstract boolean initServer() throws IOException;
-
+ 
      protected void loadLevel(String s) { // CraftBukkit
 +        org.leavesmc.lumina.carpet.CarpetServer.onServerLoaded(this); // Lumina - Porting Carpet's features
          if (!JvmProfiler.INSTANCE.isRunning()) {
@@ -82,11 +82,11 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..0fdb0e94758dd418c020a42f79006d0a
 -
 +        org.leavesmc.lumina.carpet.CarpetServer.onServerLoadedWorlds(this); // Lumina - Porting Carpet's features
      }
-
+ 
      protected void forceDifficulty() {}
 @@ -998,6 +998,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      // Folia end - region threading
-
+ 
      public void stopServer() {
 +        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(this); // Lumina - Porting Carpet's features
          // Folia start - region threading
@@ -99,7 +99,7 @@ index 3c95ea6fdab99e414270fd5ed960c539b7ada265..f9cde77604a6e68560698e3c7d3ffe5b
 @@ -299,6 +299,19 @@ public class ServerPlayer extends Player {
      public @Nullable String clientBrandName = null; // Paper - Brand support
      public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
-
+ 
 +    // Lumina start - Porting Carpet's features
 +    private boolean isInvalidReference = false;
 +    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack actionPack;
@@ -122,23 +122,48 @@ index 3c95ea6fdab99e414270fd5ed960c539b7ada265..f9cde77604a6e68560698e3c7d3ffe5b
          this.maxHealthCache = this.getMaxHealth();
 +        this.actionPack = new org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack(this); // Lumina - Porting Carpet's features
      }
-
+ 
      // Use method to resend items in hands in case of client desync, because the item use got cancelled.
 @@ -872,6 +886,7 @@ public class ServerPlayer extends Player {
-
+ 
      @Override
      public void tick() {
 +        actionPack.onUpdate(); // Lumina - Porting Carpet's features
          // CraftBukkit start
          if (this.joining) {
              this.joining = false;
+diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+index bbb856fb9b4082d752a6761bb5196fffa48fbd6c..3f9785e1af4c96a1ae3de8ff80a7bd366473e0f6 100644
+--- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -119,6 +119,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+     }
+     public void onDisconnect(Component reason, @Nullable net.kyori.adventure.text.Component quitMessage) {
+         // Paper end - Fix kick event leave message not being sent
++        org.leavesmc.lumina.carpet.CarpetServer.onPlayerLoggedOut(this.player, quitMessage); // Lumina - Porting Carpet's features
+         // Folia start - region threading
+         if (this.handledDisconnect) {
+             // avoid retiring scheduler twice
+@@ -134,6 +135,12 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ 
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public Connection getConnection() {
++        return connection;
++    }
++    // Lumina end - Porting Carpet's features
++
+     @Override
+     public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
+         // Purpur start
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
 index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..0b7a7f739bde72fd20a8d92f3c8fe5c75c325bb8 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -375,7 +375,11 @@ public abstract class PlayerList {
          LevelData worlddata = worldserver1.getLevelData();
-
+ 
          player.loadGameTypes((CompoundTag) optional.orElse(null)); // CraftBukkit - decompile error
 -        ServerGamePacketListenerImpl playerconnection = new ServerGamePacketListenerImpl(this.server, connection, player, clientData);
 +        // Lumina start - Porting Carpet's features
@@ -154,15 +179,115 @@ index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..0b7a7f739bde72fd20a8d92f3c8fe5c7
              optional = this.playerIo.load(player);
          }
 +        if (player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) ((org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) player).fixStartingPosition.run(); // Lumina - Porting Carpet's features
-
+ 
          return optional;
      }
+diff --git a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
+index e314f36951e9ac15c57137e24fce8c410373130a..be62dda906a9253dbd644ae127c008618901e300 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
++++ b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
+@@ -29,6 +29,12 @@ import net.minecraft.world.level.ItemLike;
+ 
+ public final class Ingredient implements Predicate<ItemStack> {
+ 
++    // Lumina start - Porting Carpet's features
++    public List<Collection<ItemStack>> getRecipeStacks() {
++        return Arrays.stream(values).map(Ingredient.Value::getItems).toList();
++    }
++    // Lumina end - Porting Carpet's features
++
+     public static final Ingredient EMPTY = new Ingredient(Stream.empty());
+     public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = ItemStack.LIST_STREAM_CODEC.map((list) -> {
+         return Ingredient.fromValues(list.stream().map(Ingredient.ItemValue::new));
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
+index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..1002c967438421cf8e3c2844abe525d9d5d77ede 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
+@@ -24,12 +24,16 @@ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.NonNullList;
++import net.minecraft.core.Registry;
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.RegistryOps;
+ import net.minecraft.resources.ResourceLocation;
+ import net.minecraft.server.packs.resources.ResourceManager;
+ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+ import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.world.Container;
++import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import org.slf4j.Logger;
+@@ -53,6 +57,27 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
+         this.registries = registryLookup;
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public List<Recipe<?>> getAllMatching(RecipeType<?> type, ResourceLocation itemId, RegistryAccess registryAccess) {
++        // quiq cheq
++        RecipeHolder<?> recipe = byName.get(itemId);
++        if (recipe != null && recipe.value().getType().equals(type)) {
++            return List.of(recipe.value());
++        }
++        if (!byType.containsKey(type)) {
++            // happens when mods add recipe to the registry without updating recipe manager
++            return List.of();
++        }
++        Collection<RecipeHolder<?>> typeRecipes = byType.get(type);
++        Registry<Item> regs = registryAccess.registryOrThrow(Registries.ITEM);
++        Item item = regs.get(itemId);
++        return typeRecipes.stream()
++                .<Recipe<?>>map(RecipeHolder::value)
++                .filter(r -> r.getResultItem(registryAccess).getItem() == item)
++                .toList();
++    }
++    // Lumina end - Porting Carpet's features
++
+     protected void apply(Map<ResourceLocation, JsonElement> prepared, ResourceManager manager, ProfilerFiller profiler) {
+         this.hasErrors = false;
+         Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..d3bf0ca9baffb663e03a482d109a734c12ce1f12 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -69,6 +69,12 @@ public class PistonBaseBlock extends DirectionalBlock {
+     protected static final VoxelShape DOWN_AABB = Block.box(0.0D, 4.0D, 0.0D, 16.0D, 16.0D, 16.0D);
+     private final boolean isSticky;
+ 
++    // Lumina start - Porting Carpet's features
++    public boolean publicShouldExtend(Level world_1, BlockPos blockPos_1, Direction direction_1) {
++        return getNeighborSignal(world_1, blockPos_1,direction_1);
++    }
++    // Lumina end - Porting Carpet's features
++
+     @Override
+     public MapCodec<PistonBaseBlock> codec() {
+         return PistonBaseBlock.CODEC;
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
+index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..c56ffe58c426760c0f3ff2243535943e06730c14 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
+@@ -22,6 +22,12 @@ public abstract class CoralFeature extends Feature<NoneFeatureConfiguration> {
+         super(configCodec);
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public boolean growSpecific(net.minecraft.world.level.Level worldIn, RandomSource random, BlockPos pos, BlockState blockUnder) {
++        return placeFeature(worldIn, random, pos, blockUnder);
++    }
++    // Lumina end - Porting Carpet's features
++
+     @Override
+     public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
+         RandomSource randomSource = context.random();
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e98e68a49
+index 0000000000000000000000000000000000000000..7ec6ddca72a2073d1f2d5bea20b71e888bf36db1
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,485 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -211,9 +336,6 @@ index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e
 +    @Comment("Removes random TNT momentum when primed")
 +    public boolean tntPrimerMomentumRemoved = false;
 +
-+    @Comment("TNT causes less lag when exploding in the same spot and in liquids")
-+    public boolean optimizedTNT = false;
-+
 +    @Validate(TNTRandomRangeValidator.class)
 +    @Comment("Sets the tnt random explosion range to a fixed value, set to -1 for default behavior")
 +    public double tntRandomRange = -1;
@@ -224,12 +346,6 @@ index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e
 +
 +    @Comment("Merges stationary primed TNT entities")
 +    public boolean mergeTNT = false;
-+
-+    @Comment("""
-+            Lag optimizations for redstone dust by Theosib
-+            also fixes some locational behaviours or vanilla redstone MC-11193
-+            so behaviour of locational vanilla contraptions is not guaranteed""")
-+    public boolean fastRedstoneDust = false;
 +
 +    @Comment("Only husks spawn in desert temples")
 +    public boolean huskSpawningInTemples = false;
@@ -302,6 +418,12 @@ index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e
 +
 +    @Comment("Enables /log command to monitor events via chat and overlays")
 +    public boolean commandLog = true;
++
++    @Suggestion({"none", "tps", "mobcaps,tps"})
++    @Comment("""
++            sets these loggers in their default configurations for all new players
++            use csv, like 'tps,mobcaps' for multiple loggers, none for nothing""")
++    public String defaultLoggers = "none";
 +
 +    @Comment("""
 +            Enables /distance command to measure in game distance between points
@@ -654,10 +776,10 @@ index 0000000000000000000000000000000000000000..9ec6cfb8c806aaf27838a56f1133d15e
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..54be16305640ed325e0dc1b8e3dff9b8792fb09c
+index 0000000000000000000000000000000000000000..a9cbb2214c7d5c262161dba6a09ff07d3012273f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,159 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -668,7 +790,13 @@ index 0000000000000000000000000000000000000000..54be16305640ed325e0dc1b8e3dff9b8
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
++import org.leavesmc.lumina.carpet.helpers.HopperCounter;
++import org.leavesmc.lumina.carpet.logging.HUDController;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++import org.leavesmc.lumina.carpet.network.ServerNetworkHandler;
++import org.leavesmc.lumina.carpet.script.utils.ParticleParser;
 +import org.leavesmc.lumina.carpet.utils.MobAI;
++import org.leavesmc.lumina.carpet.utils.SpawnReporter;
 +import org.slf4j.Logger;
 +
 +public class CarpetServer {
@@ -676,6 +804,9 @@ index 0000000000000000000000000000000000000000..54be16305640ed325e0dc1b8e3dff9b8
 +    public static Plugin PLUGIN = new MinecraftInternalPlugin();
 +    public static final Logger LOGGER = LogUtils.getLogger();
 +    public static Block structureBlockIgnoredBlock;
++    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
++    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
++    public static final String carpetVersion = ""; // TODO
 +    // public static CarpetScriptServer scriptServer; // TODO
 +    // public static carpet.settings.SettingsManager settingsManager; // to change type to api type, can't change right now because of binary and source compat // TODO
 +    // public static final List<CarpetExtension> extensions = new ArrayList<>(); // TODO
@@ -961,9 +1092,197 @@ index 0000000000000000000000000000000000000000..a164a3b425fc8ce8d17b7f5790581303
 +                );
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a994a2851ddde1e15ac0ae7238cea7235a24ef77
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
+@@ -0,0 +1,164 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.core.dispenser.BlockSource;
++import net.minecraft.core.dispenser.DispenseItemBehavior;
++import net.minecraft.core.dispenser.OptionalDispenseItemBehavior;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.Items;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.BaseRailBlock;
++import net.minecraft.world.level.block.BedBlock;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.DirectionalBlock;
++import net.minecraft.world.level.block.DispenserBlock;
++import net.minecraft.world.level.block.EndRodBlock;
++import net.minecraft.world.level.block.HopperBlock;
++import net.minecraft.world.level.block.HorizontalDirectionalBlock;
++import net.minecraft.world.level.block.ObserverBlock;
++import net.minecraft.world.level.block.RotatedPillarBlock;
++import net.minecraft.world.level.block.Rotation;
++import net.minecraft.world.level.block.SlabBlock;
++import net.minecraft.world.level.block.StairBlock;
++import net.minecraft.world.level.block.piston.PistonBaseBlock;
++import net.minecraft.world.level.block.piston.PistonStructureResolver;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.properties.Half;
++import net.minecraft.world.level.block.state.properties.SlabType;
++import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.Vec3;
++import org.leavesmc.lumina.carpet.CarpetServer;
++
++public class BlockRotator {
++    public static boolean flipBlockWithCactus(BlockState state, Level world, Player player, InteractionHand hand, BlockHitResult hit) {
++        if (!player.getAbilities().mayBuild || !CarpetServer.configModule.flippinCactus || !playerHoldsCactusMainhand(player)) {
++            return false;
++        }
++        CarpetServer.IMPENDING_FILL_SKIP_UPDATES.set(true);
++        boolean retval = flipBlock(state, world, player, hand, hit);
++        CarpetServer.IMPENDING_FILL_SKIP_UPDATES.set(false);
++        return retval;
++    }
++
++    public static ItemStack dispenserRotate(BlockSource source, ItemStack stack) {
++        Direction sourceFace = source.state().getValue(DispenserBlock.FACING);
++        Level world = source.level();
++        BlockPos blockpos = source.pos().relative(sourceFace); // offset
++        BlockState blockstate = world.getBlockState(blockpos);
++        Block block = blockstate.getBlock();
++
++        // Block rotation for blocks that can be placed in all 6 or 4 rotations.
++        if (block instanceof DirectionalBlock || block instanceof DispenserBlock) {
++            Direction face = blockstate.getValue(DirectionalBlock.FACING);
++            if (block instanceof PistonBaseBlock baseBlock && (
++                    blockstate.getValue(PistonBaseBlock.EXTENDED)
++                            || (baseBlock.publicShouldExtend(world, blockpos, face) && (new PistonStructureResolver(world, blockpos, face, true)).resolve())
++            )
++            ) {
++                return stack;
++            }
++
++            Direction rotatedFace = face.getClockWise(sourceFace.getAxis());
++            if (sourceFace.get3DDataValue() % 2 == 0 || rotatedFace == face) {   // Flip to make blocks always rotate clockwise relative to the dispenser
++                // when index is equal to zero. when index is equal to zero the dispenser is in the opposite direction.
++                rotatedFace = rotatedFace.getOpposite();
++            }
++            world.setBlock(blockpos, blockstate.setValue(DirectionalBlock.FACING, rotatedFace), 3);
++        } else if (block instanceof HorizontalDirectionalBlock) // Block rotation for blocks that can be placed in only 4 horizontal rotations.
++        {
++            if (block instanceof BedBlock)
++                return stack;
++            Direction face = blockstate.getValue(HorizontalDirectionalBlock.FACING).getClockWise(Direction.Axis.Y);
++
++            if (sourceFace == Direction.DOWN) { // same as above.
++                face = face.getOpposite();
++            }
++            world.setBlock(blockpos, blockstate.setValue(HorizontalDirectionalBlock.FACING, face), 3);
++        } else if (block == Blocks.HOPPER) {
++            Direction face = blockstate.getValue(HopperBlock.FACING);
++            if (face != Direction.DOWN) {
++                face = face.getClockWise(Direction.Axis.Y);
++                world.setBlock(blockpos, blockstate.setValue(HopperBlock.FACING, face), 3);
++            }
++        }
++        // Send block update to the block that just have been rotated.
++        world.neighborChanged(blockpos, block, source.pos());
++
++        return stack;
++    }
++
++    public static boolean flipBlock(BlockState state, Level world, Player player, InteractionHand hand, BlockHitResult hit) {
++        Block block = state.getBlock();
++        BlockPos pos = hit.getBlockPos();
++        Vec3 hitVec = hit.getLocation().subtract(pos.getX(), pos.getY(), pos.getZ());
++        Direction facing = hit.getDirection();
++        BlockState newState = null;
++        if ((block instanceof HorizontalDirectionalBlock || block instanceof BaseRailBlock) && !(block instanceof BedBlock)) {
++            newState = state.rotate(Rotation.CLOCKWISE_90);
++        } else if (block instanceof ObserverBlock || block instanceof EndRodBlock) {
++            newState = state.setValue(DirectionalBlock.FACING, state.getValue(DirectionalBlock.FACING).getOpposite());
++        } else if (block instanceof DispenserBlock) {
++            newState = state.setValue(DispenserBlock.FACING, state.getValue(DispenserBlock.FACING).getOpposite());
++        } else if (block instanceof PistonBaseBlock) {
++            if (!(state.getValue(PistonBaseBlock.EXTENDED)))
++                newState = state.setValue(DirectionalBlock.FACING, state.getValue(DirectionalBlock.FACING).getOpposite());
++        } else if (block instanceof SlabBlock) {
++            if (state.getValue(SlabBlock.TYPE) != SlabType.DOUBLE) {
++                newState = state.setValue(SlabBlock.TYPE, state.getValue(SlabBlock.TYPE) == SlabType.TOP ? SlabType.BOTTOM : SlabType.TOP);
++            }
++        } else if (block instanceof HopperBlock) {
++            if (state.getValue(HopperBlock.FACING) != Direction.DOWN) {
++                newState = state.setValue(HopperBlock.FACING, state.getValue(HopperBlock.FACING).getClockWise());
++            }
++        } else if (block instanceof StairBlock) {
++            if ((facing == Direction.UP && hitVec.y == 1.0f) || (facing == Direction.DOWN && hitVec.y == 0.0f)) {
++                newState = state.setValue(StairBlock.HALF, state.getValue(StairBlock.HALF) == Half.TOP ? Half.BOTTOM : Half.TOP);
++            } else {
++                boolean turnCounterClockwise = switch (facing) {
++                    case NORTH -> (hitVec.x <= 0.5);
++                    case SOUTH -> !(hitVec.x <= 0.5);
++                    case EAST -> (hitVec.z <= 0.5);
++                    case WEST -> !(hitVec.z <= 0.5);
++                    default -> false;
++                };
++                newState = state.rotate(turnCounterClockwise ? Rotation.COUNTERCLOCKWISE_90 : Rotation.CLOCKWISE_90);
++            }
++        } else if (block instanceof RotatedPillarBlock) {
++            newState = state.setValue(RotatedPillarBlock.AXIS, switch (state.getValue(RotatedPillarBlock.AXIS)) {
++                case X -> Direction.Axis.Z;
++                case Y -> Direction.Axis.X;
++                case Z -> Direction.Axis.Y;
++            });
++        }
++        if (newState != null) {
++            world.setBlock(pos, newState, Block.UPDATE_CLIENTS | 1024); // no constant matching 1024 in Block, what does this do?
++            world.setBlocksDirty(pos, state, newState);
++            return true;
++        }
++        return false;
++    }
++
++    private static boolean playerHoldsCactusMainhand(Player playerIn) {
++        return playerIn.getMainHandItem().getItem() == Items.CACTUS;
++    }
++
++    public static boolean flippinEligibility(Entity entity) {
++        return CarpetServer.configModule.flippinCactus && entity instanceof Player p && p.getOffhandItem().getItem() == Items.CACTUS;
++    }
++
++    public static class CactusDispenserBehaviour extends OptionalDispenseItemBehavior implements DispenseItemBehavior {
++        @Override
++        protected ItemStack execute(BlockSource source, ItemStack stack) {
++            if (CarpetServer.configModule.rotatorBlock) {
++                return BlockRotator.dispenserRotate(source, stack);
++            } else {
++                return super.execute(source, stack);
++            }
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/CarpetTaintedList.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/CarpetTaintedList.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d0eb90b1f501d9d702d9d08e09ba7c0e2108fba2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/CarpetTaintedList.java
+@@ -0,0 +1,12 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class CarpetTaintedList<E> extends ArrayList<E>
++{
++    public CarpetTaintedList(final List<E> list)
++    {
++        super(list);
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f73003c108
+index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef61466667b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
 @@ -0,0 +1,543 @@
@@ -975,7 +1294,6 @@ index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f7
 +import java.util.Map;
 +
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
-+import org.leavesmc.lumina.carpet.script.utils.Tracer;
 +import net.minecraft.commands.arguments.EntityAnchorArgument;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
@@ -999,6 +1317,7 @@ index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f7
 +import net.minecraft.world.phys.HitResult;
 +import net.minecraft.world.phys.Vec2;
 +import net.minecraft.world.phys.Vec3;
++import org.leavesmc.lumina.carpet.script.utils.Tracer;
 +
 +public class EntityPlayerActionPack {
 +    private final ServerPlayer player;
@@ -1510,6 +1829,1812 @@ index 0000000000000000000000000000000000000000..acaf311198d07e3dfb16433ef0dd26f7
 +        }
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/FertilizableCoral.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/FertilizableCoral.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..53b275c250d97f5595e27fdc6fc6f24cdd5be029
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/FertilizableCoral.java
+@@ -0,0 +1,77 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Holder;
++import net.minecraft.core.HolderSet;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.tags.BlockTags;
++import net.minecraft.tags.FluidTags;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.block.BaseCoralPlantTypeBlock;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.BonemealableBlock;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.levelgen.feature.CoralClawFeature;
++import net.minecraft.world.level.levelgen.feature.CoralFeature;
++import net.minecraft.world.level.levelgen.feature.CoralMushroomFeature;
++import net.minecraft.world.level.levelgen.feature.CoralTreeFeature;
++import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
++import net.minecraft.world.level.material.MapColor;
++
++/**
++ * Deduplicates logic for the different behaviors of the {@code renewableCoral} rule
++ */
++public interface FertilizableCoral extends BonemealableBlock {
++    /**
++     * @return Whether the rule for this behavior is enabled
++     */
++    boolean isEnabled();
++
++    @Override
++    public default boolean isValidBonemealTarget(LevelReader world, BlockPos pos, BlockState state) {
++        return isEnabled()
++                && state.getValue(BaseCoralPlantTypeBlock.WATERLOGGED)
++                && world.getFluidState(pos.above()).is(FluidTags.WATER);
++    }
++
++    @Override
++    public default boolean isBonemealSuccess(Level world, RandomSource random, BlockPos pos, BlockState state) {
++        return random.nextFloat() < 0.15D;
++    }
++
++    @Override
++    public default void performBonemeal(ServerLevel worldIn, RandomSource random, BlockPos pos, BlockState blockUnder) {
++        int variant = random.nextInt(3);
++        CoralFeature coral = switch (variant) {
++            case 0 -> new CoralClawFeature(NoneFeatureConfiguration.CODEC);
++            case 1 -> new CoralTreeFeature(NoneFeatureConfiguration.CODEC);
++            default -> new CoralMushroomFeature(NoneFeatureConfiguration.CODEC);
++        };
++
++        MapColor color = blockUnder.getMapColor(worldIn, pos);
++        BlockState properBlock = blockUnder;
++        HolderSet.Named<Block> coralBlocks = worldIn.registryAccess().registryOrThrow(Registries.BLOCK).getTag(BlockTags.CORAL_BLOCKS).orElseThrow();
++        for (Holder<Block> block : coralBlocks) {
++            properBlock = block.value().defaultBlockState();
++            if (properBlock.getMapColor(worldIn, pos) == color) {
++                break;
++            }
++        }
++        worldIn.setBlock(pos, Blocks.WATER.defaultBlockState(), Block.UPDATE_NONE);
++
++        if (!coral.growSpecific(worldIn, random, pos, properBlock)) {
++            worldIn.setBlock(pos, blockUnder, 3);
++        } else {
++            if (worldIn.random.nextInt(10) == 0) {
++                BlockPos randomPos = pos.offset(worldIn.random.nextInt(16) - 8, worldIn.random.nextInt(8), worldIn.random.nextInt(16) - 8);
++                if (coralBlocks.contains(worldIn.getBlockState(randomPos).getBlockHolder())) {
++                    worldIn.setBlock(randomPos, Blocks.WET_SPONGE.defaultBlockState(), Block.UPDATE_ALL);
++                }
++            }
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/HopperCounter.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/HopperCounter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..520aec415548003720af59aa2c3bad3e2fc3efc2
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/HopperCounter.java
+@@ -0,0 +1,392 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Object2LongMap;
++import net.minecraft.ChatFormatting;
++import net.minecraft.core.Registry;
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.chat.MutableComponent;
++import net.minecraft.network.chat.Style;
++import net.minecraft.network.chat.TextColor;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.item.BlockItem;
++import net.minecraft.world.item.DyeColor;
++import net.minecraft.world.item.DyeItem;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.Items;
++import net.minecraft.world.item.crafting.Ingredient;
++import net.minecraft.world.item.crafting.Recipe;
++import net.minecraft.world.item.crafting.RecipeType;
++import net.minecraft.world.level.block.AbstractBannerBlock;
++import net.minecraft.world.level.block.BeaconBeamBlock;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.material.MapColor;
++
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.Collections;
++import java.util.EnumMap;
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++import java.util.stream.Collectors;
++
++import static java.util.Map.entry;
++
++/**
++ * The actual object residing in each hopper counter which makes them count the items and saves them. There is one for each
++ * colour in MC.
++ */
++
++public class HopperCounter {
++    /**
++     * A map of all the {@link HopperCounter} counters.
++     */
++    private static final Map<DyeColor, HopperCounter> COUNTERS;
++
++    /**
++     * The default display colour of each item, which makes them look nicer when printing the counter contents to the chat
++     */
++
++    public static final TextColor WHITE = TextColor.fromLegacyFormat(ChatFormatting.WHITE);
++
++    static {
++        EnumMap<DyeColor, HopperCounter> counterMap = new EnumMap<>(DyeColor.class);
++        for (DyeColor color : DyeColor.values()) {
++            counterMap.put(color, new HopperCounter(color));
++        }
++        COUNTERS = Collections.unmodifiableMap(counterMap);
++    }
++
++    /**
++     * The counter's colour, determined by the colour of wool it's pointing into
++     */
++    public final DyeColor color;
++    /**
++     * The string which is passed into {@link Messenger#m} which makes each counter name be displayed in the colour of
++     * that counter.
++     */
++    private final String coloredName;
++    /**
++     * All the items stored within the counter, as a map of {@link Item} mapped to a {@code long} of the amount of items
++     * stored thus far of that item type.
++     */
++    private final Object2LongMap<Item> counter = new Object2LongLinkedOpenHashMap<>();
++    /**
++     * The starting tick of the counter, used to calculate in-game time. Only initialised when the first item enters the
++     * counter
++     */
++    private long startTick;
++    /**
++     * The starting millisecond of the counter, used to calculate IRl time. Only initialised when the first item enters
++     * the counter
++     */
++    private long startMillis;
++    // private PubSubInfoProvider<Long> pubSubProvider;
++
++    private HopperCounter(DyeColor color) {
++        startTick = -1;
++        this.color = color;
++        String hexColor = Integer.toHexString(color.getTextColor());
++        if (hexColor.length() < 6)
++            hexColor = "0".repeat(6 - hexColor.length()) + hexColor;
++        this.coloredName = '#' + hexColor + ' ' + color.getName();
++    }
++
++    /**
++     * Method used to add items to the counter. Note that this is when the {@link HopperCounter#startTick} and
++     * {@link HopperCounter#startMillis} variables are initialised, so you can place the counters and then start the farm
++     * after all the collection is sorted out.
++     */
++    public void add(MinecraftServer server, ItemStack stack) {
++        if (startTick < 0) {
++            startTick = server.overworld().getGameTime();
++            startMillis = System.currentTimeMillis();
++        }
++        Item item = stack.getItem();
++        counter.put(item, counter.getLong(item) + stack.getCount());
++        // pubSubProvider.publish();
++    }
++
++    /**
++     * Resets the counter, clearing its items but keeping the clock running.
++     */
++    public void reset(MinecraftServer server) {
++        counter.clear();
++        startTick = server.overworld().getGameTime();
++        startMillis = System.currentTimeMillis();
++        // pubSubProvider.publish();
++    }
++
++    /**
++     * Resets all counters, clearing their items.
++     *
++     * @param fresh Whether or not to start the clocks going immediately or later.
++     */
++    public static void resetAll(MinecraftServer server, boolean fresh) {
++        for (HopperCounter counter : COUNTERS.values()) {
++            counter.reset(server);
++            if (fresh) counter.startTick = -1;
++        }
++    }
++
++    /**
++     * Prints all the counters to chat, nicely formatted, and you can choose whether to diplay in in game time or IRL time
++     */
++    public static List<Component> formatAll(MinecraftServer server, boolean realtime) {
++        List<Component> text = new ArrayList<>();
++
++        for (HopperCounter counter : COUNTERS.values()) {
++            List<Component> temp = counter.format(server, realtime, false);
++            if (temp.size() > 1) {
++                if (!text.isEmpty()) text.add(Messenger.s(""));
++                text.addAll(temp);
++            }
++        }
++        if (text.isEmpty()) {
++            text.add(Messenger.s("No items have been counted yet."));
++        }
++        return text;
++    }
++
++    /**
++     * Prints a single counter's contents and timings to chat, with the option to keep it short (so no item breakdown,
++     * only rates). Again, realtime displays IRL time as opposed to in game time.
++     */
++    public List<Component> format(MinecraftServer server, boolean realTime, boolean brief) {
++        long ticks = Math.max(realTime ? (System.currentTimeMillis() - startMillis) / 50 : server.overworld().getGameTime() - startTick, 1);
++        if (startTick < 0 || ticks == 0) {
++            if (brief) {
++                return Collections.singletonList(Messenger.c("b" + coloredName, "w : ", "gi -, -/h, - min "));
++            }
++            return Collections.singletonList(Messenger.c(coloredName, "w  hasn't started counting yet"));
++        }
++        long total = getTotalItems();
++        if (total == 0) {
++            if (brief) {
++                return Collections.singletonList(Messenger.c("b" + coloredName, "w : ", "wb 0", "w , ", "wb 0", "w /h, ", String.format("wb %.1f ", ticks / (20.0 * 60.0)), "w min"));
++            }
++            return Collections.singletonList(Messenger.c("w No items for ", coloredName, String.format("w  yet (%.2f min.%s)",
++                            ticks / (20.0 * 60.0), (realTime ? " - real time" : "")),
++                    "nb  [X]", "^g reset", "!/counter " + color.getName() + " reset"));
++        }
++        if (brief) {
++            return Collections.singletonList(Messenger.c("b" + coloredName, "w : ",
++                    "wb " + total, "w , ",
++                    "wb " + (total * (20 * 60 * 60) / ticks), "w /h, ",
++                    String.format("wb %.1f ", ticks / (20.0 * 60.0)), "w min"
++            ));
++        }
++        List<Component> items = new ArrayList<>();
++        items.add(Messenger.c("w Items for ", coloredName,
++                "w  (", String.format("wb %.2f", ticks * 1.0 / (20 * 60)), "w  min" + (realTime ? " - real time" : "") + "), ",
++                "w total: ", "wb " + total, "w , (", String.format("wb %.1f", total * 1.0 * (20 * 60 * 60) / ticks), "w /h):",
++                "nb [X]", "^g reset", "!/counter " + color + " reset"
++        ));
++        items.addAll(counter.object2LongEntrySet().stream().sorted((e, f) -> Long.compare(f.getLongValue(), e.getLongValue())).map(e ->
++        {
++            Item item = e.getKey();
++            MutableComponent itemName = Component.translatable(item.getDescriptionId());
++            Style itemStyle = itemName.getStyle();
++            TextColor color = guessColor(item, server.registryAccess());
++            itemName.setStyle((color != null) ? itemStyle.withColor(color) : itemStyle.withItalic(true));
++            long count = e.getLongValue();
++            return Messenger.c("g - ", itemName,
++                    "g : ", "wb " + count, "g , ",
++                    String.format("wb %.1f", count * (20.0 * 60.0 * 60.0) / ticks), "w /h"
++            );
++        }).collect(Collectors.toList()));
++        return items;
++    }
++
++    /**
++     * Converts a colour to have a low brightness and uniform colour, so when it prints the items in different colours
++     * it's not too flashy and bright, but enough that it's not dull to look at.
++     */
++    public static int appropriateColor(int color) {
++        if (color == 0) return MapColor.SNOW.col;
++        int r = (color >> 16 & 255);
++        int g = (color >> 8 & 255);
++        int b = (color & 255);
++        if (r < 70) r = 70;
++        if (g < 70) g = 70;
++        if (b < 70) b = 70;
++        return (r << 16) + (g << 8) + b;
++    }
++
++    /**
++     * Maps items that don't get a good block to reference for colour, or those that colour is wrong to a number of blocks, so we can get their colours easily with the
++     * {@link Block#defaultMapColor()} method as these items have those same colours.
++     */
++    private static final Map<Item, Block> DEFAULTS = Map.ofEntries(
++            entry(Items.DANDELION, Blocks.YELLOW_WOOL),
++            entry(Items.POPPY, Blocks.RED_WOOL),
++            entry(Items.BLUE_ORCHID, Blocks.LIGHT_BLUE_WOOL),
++            entry(Items.ALLIUM, Blocks.MAGENTA_WOOL),
++            entry(Items.AZURE_BLUET, Blocks.SNOW_BLOCK),
++            entry(Items.RED_TULIP, Blocks.RED_WOOL),
++            entry(Items.ORANGE_TULIP, Blocks.ORANGE_WOOL),
++            entry(Items.WHITE_TULIP, Blocks.SNOW_BLOCK),
++            entry(Items.PINK_TULIP, Blocks.PINK_WOOL),
++            entry(Items.OXEYE_DAISY, Blocks.SNOW_BLOCK),
++            entry(Items.CORNFLOWER, Blocks.BLUE_WOOL),
++            entry(Items.WITHER_ROSE, Blocks.BLACK_WOOL),
++            entry(Items.LILY_OF_THE_VALLEY, Blocks.WHITE_WOOL),
++            entry(Items.BROWN_MUSHROOM, Blocks.BROWN_MUSHROOM_BLOCK),
++            entry(Items.RED_MUSHROOM, Blocks.RED_MUSHROOM_BLOCK),
++            entry(Items.STICK, Blocks.OAK_PLANKS),
++            entry(Items.GOLD_INGOT, Blocks.GOLD_BLOCK),
++            entry(Items.IRON_INGOT, Blocks.IRON_BLOCK),
++            entry(Items.DIAMOND, Blocks.DIAMOND_BLOCK),
++            entry(Items.NETHERITE_INGOT, Blocks.NETHERITE_BLOCK),
++            entry(Items.SUNFLOWER, Blocks.YELLOW_WOOL),
++            entry(Items.LILAC, Blocks.MAGENTA_WOOL),
++            entry(Items.ROSE_BUSH, Blocks.RED_WOOL),
++            entry(Items.PEONY, Blocks.PINK_WOOL),
++            entry(Items.CARROT, Blocks.ORANGE_WOOL),
++            entry(Items.APPLE, Blocks.RED_WOOL),
++            entry(Items.WHEAT, Blocks.HAY_BLOCK),
++            entry(Items.PORKCHOP, Blocks.PINK_WOOL),
++            entry(Items.RABBIT, Blocks.PINK_WOOL),
++            entry(Items.CHICKEN, Blocks.WHITE_TERRACOTTA),
++            entry(Items.BEEF, Blocks.NETHERRACK),
++            entry(Items.ENCHANTED_GOLDEN_APPLE, Blocks.GOLD_BLOCK),
++            entry(Items.COD, Blocks.WHITE_TERRACOTTA),
++            entry(Items.SALMON, Blocks.ACACIA_PLANKS),
++            entry(Items.ROTTEN_FLESH, Blocks.BROWN_WOOL),
++            entry(Items.PUFFERFISH, Blocks.YELLOW_TERRACOTTA),
++            entry(Items.TROPICAL_FISH, Blocks.ORANGE_WOOL),
++            entry(Items.POTATO, Blocks.WHITE_TERRACOTTA),
++            entry(Items.MUTTON, Blocks.RED_WOOL),
++            entry(Items.BEETROOT, Blocks.NETHERRACK),
++            entry(Items.MELON_SLICE, Blocks.MELON),
++            entry(Items.POISONOUS_POTATO, Blocks.SLIME_BLOCK),
++            entry(Items.SPIDER_EYE, Blocks.NETHERRACK),
++            entry(Items.GUNPOWDER, Blocks.GRAY_WOOL),
++            entry(Items.TURTLE_SCUTE, Blocks.LIME_WOOL),
++            entry(Items.ARMADILLO_SCUTE, Blocks.ANCIENT_DEBRIS),
++            entry(Items.FEATHER, Blocks.WHITE_WOOL),
++            entry(Items.FLINT, Blocks.BLACK_WOOL),
++            entry(Items.LEATHER, Blocks.SPRUCE_PLANKS),
++            entry(Items.GLOWSTONE_DUST, Blocks.GLOWSTONE),
++            entry(Items.PAPER, Blocks.WHITE_WOOL),
++            entry(Items.BRICK, Blocks.BRICKS),
++            entry(Items.INK_SAC, Blocks.BLACK_WOOL),
++            entry(Items.SNOWBALL, Blocks.SNOW_BLOCK),
++            entry(Items.WATER_BUCKET, Blocks.WATER),
++            entry(Items.LAVA_BUCKET, Blocks.LAVA),
++            entry(Items.MILK_BUCKET, Blocks.WHITE_WOOL),
++            entry(Items.CLAY_BALL, Blocks.CLAY),
++            entry(Items.COCOA_BEANS, Blocks.COCOA),
++            entry(Items.BONE, Blocks.BONE_BLOCK),
++            entry(Items.COD_BUCKET, Blocks.BROWN_TERRACOTTA),
++            entry(Items.PUFFERFISH_BUCKET, Blocks.YELLOW_TERRACOTTA),
++            entry(Items.SALMON_BUCKET, Blocks.PINK_TERRACOTTA),
++            entry(Items.TROPICAL_FISH_BUCKET, Blocks.ORANGE_TERRACOTTA),
++            entry(Items.SUGAR, Blocks.WHITE_WOOL),
++            entry(Items.BLAZE_POWDER, Blocks.GOLD_BLOCK),
++            entry(Items.ENDER_PEARL, Blocks.WARPED_PLANKS),
++            entry(Items.NETHER_STAR, Blocks.DIAMOND_BLOCK),
++            entry(Items.PRISMARINE_CRYSTALS, Blocks.SEA_LANTERN),
++            entry(Items.PRISMARINE_SHARD, Blocks.PRISMARINE),
++            entry(Items.RABBIT_HIDE, Blocks.OAK_PLANKS),
++            entry(Items.CHORUS_FRUIT, Blocks.PURPUR_BLOCK),
++            entry(Items.SHULKER_SHELL, Blocks.SHULKER_BOX),
++            entry(Items.NAUTILUS_SHELL, Blocks.BONE_BLOCK),
++            entry(Items.HEART_OF_THE_SEA, Blocks.CONDUIT),
++            entry(Items.HONEYCOMB, Blocks.HONEYCOMB_BLOCK),
++            entry(Items.NAME_TAG, Blocks.BONE_BLOCK),
++            entry(Items.TOTEM_OF_UNDYING, Blocks.YELLOW_TERRACOTTA),
++            entry(Items.TRIDENT, Blocks.PRISMARINE),
++            entry(Items.GHAST_TEAR, Blocks.WHITE_WOOL),
++            entry(Items.PHANTOM_MEMBRANE, Blocks.BONE_BLOCK),
++            entry(Items.EGG, Blocks.BONE_BLOCK),
++            //entry(Items.,Blocks.),
++            entry(Items.COPPER_INGOT, Blocks.COPPER_BLOCK),
++            entry(Items.AMETHYST_SHARD, Blocks.AMETHYST_BLOCK));
++
++    /**
++     * Gets the colour to print an item in when printing its count in a hopper counter.
++     */
++    public static TextColor fromItem(Item item, RegistryAccess registryAccess) {
++        if (DEFAULTS.containsKey(item))
++            return TextColor.fromRgb(appropriateColor(DEFAULTS.get(item).defaultMapColor().col));
++        if (item instanceof DyeItem dye)
++            return TextColor.fromRgb(appropriateColor(dye.getDyeColor().getMapColor().col));
++        Block block = null;
++        final Registry<Item> itemRegistry = registryAccess.registryOrThrow(Registries.ITEM);
++        final Registry<Block> blockRegistry = registryAccess.registryOrThrow(Registries.BLOCK);
++        ResourceLocation id = itemRegistry.getKey(item);
++        if (item instanceof BlockItem blockItem) {
++            block = blockItem.getBlock();
++        } else if (blockRegistry.getOptional(id).isPresent()) {
++            block = blockRegistry.get(id);
++        }
++        if (block != null) {
++            if (block instanceof AbstractBannerBlock)
++                return TextColor.fromRgb(appropriateColor(((AbstractBannerBlock) block).getColor().getMapColor().col));
++            if (block instanceof BeaconBeamBlock)
++                return TextColor.fromRgb(appropriateColor(((BeaconBeamBlock) block).getColor().getMapColor().col));
++            return TextColor.fromRgb(appropriateColor(block.defaultMapColor().col));
++        }
++        return null;
++    }
++
++    /**
++     * Guesses the item's colour from the item itself. It first calls {@link HopperCounter#fromItem} to see if it has a
++     * valid colour there, if not just makes a guess, and if that fails just returns null
++     */
++    public static TextColor guessColor(Item item, RegistryAccess registryAccess) {
++        TextColor direct = fromItem(item, registryAccess);
++        if (direct != null) return direct;
++
++        ResourceLocation id = registryAccess.registryOrThrow(Registries.ITEM).getKey(item);
++        for (RecipeType<?> type : registryAccess.registryOrThrow(Registries.RECIPE_TYPE)) {
++            for (Recipe<?> r : MinecraftServer.getServer().getRecipeManager().getAllMatching(type, id, registryAccess)) {
++                for (Ingredient ingredient : r.getIngredients()) {
++                    for (Collection<ItemStack> stacks : ingredient.getRecipeStacks()) {
++                        for (ItemStack iStak : stacks) {
++                            TextColor cand = fromItem(iStak.getItem(), registryAccess);
++                            if (cand != null)
++                                return cand;
++                        }
++                    }
++                }
++            }
++        }
++        return null;
++    }
++
++    /**
++     * Returns the hopper counter for the given color
++     */
++    public static HopperCounter getCounter(DyeColor color) {
++        return COUNTERS.get(color);
++    }
++
++    /**
++     * Returns the hopper counter from the colour name, if not null
++     */
++    public static HopperCounter getCounter(String color) {
++        try {
++            DyeColor colorEnum = DyeColor.valueOf(color.toUpperCase(Locale.ROOT));
++            return COUNTERS.get(colorEnum);
++        } catch (IllegalArgumentException e) {
++            return null;
++        }
++    }
++
++    /**
++     * The total number of items in the counter
++     */
++    public long getTotalItems() {
++        return counter.isEmpty() ? 0 : counter.values().longStream().sum();
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/ParticleDisplay.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/ParticleDisplay.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ec494f4ee53695c06486d8318a6439729883e7f8
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/ParticleDisplay.java
+@@ -0,0 +1,40 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.script.utils.ParticleParser;
++import net.minecraft.core.particles.ParticleOptions;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.phys.Vec3;
++
++public class ParticleDisplay
++{
++    public static void drawParticleLine(@NotNull ServerPlayer player, Vec3 from, Vec3 to, String main, String accent, int count, double spread)
++    {
++        ParticleOptions accentParticle = ParticleParser.getEffect(accent, player.server.registryAccess());
++        ParticleOptions mainParticle = ParticleParser.getEffect(main, player.server.registryAccess());
++
++        if (accentParticle != null) player.serverLevel().sendParticles(
++                player,
++                accentParticle,
++                true,
++                to.x, to.y, to.z, count,
++                spread, spread, spread, 0.0);
++
++        double lineLengthSq = from.distanceToSqr(to);
++        if (lineLengthSq == 0) return;
++
++        Vec3 incvec = to.subtract(from).normalize();//    multiply(50/sqrt(lineLengthSq));
++        for (Vec3 delta = new Vec3(0.0,0.0,0.0);
++             delta.lengthSqr() < lineLengthSq;
++             delta = delta.add(incvec.scale(player.level().random.nextFloat())))
++        {
++            player.serverLevel().sendParticles(
++                    player,
++                    mainParticle,
++                    true,
++                    delta.x+from.x, delta.y+from.y, delta.z+from.z, 1,
++                    0.0, 0.0, 0.0, 0.0);
++        }
++    }
++
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/QuasiConnectivity.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/QuasiConnectivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f04ec92a7b5f4ca9bcc4f01112f49be9d855c739
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/QuasiConnectivity.java
+@@ -0,0 +1,23 @@
++package org.leavesmc.lumina.carpet.helpers;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.SignalGetter;
++import org.leavesmc.lumina.carpet.CarpetServer;
++
++public class QuasiConnectivity {
++
++    public static boolean hasQuasiSignal(SignalGetter level, BlockPos pos) {
++        for (int i = 1; i <= CarpetServer.configModule.quasiConnectivity; i++) {
++            BlockPos above = pos.above(i);
++
++            if (level.isOutsideBuildHeight(above)) {
++                break;
++            }
++            if (level.hasNeighborSignal(above)) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bcf53cc224422de8d68aa53f607e5f2a7de9188
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
+@@ -0,0 +1,143 @@
++package org.leavesmc.lumina.carpet.logging;
++
++import io.papermc.paper.threadedregions.RegionizedServer;
++import org.bukkit.Bukkit;
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.helpers.HopperCounter;
++import org.leavesmc.lumina.carpet.logging.logHelpers.PacketCounter;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++import org.leavesmc.lumina.carpet.utils.SpawnReporter;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.protocol.game.ClientboundTabListPacket;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.ServerTickRateManager;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.util.TimeUtil;
++import net.minecraft.world.level.Level;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++import java.util.Set;
++import java.util.function.Consumer;
++
++public class HUDController {
++    private static final List<Consumer<MinecraftServer>> HUDListeners = new ArrayList<>();
++
++    /**
++     * Adds listener to be called when HUD is updated for logging information
++     *
++     * @param listener - a method to be called when new HUD inforation are collected
++     */
++    public static void register(Consumer<MinecraftServer> listener) {
++        HUDListeners.add(listener);
++    }
++
++    public static final Map<ServerPlayer, List<Component>> player_huds = new HashMap<>();
++    //keyed with player names so unlogged players don't hold the reference
++    public static final Map<String, Component> scarpet_headers = new HashMap<>();
++
++    public static final Map<String, Component> scarpet_footers = new HashMap<>();
++
++    public static void resetScarpetHUDs() {
++        scarpet_headers.clear();
++        scarpet_footers.clear();
++    }
++
++    public static void addMessage(ServerPlayer player, Component hudMessage) {
++        if (player == null) return;
++        if (!player_huds.containsKey(player)) {
++            player_huds.put(player, new ArrayList<>());
++        } else {
++            player_huds.get(player).add(Component.literal("\n"));
++        }
++        player_huds.get(player).add(hudMessage);
++    }
++
++    public static void clearPlayer(ServerPlayer player) {
++        ClientboundTabListPacket packet = new ClientboundTabListPacket(Component.literal(""), Component.literal(""));
++        player.connection.send(packet);
++    }
++
++
++    public static void update_hud(MinecraftServer server, List<ServerPlayer> force) {
++
++        if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 != 0 && force == null)
++            return;
++
++        player_huds.clear();
++
++        server.getPlayerList().getPlayers().forEach(p -> {
++            Component scarpetFOoter = scarpet_footers.get(p.getScoreboardName());
++            if (scarpetFOoter != null) HUDController.addMessage(p, scarpetFOoter);
++        });
++
++        if (LoggerRegistry.__tps)
++            LoggerRegistry.getLogger("tps").log(() -> send_tps_display(server));
++
++        if (LoggerRegistry.__mobcaps)
++            LoggerRegistry.getLogger("mobcaps").log((option, player) -> {
++                ResourceKey<Level> dim = switch (option) {
++                    case "overworld" -> Level.OVERWORLD;
++                    case "nether" -> Level.NETHER;
++                    case "end" -> Level.END;
++                    default -> player.level().dimension();
++                };
++                return new Component[]{SpawnReporter.printMobcapsForDimension(server.getLevel(dim), false).get(0)};
++            });
++
++        if (LoggerRegistry.__counter)
++            LoggerRegistry.getLogger("counter").log((option) -> send_counter_info(server, option));
++
++        if (LoggerRegistry.__packets)
++            LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
++
++        // extensions have time to pitch in.
++        HUDListeners.forEach(l -> l.accept(server));
++
++        Set<ServerPlayer> targets = new HashSet<>(player_huds.keySet());
++        if (force != null) targets.addAll(force);
++        for (ServerPlayer player : targets) {
++            ClientboundTabListPacket packet = new ClientboundTabListPacket(
++                    scarpet_headers.getOrDefault(player.getScoreboardName(), Component.literal("")),
++                    Messenger.c(player_huds.getOrDefault(player, List.of()).toArray(new Object[0]))
++            );
++            player.connection.send(packet);
++        }
++    }
++
++    private static Component[] send_tps_display(MinecraftServer server) {
++        double MSPT = ((double) server.getAverageTickTimeNanos()) / TimeUtil.NANOSECONDS_PER_MILLISECOND;
++        ServerTickRateManager trm = server.tickRateManager();
++
++        double TPS = 1000.0D / Math.max(trm.isSprinting() ? 0.0 : trm.millisecondsPerTick(), MSPT);
++        if (trm.isFrozen()) {
++            TPS = 0;
++        }
++        String color = Messenger.heatmap_color(MSPT, trm.millisecondsPerTick());
++        return new Component[]{Messenger.c(
++                "g TPS: ", String.format(Locale.US, "%s %.1f", color, TPS),
++                "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, MSPT))};
++    }
++
++    private static Component[] send_counter_info(MinecraftServer server, String colors) {
++        List<Component> res = new ArrayList<>();
++        for (String color : colors.split(",")) {
++            HopperCounter counter = HopperCounter.getCounter(color);
++            if (counter != null) res.addAll(counter.format(server, false, true));
++        }
++        return res.toArray(new Component[0]);
++    }
++
++    private static Component[] packetCounter() {
++        Component[] ret = new Component[]{
++                Messenger.c("w I/" + PacketCounter.totalIn + " O/" + PacketCounter.totalOut),
++        };
++        PacketCounter.reset();
++        return ret;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDLogger.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDLogger.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3de8593057c4f7c3f017c7fe3d3d85fcf646684
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDLogger.java
+@@ -0,0 +1,44 @@
++package org.leavesmc.lumina.carpet.logging;
++
++import java.lang.reflect.Field;
++
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.level.ServerPlayer;
++
++public class HUDLogger extends Logger {
++    static Logger stardardHUDLogger(String logName, String def, String[] options) {
++        return stardardHUDLogger(logName, def, options, false);
++    }
++
++    static Logger stardardHUDLogger(String logName, String def, String[] options, boolean strictOptions) {
++        // should convert to factory method if more than 2 classes are here
++        try {
++            return new HUDLogger(LoggerRegistry.class.getField("__" + logName), logName, def, options, strictOptions);
++        } catch (NoSuchFieldException e) {
++            throw new RuntimeException("Failed to create logger " + logName);
++        }
++    }
++
++    public HUDLogger(Field field, String logName, String def, String[] options, boolean strictOptions) {
++        super(field, logName, def, options, strictOptions);
++    }
++
++    @Deprecated
++    public HUDLogger(Field field, String logName, String def, String[] options) {
++        super(field, logName, def, options, false);
++    }
++
++    @Override
++    public void removePlayer(String playerName) {
++        ServerPlayer player = playerFromName(playerName);
++        if (player != null) HUDController.clearPlayer(player);
++        super.removePlayer(playerName);
++    }
++
++    @Override
++    public void sendPlayerMessage(ServerPlayer player, Component... messages) {
++        for (Component m : messages) HUDController.addMessage(player, m);
++    }
++
++
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java b/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a00efe6c150db112074b41842953f0c0345af49b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java
+@@ -0,0 +1,227 @@
++package org.leavesmc.lumina.carpet.logging;
++
++import java.lang.reflect.Field;
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
++import java.util.function.Supplier;
++
++import net.minecraft.Util;
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.entity.player.Player;
++import org.leavesmc.lumina.carpet.CarpetServer;
++
++public class Logger {
++    // The set of subscribed and online players.
++    private Map<String, String> subscribedOnlinePlayers;
++
++    // The set of subscribed and offline players.
++    private Map<String, String> subscribedOfflinePlayers;
++
++    // The logName of this log. Gets prepended to logged messages.
++    private String logName;
++
++    private String default_option;
++
++    private String[] options;
++
++    private Field acceleratorField;
++
++    private boolean strictOptions;
++
++    static Logger stardardLogger(String logName, String def, String[] options) {
++        return stardardLogger(logName, def, options, false);
++    }
++
++    static Logger stardardLogger(String logName, String def, String[] options, boolean strictOptions) {
++        try {
++            return new Logger(LoggerRegistry.class.getField("__" + logName), logName, def, options, strictOptions);
++        } catch (NoSuchFieldException e) {
++            throw new RuntimeException("Failed to create logger " + logName);
++        }
++    }
++
++    @Deprecated
++    public Logger(Field acceleratorField, String logName, String def, String[] options) {
++        this(acceleratorField, logName, def, options, false);
++    }
++
++    public Logger(Field acceleratorField, String logName, String def, String[] options, boolean strictOptions) {
++        subscribedOnlinePlayers = new HashMap<>();
++        subscribedOfflinePlayers = new HashMap<>();
++        this.acceleratorField = acceleratorField;
++        this.logName = logName;
++        this.default_option = def;
++        this.options = options == null ? new String[0] : options;
++        this.strictOptions = strictOptions;
++        if (acceleratorField == null)
++            CarpetServer.LOGGER.error("[CM] Logger {} is missing a specified accelerator", getLogName());
++    }
++
++    public String getDefault() {
++        return default_option;
++    }
++
++    public String[] getOptions() {
++        return options;
++    }
++
++    public String getLogName() {
++        return logName;
++    }
++
++    /**
++     * Subscribes the player with the given logName to the logger.
++     */
++    public void addPlayer(String playerName, String option) {
++        if (playerFromName(playerName) != null) {
++            subscribedOnlinePlayers.put(playerName, option);
++        } else {
++            subscribedOfflinePlayers.put(playerName, option);
++        }
++        LoggerRegistry.setAccess(this);
++    }
++
++    /**
++     * Unsubscribes the player with the given logName from the logger.
++     */
++    public void removePlayer(String playerName) {
++        subscribedOnlinePlayers.remove(playerName);
++        subscribedOfflinePlayers.remove(playerName);
++        LoggerRegistry.setAccess(this);
++    }
++
++    /**
++     * Returns true if there are any online subscribers for this log.
++     */
++    public boolean hasOnlineSubscribers() {
++        return subscribedOnlinePlayers.size() > 0;
++    }
++
++    public void serverStopped() {
++        subscribedOnlinePlayers.clear();
++        subscribedOfflinePlayers.clear();
++    }
++
++    public Field getField() {
++        return acceleratorField;
++    }
++
++    /**
++     * serves messages to players fetching them from the promise
++     * will repeat invocation for players that share the same option
++     */
++    @FunctionalInterface
++    public interface lMessage {
++        Component[] get(String playerOption, Player player);
++    }
++
++    public void log(lMessage messagePromise) {
++        for (Map.Entry<String, String> en : subscribedOnlinePlayers.entrySet()) {
++            ServerPlayer player = playerFromName(en.getKey());
++            if (player != null) {
++                Component[] messages = messagePromise.get(en.getValue(), player);
++                if (messages != null)
++                    sendPlayerMessage(player, messages);
++            }
++        }
++    }
++
++    /**
++     * guarantees that each message for each option will be evaluated once from the promise
++     * and served the same way to all other players subscribed to the same option
++     */
++    @FunctionalInterface
++    public interface lMessageIgnorePlayer {
++        Component[] get(String playerOption);
++    }
++
++    public void log(lMessageIgnorePlayer messagePromise) {
++        Map<String, Component[]> cannedMessages = new HashMap<>();
++        for (Map.Entry<String, String> en : subscribedOnlinePlayers.entrySet()) {
++            ServerPlayer player = playerFromName(en.getKey());
++            if (player != null) {
++                String option = en.getValue();
++                if (!cannedMessages.containsKey(option)) {
++                    cannedMessages.put(option, messagePromise.get(option));
++                }
++                Component[] messages = cannedMessages.get(option);
++                if (messages != null)
++                    sendPlayerMessage(player, messages);
++            }
++        }
++    }
++
++    /**
++     * guarantees that message is evaluated once, so independent from the player and chosen option
++     */
++    public void log(Supplier<Component[]> messagePromise) {
++        Component[] cannedMessages = null;
++        for (Map.Entry<String, String> en : subscribedOnlinePlayers.entrySet()) {
++            ServerPlayer player = playerFromName(en.getKey());
++            if (player != null) {
++                if (cannedMessages == null) cannedMessages = messagePromise.get();
++                sendPlayerMessage(player, cannedMessages);
++            }
++        }
++    }
++
++    public void sendPlayerMessage(ServerPlayer player, Component... messages) {
++        Arrays.stream(messages).forEach(player::sendSystemMessage);
++    }
++
++    /**
++     * Gets the {@code PlayerEntity} instance for a player given their UUID. Returns null if they are offline.
++     */
++    protected ServerPlayer playerFromName(String name) {
++        return MinecraftServer.getServer().getPlayerList().getPlayerByName(name);
++    }
++
++    // ----- Event Handlers ----- //
++
++    public void onPlayerConnect(Player player, boolean firstTime) {
++        // If the player was subscribed to the log and offline, move them to the set of online subscribers.
++        String playerName = player.getName().getString();
++        if (subscribedOfflinePlayers.containsKey(playerName)) {
++            subscribedOnlinePlayers.put(playerName, subscribedOfflinePlayers.get(playerName));
++            subscribedOfflinePlayers.remove(playerName);
++        } else if (firstTime) {
++            Set<String> loggingOptions = new HashSet<>(Arrays.asList(CarpetServer.configModule.defaultLoggers.split(",")));
++            String logName = getLogName();
++            for (String str : loggingOptions) {
++                String[] vars = str.split(" ", 2);
++                if (vars[0].equals(logName)) {
++                    LoggerRegistry.subscribePlayer(playerName, getLogName(), vars.length == 1 ? getDefault() : vars[1]);
++                    break;
++                }
++            }
++        }
++        LoggerRegistry.setAccess(this);
++    }
++
++    public void onPlayerDisconnect(Player player) {
++        // If the player was subscribed to the log, move them to the set of offline subscribers.
++        String playerName = player.getName().getString();
++        if (subscribedOnlinePlayers.containsKey(playerName)) {
++            subscribedOfflinePlayers.put(playerName, subscribedOnlinePlayers.get(playerName));
++            subscribedOnlinePlayers.remove(playerName);
++        }
++        LoggerRegistry.setAccess(this);
++    }
++
++    public String getAcceptedOption(String arg) {
++        if (Arrays.asList(this.getOptions()).contains(arg)) return arg;
++        return null;
++    }
++
++    public boolean isOptionValid(String option) {
++        if (strictOptions) {
++            return Arrays.asList(this.getOptions()).contains(option);
++        }
++        return option != null;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f03b4d372f5f7f01b9e132e117cb4c9a442a11e9
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
+@@ -0,0 +1,156 @@
++package org.leavesmc.lumina.carpet.logging;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++
++import java.lang.reflect.Field;
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
++
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.DyeColor;
++
++public class LoggerRegistry {
++    // Map from logger names to loggers.
++    private static final Map<String, Logger> loggerRegistry = new HashMap<>();
++    // Map from player names to the set of names of the logs that player is subscribed to.
++    private static final Map<String, Map<String, String>> playerSubscriptions = new HashMap<>();
++    //statics to quickly asses if its worth even to call each one
++    public static boolean __tnt;
++    public static boolean __projectiles;
++    public static boolean __fallingBlocks;
++    public static boolean __tps;
++    public static boolean __counter;
++    public static boolean __mobcaps;
++    public static boolean __packets;
++    public static boolean __pathfinding;
++    public static boolean __explosions;
++
++    public static void initLoggers() {
++        stopLoggers();
++        registerLoggers();
++        CarpetServer.registerExtensionLoggers();
++    }
++
++    public static void registerLoggers() {
++        registerLogger("tnt", Logger.stardardLogger("tnt", "brief", new String[]{"brief", "full"}, true));
++        registerLogger("projectiles", Logger.stardardLogger("projectiles", "brief", new String[]{"brief", "full"}));
++        registerLogger("fallingBlocks", Logger.stardardLogger("fallingBlocks", "brief", new String[]{"brief", "full"}));
++        registerLogger("pathfinding", Logger.stardardLogger("pathfinding", "20", new String[]{"2", "5", "10"}));
++        registerLogger("tps", HUDLogger.stardardHUDLogger("tps", null, null));
++        registerLogger("packets", HUDLogger.stardardHUDLogger("packets", null, null));
++        registerLogger("counter", HUDLogger.stardardHUDLogger("counter", "white", Arrays.stream(DyeColor.values()).map(Object::toString).toArray(String[]::new)));
++        registerLogger("mobcaps", HUDLogger.stardardHUDLogger("mobcaps", "dynamic", new String[]{"dynamic", "overworld", "nether", "end"}));
++        registerLogger("explosions", Logger.stardardLogger("explosions", "brief", new String[]{"brief", "full"}, true));
++
++    }
++
++    /**
++     * Gets the logger with the given name. Returns null if no such logger exists.
++     */
++    public static Logger getLogger(String name) {
++        return loggerRegistry.get(name);
++    }
++
++    /**
++     * Gets the set of logger names.
++     */
++    public static Set<String> getLoggerNames() {
++        return loggerRegistry.keySet();
++    }
++
++    /**
++     * Subscribes the player with name playerName to the log with name logName.
++     */
++    public static void subscribePlayer(String playerName, String logName, String option) {
++        if (!playerSubscriptions.containsKey(playerName)) playerSubscriptions.put(playerName, new HashMap<>());
++        Logger log = loggerRegistry.get(logName);
++        if (option == null) option = log.getDefault();
++        playerSubscriptions.get(playerName).put(logName, option);
++        log.addPlayer(playerName, option);
++    }
++
++    /**
++     * Unsubscribes the player with name playerName from the log with name logName.
++     */
++    public static void unsubscribePlayer(String playerName, String logName) {
++        if (playerSubscriptions.containsKey(playerName)) {
++            Map<String, String> subscriptions = playerSubscriptions.get(playerName);
++            subscriptions.remove(logName);
++            loggerRegistry.get(logName).removePlayer(playerName);
++            if (subscriptions.size() == 0) playerSubscriptions.remove(playerName);
++        }
++    }
++
++    /**
++     * If the player is not subscribed to the log, then subscribe them. Otherwise, unsubscribe them.
++     */
++    public static boolean togglePlayerSubscription(String playerName, String logName) {
++        if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey(logName)) {
++            unsubscribePlayer(playerName, logName);
++            return false;
++        } else {
++            subscribePlayer(playerName, logName, null);
++            return true;
++        }
++    }
++
++    /**
++     * Get the set of logs the current player is subscribed to.
++     */
++    public static Map<String, String> getPlayerSubscriptions(String playerName) {
++        if (playerSubscriptions.containsKey(playerName)) {
++            return playerSubscriptions.get(playerName);
++        }
++        return null;
++    }
++
++    protected static void setAccess(Logger logger) {
++        boolean value = logger.hasOnlineSubscribers();
++        try {
++            Field f = logger.getField();
++            f.setBoolean(null, value);
++        } catch (IllegalAccessException e) {
++            CarpetServer.LOGGER.error("Cannot change logger quick access field");
++        }
++    }
++
++    /**
++     * Called when the server starts. Creates the logs used by Carpet mod.
++     */
++    public static void registerLogger(String name, Logger logger) {
++        loggerRegistry.put(name, logger);
++        setAccess(logger);
++    }
++
++    private final static Set<String> seenPlayers = new HashSet<>();
++
++    public static void stopLoggers() {
++        for (Logger log : loggerRegistry.values()) {
++            log.serverStopped();
++        }
++        seenPlayers.clear();
++        loggerRegistry.clear();
++        playerSubscriptions.clear();
++    }
++
++    public static void playerConnected(Player player) {
++        boolean firstTime = false;
++        if (!seenPlayers.contains(player.getName().getString())) {
++            seenPlayers.add(player.getName().getString());
++            firstTime = true;
++            //subscribe them to the defualt loggers
++        }
++        for (Logger log : loggerRegistry.values()) {
++            log.onPlayerConnect(player, firstTime);
++        }
++    }
++
++    public static void playerDisconnected(Player player) {
++        for (Logger log : loggerRegistry.values()) {
++            log.onPlayerDisconnect(player);
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/ExplosionLogHelper.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/ExplosionLogHelper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4415d3a342d3936cb0b05df4d5e6d3bd1207e03a
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/ExplosionLogHelper.java
+@@ -0,0 +1,96 @@
++package org.leavesmc.lumina.carpet.logging.logHelpers;
++
++import it.unimi.dsi.fastutil.objects.Object2IntMap;
++import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
++
++import java.util.ArrayList;
++import java.util.List;
++
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.network.chat.Component;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.level.Explosion;
++import net.minecraft.world.phys.Vec3;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++
++import static org.leavesmc.lumina.carpet.utils.Messenger.c;
++
++public class ExplosionLogHelper {
++    private final boolean createFire;
++    private final Explosion.BlockInteraction blockDestructionType;
++    private final RegistryAccess regs;
++    public final Vec3 pos;
++    private final float power;
++    private boolean affectBlocks = false;
++    private final Object2IntMap<EntityChangedStatusWithCount> impactedEntities = new Object2IntOpenHashMap<>();
++
++    private static long lastGametime = 0;
++    private static int explosionCountInCurrentGT = 0;
++    private static boolean newTick;
++
++    public ExplosionLogHelper(double x, double y, double z, float power, boolean createFire, Explosion.BlockInteraction blockDestructionType, RegistryAccess regs) {
++        this.power = power;
++        this.pos = new Vec3(x, y, z);
++        this.createFire = createFire;
++        this.blockDestructionType = blockDestructionType;
++        this.regs = regs;
++    }
++
++    public void setAffectBlocks(boolean b) {
++        affectBlocks = b;
++    }
++
++    public void onExplosionDone(long gametime) {
++        newTick = false;
++        if (!(lastGametime == gametime)) {
++            explosionCountInCurrentGT = 0;
++            lastGametime = gametime;
++            newTick = true;
++        }
++        explosionCountInCurrentGT++;
++        LoggerRegistry.getLogger("explosions").log((option) -> {
++            List<Component> messages = new ArrayList<>();
++            if (newTick) messages.add(c("wb tick : ", "d " + gametime));
++            if ("brief".equals(option)) {
++                messages.add(c("d #" + explosionCountInCurrentGT, "gb ->",
++                        Messenger.dblt("l", pos.x, pos.y, pos.z), (affectBlocks) ? "m  (affects blocks)" : "m  (doesn't affect blocks)"));
++            }
++            if ("full".equals(option)) {
++                messages.add(c("d #" + explosionCountInCurrentGT, "gb ->", Messenger.dblt("l", pos.x, pos.y, pos.z)));
++                messages.add(c("w   affects blocks: ", "m " + this.affectBlocks));
++                messages.add(c("w   creates fire: ", "m " + this.createFire));
++                messages.add(c("w   power: ", "c " + this.power));
++                messages.add(c("w   destruction: ", "c " + this.blockDestructionType.name()));
++                if (impactedEntities.isEmpty()) {
++                    messages.add(c("w   affected entities: ", "m None"));
++                } else {
++                    messages.add(c("w   affected entities:"));
++                    impactedEntities.forEach((k, v) ->
++                    {
++                        messages.add(c((k.pos.equals(pos)) ? "r   - TNT" : "w   - ",
++                                Messenger.dblt((k.pos.equals(pos)) ? "r" : "y", k.pos.x, k.pos.y, k.pos.z), "w  dV",
++                                Messenger.dblt("d", k.accel.x, k.accel.y, k.accel.z),
++                                "w  " + regs.registryOrThrow(Registries.ENTITY_TYPE).getKey(k.type).getPath(), (v > 1) ? "l (" + v + ")" : ""
++                        ));
++                    });
++                }
++            }
++            return messages.toArray(new Component[0]);
++        });
++    }
++
++    public void onEntityImpacted(Entity entity, Vec3 accel) {
++        EntityChangedStatusWithCount ent = new EntityChangedStatusWithCount(entity, accel);
++        impactedEntities.put(ent, impactedEntities.getOrDefault(ent, 0) + 1);
++    }
++
++
++    public static record EntityChangedStatusWithCount(Vec3 pos, EntityType<?> type, Vec3 accel) {
++        public EntityChangedStatusWithCount(Entity e, Vec3 accel) {
++            this(e.position(), e.getType(), accel);
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PacketCounter.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PacketCounter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4be144181afab0e195f6b35d4453ded4b9a93ad9
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PacketCounter.java
+@@ -0,0 +1,11 @@
++package org.leavesmc.lumina.carpet.logging.logHelpers;
++
++public class PacketCounter {
++    public static long totalOut = 0;
++    public static long totalIn = 0;
++
++    public static void reset() {
++        totalIn = 0L;
++        totalOut = 0L;
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PathfindingVisualizer.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PathfindingVisualizer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf4111fd49530f21dd71dc380ae54637bbe529f1
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/PathfindingVisualizer.java
+@@ -0,0 +1,35 @@
++package org.leavesmc.lumina.carpet.logging.logHelpers;
++
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.phys.Vec3;
++import org.leavesmc.lumina.carpet.helpers.ParticleDisplay;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++
++public class PathfindingVisualizer {
++    public static void slowPath(Entity entity, Vec3 target, float miliseconds, boolean successful) {
++        if (!LoggerRegistry.__pathfinding) return;
++        LoggerRegistry.getLogger("pathfinding").log((option, player) ->
++        {
++            if (!(player instanceof ServerPlayer))
++                return null;
++            int minDuration;
++            try {
++                minDuration = Integer.parseInt(option);
++            } catch (NumberFormatException ignored) {
++                return null;
++            }
++            if (miliseconds < minDuration)
++                return null;
++            if (player.distanceToSqr(entity) > 1000 && player.distanceToSqr(target) > 1000)
++                return null;
++            if (minDuration < 1)
++                minDuration = 1;
++
++            String accent = successful ? "happy_villager" : "angry_villager";
++            String color = (miliseconds / minDuration < 2) ? "dust 1 1 0 1" : ((miliseconds / minDuration < 4) ? "dust 1 0.5 0 1" : "dust 1 0 0 1");
++            ParticleDisplay.drawParticleLine((ServerPlayer) player, entity.position(), target, color, accent, 5, 0.5);
++            return null;
++        });
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TNTLogHelper.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TNTLogHelper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d9052a7f2fa4d66b8cfd832508c9a29b7ab5c5f4
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TNTLogHelper.java
+@@ -0,0 +1,50 @@
++package org.leavesmc.lumina.carpet.logging.logHelpers;
++
++import net.minecraft.network.chat.Component;
++import net.minecraft.world.phys.Vec3;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++
++public class TNTLogHelper {
++    public boolean initialized;
++    private double primedX, primedY, primedZ;
++    private static long lastGametime = 0;
++    private static int tntCount = 0;
++    private Vec3 primedAngle;
++
++    /**
++     * Runs when the TNT is primed. Expects the position and motion angle of the TNT.
++     */
++    public void onPrimed(double x, double y, double z, Vec3 motion) {
++        primedX = x;
++        primedY = y;
++        primedZ = z;
++        primedAngle = motion;
++        initialized = true;
++    }
++
++    /**
++     * Runs when the TNT explodes. Expects the position of the TNT.
++     */
++    public void onExploded(double x, double y, double z, long gametime) {
++        if (!(lastGametime == gametime)) {
++            tntCount = 0;
++            lastGametime = gametime;
++        }
++        tntCount++;
++        LoggerRegistry.getLogger("tnt").log((option) -> switch (option) {
++            case "brief" -> new Component[]{Messenger.c(
++                    "l P ", Messenger.dblt("l", primedX, primedY, primedZ),
++                    "w  ", Messenger.dblt("l", primedAngle.x, primedAngle.y, primedAngle.z),
++                    "r  E ", Messenger.dblt("r", x, y, z))};
++            case "full" -> new Component[]{Messenger.c(
++                    "r #" + tntCount,
++                    "m @" + gametime,
++                    "g : ",
++                    "l P ", Messenger.dblf("l", primedX, primedY, primedZ),
++                    "w  ", Messenger.dblf("l", primedAngle.x, primedAngle.y, primedAngle.z),
++                    "r  E ", Messenger.dblf("r", x, y, z))};
++            default -> null;
++        });
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TrajectoryLogHelper.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TrajectoryLogHelper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea3f847cfb
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/TrajectoryLogHelper.java
+@@ -0,0 +1,72 @@
++package org.leavesmc.lumina.carpet.logging.logHelpers;
++
++import org.leavesmc.lumina.carpet.logging.Logger;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++
++import java.util.ArrayList;
++import java.util.List;
++
++import net.minecraft.network.chat.Component;
++import net.minecraft.world.phys.Vec3;
++
++/**
++ * A generic log helper for logging the trajectory of things like blocks and throwables.
++ */
++public class TrajectoryLogHelper {
++    private static final int MAX_TICKS_PER_LINE = 20;
++
++    private boolean doLog;
++    private final Logger logger;
++
++    private final ArrayList<Vec3> positions = new ArrayList<>();
++    private final ArrayList<Vec3> motions = new ArrayList<>();
++
++    public TrajectoryLogHelper(String logName) {
++        this.logger = LoggerRegistry.getLogger(logName);
++        this.doLog = this.logger.hasOnlineSubscribers();
++    }
++
++    public void onTick(double x, double y, double z, Vec3 velocity) {
++        if (!doLog) return;
++        positions.add(new Vec3(x, y, z));
++        motions.add(velocity);
++    }
++
++    public void onFinish() {
++        if (!doLog) return;
++        logger.log((option) -> {
++            List<Component> comp = new ArrayList<>();
++            switch (option) {
++                case "brief" -> {
++                    comp.add(Messenger.s(""));
++                    List<String> line = new ArrayList<>();
++                    for (int i = 0; i < positions.size(); i++) {
++                        Vec3 pos = positions.get(i);
++                        Vec3 mot = motions.get(i);
++                        line.add("w  x");
++                        line.add(String.format("^w Tick: %d\nx: %f\ny: %f\nz: %f\n------------\nmx: %f\nmy: %f\nmz: %f",
++                                i, pos.x, pos.y, pos.z, mot.x, mot.y, mot.z));
++                        if ((((i + 1) % MAX_TICKS_PER_LINE) == 0) || i == positions.size() - 1) {
++                            comp.add(Messenger.c(line.toArray(new Object[0])));
++                            line.clear();
++                        }
++                    }
++                }
++                case "full" -> {
++                    comp.add(Messenger.c("w ---------"));
++                    for (int i = 0; i < positions.size(); i++) {
++                        Vec3 pos = positions.get(i);
++                        Vec3 mot = motions.get(i);
++                        comp.add(Messenger.c(
++                                String.format("w tick: %3d pos", i), Messenger.dblt("w", pos.x, pos.y, pos.z),
++                                "w   mot", Messenger.dblt("w", mot.x, mot.y, mot.z)));
++                    }
++                }
++            }
++            return comp.toArray(new Component[0]);
++        });
++        doLog = false;
++    }
++}
++
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java b/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3f209c97cfed6215951b471541846da3a6421607
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/network/CarpetClient.java
+@@ -0,0 +1,112 @@
++package org.leavesmc.lumina.carpet.network;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.script.utils.ShapesRenderer;
++import net.minecraft.client.player.LocalPlayer;
++import net.minecraft.nbt.CompoundTag;
++import net.minecraft.nbt.ListTag;
++import net.minecraft.nbt.Tag;
++import net.minecraft.network.FriendlyByteBuf;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
++import net.minecraft.resources.ResourceLocation;
++
++public class CarpetClient
++{
++    public record CarpetPayload(CompoundTag data) implements CustomPacketPayload
++    {
++        public static final StreamCodec<FriendlyByteBuf, CarpetPayload> STREAM_CODEC = CustomPacketPayload.codec(CarpetPayload::write, CarpetPayload::new);
++
++        public static final Type<CarpetPayload> TYPE = new Type<>(CARPET_CHANNEL);
++
++        public CarpetPayload(FriendlyByteBuf input)
++        {
++            this(input.readNbt());
++        }
++
++        public void write(FriendlyByteBuf output)
++        {
++            output.writeNbt(data);
++        }
++
++        @Override public Type<CarpetPayload> type()
++        {
++            return TYPE;
++        }
++    }
++
++    public static final String HI = "69";
++    public static final String HELLO = "420";
++
++    public static ShapesRenderer shapes = null;
++
++    private static LocalPlayer clientPlayer = null;
++    private static boolean isServerCarpet = false;
++    public static String serverCarpetVersion;
++    public static final ResourceLocation CARPET_CHANNEL = new ResourceLocation("carpet", "hello");
++
++    public static void gameJoined(LocalPlayer player)
++    {
++        clientPlayer = player;
++    }
++
++    public static void disconnect()
++    {
++        if (isServerCarpet) // multiplayer connection
++        {
++            isServerCarpet = false;
++            clientPlayer = null;
++            CarpetServer.onServerClosed(null);
++            CarpetServer.onServerDoneClosing(null);
++        }
++        else // singleplayer disconnect
++        {
++            CarpetServer.clientPreClosing();
++        }
++    }
++
++    public static void setCarpet()
++    {
++        isServerCarpet = true;
++    }
++
++    public static LocalPlayer getPlayer()
++    {
++        return clientPlayer;
++    }
++
++    public static boolean isCarpet()
++    {
++        return isServerCarpet;
++    }
++
++    public static boolean sendClientCommand(String command)
++    {
++        if (!isServerCarpet && CarpetServer.minecraft_server == null)
++        {
++            return false;
++        }
++        ClientNetworkHandler.clientCommand(command);
++        return true;
++    }
++
++    public static void onClientCommand(Tag t)
++    {
++        CarpetSettings.LOG.info("Server Response:");
++        CompoundTag tag = (CompoundTag) t;
++        CarpetSettings.LOG.info(" - id: " + tag.getString("id"));
++        if (tag.contains("error"))
++        {
++            CarpetSettings.LOG.warn(" - error: " + tag.getString("error"));
++        }
++        if (tag.contains("output"))
++        {
++            ListTag outputTag = (ListTag) tag.get("output");
++            for (int i = 0; i < outputTag.size(); i++)
++            {
++                CarpetSettings.LOG.info(" - response: " + Component.Serializer.fromJson(outputTag.getString(i), clientPlayer.registryAccess()).getString());
++            }
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java b/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a6c18c62e2e99a1a4636049941f226bf518ea01b
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/network/ServerNetworkHandler.java
+@@ -0,0 +1,238 @@
++package org.leavesmc.lumina.carpet.network;
++
++import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.script.utils.SnoopyCommandSource;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.function.BiConsumer;
++
++import net.minecraft.nbt.CompoundTag;
++import net.minecraft.nbt.ListTag;
++import net.minecraft.nbt.StringTag;
++import net.minecraft.nbt.Tag;
++import net.minecraft.network.chat.Component;
++import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++
++public class ServerNetworkHandler
++{
++    private static final Map<ServerPlayer, String> remoteCarpetPlayers = new HashMap<>();
++    private static final Set<ServerPlayer> validCarpetPlayers = new HashSet<>();
++
++    private static final Map<String, BiConsumer<ServerPlayer, Tag>> dataHandlers = Map.of(
++            CarpetClient.HELLO, (p, t) -> onHello(p, t.getAsString()),
++            "clientCommand", (p, t) -> handleClientCommand(p, (CompoundTag) t)
++    );
++
++    public static void onPlayerJoin(ServerPlayer playerEntity)
++    {
++        if (!playerEntity.connection.getConnection().isMemoryConnection())
++        {
++            CompoundTag data = new CompoundTag();
++            data.putString(CarpetClient.HI, CarpetServer.carpetVersion);
++            playerEntity.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(data)));
++        }
++        else
++        {
++            validCarpetPlayers.add(playerEntity);
++        }
++    }
++
++    public static void onHello(ServerPlayer playerEntity, String version)
++    {
++        validCarpetPlayers.add(playerEntity);
++        remoteCarpetPlayers.put(playerEntity, version);
++        if (version.equals(CarpetServer.carpetVersion))
++        {
++            CarpetServer.LOGGER.info("Player " + playerEntity.getName().getString() + " joined with a matching carpet client");
++        }
++        else
++        {
++            CarpetServer.LOGGER.warn("Player " + playerEntity.getName().getString() + " joined with another carpet version: " + version);
++        }
++        DataBuilder data = DataBuilder.create(playerEntity.server); // tickrate related settings are sent on world change
++        CarpetServer.forEachManager(sm -> sm.getCarpetRules().forEach(data::withRule));
++        playerEntity.connection.send(data.build());
++    }
++
++    public static void sendPlayerLevelData(ServerPlayer player, ServerLevel level)
++    {
++        // if (CarpetSettings.superSecretSetting || !validCarpetPlayers.contains(player))
++        // {
++            //return;
++        // }
++        // noop, used to send ticking information
++        //DataBuilder data = DataBuilder.create(player.server);//.withTickRate().withFrozenState().withTickPlayerActiveTimeout(); // .withSuperHotState()
++        //player.connection.send(data.build());
++    }
++
++    private static void handleClientCommand(ServerPlayer player, CompoundTag commandData)
++    {
++        String command = commandData.getString("command");
++        String id = commandData.getString("id");
++        List<Component> output = new ArrayList<>();
++        Component[] error = {null};
++        if (player.getServer() == null)
++        {
++            error[0] = Component.literal("No Server");
++        }
++        else
++        {
++            player.getServer().getCommands().performPrefixedCommand(
++                    new SnoopyCommandSource(player, error, output), command
++            );
++        }
++        CompoundTag result = new CompoundTag();
++        result.putString("id", id);
++        if (error[0] != null)
++        {
++            result.putString("error", error[0].getContents().toString());
++        }
++        ListTag outputResult = new ListTag();
++        for (Component line : output)
++        {
++            outputResult.add(StringTag.valueOf(Component.Serializer.toJson(line, player.registryAccess())));
++        }
++        if (!output.isEmpty())
++        {
++            result.put("output", outputResult);
++        }
++        player.connection.send(DataBuilder.create(player.server).withCustomNbt("clientCommand", result).build());
++        // run command plug to command output,
++    }
++
++    public static void onClientData(ServerPlayer player, CompoundTag compound)
++    {
++        for (String key : compound.getAllKeys())
++        {
++            if (dataHandlers.containsKey(key))
++            {
++                dataHandlers.get(key).accept(player, compound.get(key));
++            }
++            else
++            {
++                CarpetServer.LOGGER.warn("Unknown carpet client data: " + key);
++            }
++        }
++    }
++
++    public static void updateRuleWithConnectedClients(CarpetRule<?> rule)
++    {
++        if (CarpetSettings.superSecretSetting)
++        {
++            return;
++        }
++        for (ServerPlayer player : remoteCarpetPlayers.keySet())
++        {
++            player.connection.send(DataBuilder.create(player.server).withRule(rule).build());
++        }
++    }
++
++    public static void broadcastCustomCommand(String command, Tag data)
++    {
++        for (ServerPlayer player : validCarpetPlayers)
++        {
++            player.connection.send(DataBuilder.create(player.server).withCustomNbt(command, data).build());
++        }
++    }
++
++    public static void sendCustomCommand(ServerPlayer player, String command, Tag data)
++    {
++        if (isValidCarpetPlayer(player))
++        {
++            player.connection.send(DataBuilder.create(player.server).withCustomNbt(command, data).build());
++        }
++    }
++
++    public static void onPlayerLoggedOut(ServerPlayer player)
++    {
++        validCarpetPlayers.remove(player);
++        if (!player.connection.getConnection().isMemoryConnection())
++        {
++            remoteCarpetPlayers.remove(player);
++        }
++    }
++
++    public static void close()
++    {
++        remoteCarpetPlayers.clear();
++        validCarpetPlayers.clear();
++    }
++
++    public static boolean isValidCarpetPlayer(ServerPlayer player)
++    {
++        return validCarpetPlayers.contains(player);
++
++    }
++
++    public static String getPlayerStatus(ServerPlayer player)
++    {
++        if (remoteCarpetPlayers.containsKey(player))
++        {
++            return "carpet " + remoteCarpetPlayers.get(player);
++        }
++        if (validCarpetPlayers.contains(player))
++        {
++            return "carpet " + CarpetServer.carpetVersion;
++        }
++        return "vanilla";
++    }
++
++    private static class DataBuilder
++    {
++        private CompoundTag tag;
++        // unused now, but hey
++        private MinecraftServer server;
++
++        private static DataBuilder create(final MinecraftServer server)
++        {
++            return new DataBuilder(server);
++        }
++
++        private DataBuilder(MinecraftServer server)
++        {
++            tag = new CompoundTag();
++            this.server = server;
++        }
++
++        private DataBuilder withRule(CarpetRule<?> rule)
++        {
++            CompoundTag rules = (CompoundTag) tag.get("Rules");
++            if (rules == null)
++            {
++                rules = new CompoundTag();
++                tag.put("Rules", rules);
++            }
++            String identifier = rule.settingsManager().identifier();
++            String key = rule.name();
++            while (rules.contains(key))
++            {
++                key = key + "2";
++            }
++            CompoundTag ruleNBT = new CompoundTag();
++            ruleNBT.putString("Value", RuleHelper.toRuleString(rule.value()));
++            ruleNBT.putString("Manager", identifier);
++            ruleNBT.putString("Rule", rule.name());
++            rules.put(key, ruleNBT);
++            return this;
++        }
++
++        public DataBuilder withCustomNbt(String key, Tag value)
++        {
++            tag.put(key, value);
++            return this;
++        }
++
++        private ClientboundCustomPayloadPacket build()
++        {
++            return new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag));
++        }
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..37f42c967b714dec77d72d4cecafb7231211a9a7
@@ -2000,6 +4125,267 @@ index 0000000000000000000000000000000000000000..a85fc086dfd15b30d6066fd888fb1750
 +            entry(MapColor.RAW_IRON, "raw_iron"),
 +            entry(MapColor.GLOW_LICHEN, "glow_lichen")
 +    );
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..61d41fcfcb1351453a83926506d8fb5fef0072f7
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java
+@@ -0,0 +1,43 @@
++package org.leavesmc.lumina.carpet.script.utils;
++
++import com.mojang.brigadier.StringReader;
++import com.mojang.brigadier.exceptions.CommandSyntaxException;
++import net.minecraft.commands.arguments.ParticleArgument;
++import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.particles.ParticleOptions;
++
++import javax.annotation.Nullable;
++import java.util.HashMap;
++import java.util.Map;
++
++public class ParticleParser
++{
++    private static final Map<String, ParticleOptions> particleCache = new HashMap<>(); // we reset this on reloads, but probably need something better
++
++    private static ParticleOptions parseParticle(String name, RegistryAccess lookup)
++    {
++        try
++        {
++            return ParticleArgument.readParticle(new StringReader(name), lookup);
++        }
++        catch (CommandSyntaxException e)
++        {
++            throw new IllegalArgumentException("No such particle: " + name);
++        }
++    }
++
++    @Nullable
++    public static ParticleOptions getEffect(@Nullable String name, RegistryAccess lookup)
++    {
++        if (name == null)
++        {
++            return null;
++        }
++        return particleCache.computeIfAbsent(name, particle -> parseParticle(particle, lookup));
++    }
++
++    public static void resetCache()
++    {
++        particleCache.clear();
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2d46fd99091d9daa4901d32b5a1de6736c951b57
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/SnoopyCommandSource.java
+@@ -0,0 +1,206 @@
++package org.leavesmc.lumina.carpet.script.utils;
++
++import net.minecraft.commands.CommandResultCallback;
++import net.minecraft.commands.CommandSigningContext;
++import net.minecraft.commands.CommandSource;
++import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.commands.arguments.EntityAnchorArgument;
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.util.Mth;
++import net.minecraft.util.TaskChainer;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.level.dimension.DimensionType;
++import net.minecraft.world.phys.Vec2;
++import net.minecraft.world.phys.Vec3;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.List;
++import java.util.function.BinaryOperator;
++import java.util.function.Supplier;
++
++public class SnoopyCommandSource extends CommandSourceStack
++{
++    private final CommandSource output;
++    private final Vec3 position;
++    private final ServerLevel world;
++    private final int level;
++    private final String simpleName;
++    private final Component name;
++    private final MinecraftServer server;
++    // skipping silent since snooper is never silent
++    private final Entity entity;
++    private final CommandResultCallback resultConsumer;
++    private final EntityAnchorArgument.Anchor entityAnchor;
++    private final Vec2 rotation;
++    // good stuff
++    private final Component[] error;
++    private final List<Component> chatOutput;
++    private final CommandSigningContext signingContext;
++
++    private final TaskChainer taskChainer;
++
++    public SnoopyCommandSource(CommandSourceStack original, Component[] error, List<Component> chatOutput)
++    {
++        super(CommandSource.NULL, original.getPosition(), original.getRotation(), original.getLevel(), Vanilla.MinecraftServer_getRunPermissionLevel(original.getServer()),
++                original.getTextName(), original.getDisplayName(), original.getServer(), original.getEntity(), false,
++                CommandResultCallback.EMPTY, EntityAnchorArgument.Anchor.FEET, CommandSigningContext.ANONYMOUS, TaskChainer.immediate(original.getServer()));
++        this.output = CommandSource.NULL;
++        this.position = original.getPosition();
++        this.world = original.getLevel();
++        this.level = Vanilla.MinecraftServer_getRunPermissionLevel(original.getServer());
++        this.simpleName = original.getTextName();
++        this.name = original.getDisplayName();
++        this.server = original.getServer();
++        this.entity = original.getEntity();
++        this.resultConsumer = CommandResultCallback.EMPTY;
++        this.entityAnchor = original.getAnchor();
++        this.rotation = original.getRotation();
++        this.error = error;
++        this.chatOutput = chatOutput;
++        this.signingContext = original.getSigningContext();
++        this.taskChainer = TaskChainer.immediate(original.getServer());
++    }
++
++    public SnoopyCommandSource(ServerPlayer player, Component[] error, List<Component> output)
++    {
++        super(player, player.position(), player.getRotationVector(),
++                player.level() instanceof final ServerLevel serverLevel ? serverLevel : null,
++                player.server.getProfilePermissions(player.getGameProfile()), player.getName().getString(), player.getDisplayName(),
++                player.level().getServer(), player);
++        this.output = player;
++        this.position = player.position();
++        this.world = player.level() instanceof final ServerLevel serverLevel ? serverLevel : null;
++        this.level = player.server.getProfilePermissions(player.getGameProfile());
++        this.simpleName = player.getName().getString();
++        this.name = player.getDisplayName();
++        this.server = player.level().getServer();
++        this.entity = player;
++        this.resultConsumer = CommandResultCallback.EMPTY;
++        this.entityAnchor = EntityAnchorArgument.Anchor.FEET;
++        this.rotation = player.getRotationVector(); // not a client call really
++        this.error = error;
++        this.chatOutput = output;
++        this.signingContext = CommandSigningContext.ANONYMOUS;
++        this.taskChainer = TaskChainer.immediate(player.server);
++    }
++
++    private SnoopyCommandSource(CommandSource output, Vec3 pos, Vec2 rot, ServerLevel world, int level, String simpleName, Component name, MinecraftServer server, @Nullable Entity entity, CommandResultCallback consumer, EntityAnchorArgument.Anchor entityAnchor, CommandSigningContext context, TaskChainer chainer,
++                                Component[] error, List<Component> chatOutput
++    )
++    {
++        super(output, pos, rot, world, level,
++                simpleName, name, server, entity, false,
++                consumer, entityAnchor, context, chainer);
++        this.output = output;
++        this.position = pos;
++        this.rotation = rot;
++        this.world = world;
++        this.level = level;
++        this.simpleName = simpleName;
++        this.name = name;
++        this.server = server;
++        this.entity = entity;
++        this.resultConsumer = consumer;
++        this.entityAnchor = entityAnchor;
++        this.error = error;
++        this.chatOutput = chatOutput;
++        this.signingContext = context;
++        this.taskChainer = chainer;
++    }
++
++    @Override
++    public CommandSourceStack withEntity(Entity entity)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, entity.getName().getString(), entity.getDisplayName(), server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withPosition(Vec3 position)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withRotation(Vec2 rotation)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withCallback(CommandResultCallback consumer)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, consumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withCallback(CommandResultCallback consumer, BinaryOperator<CommandResultCallback> binaryOperator)
++    {
++        CommandResultCallback resultConsumer = binaryOperator.apply(this.resultConsumer, consumer);
++        return this.withCallback(resultConsumer);
++    }
++
++    //@Override // only used in fuctions and we really don't care to track these actually, besides the basic output
++    // also other overrides target ONLY execute command, which withSilent doesn't care bout.
++    //public ServerCommandSource withSilent() { return this; }
++
++    @Override
++    public CommandSourceStack withPermission(int level)
++    {
++        return this;
++    }
++
++    @Override
++    public CommandSourceStack withMaximumPermission(int level)
++    {
++        return this;
++    }
++
++    @Override
++    public CommandSourceStack withAnchor(EntityAnchorArgument.Anchor anchor)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, anchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withSigningContext(CommandSigningContext commandSigningContext, TaskChainer taskChainer)
++    {
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, commandSigningContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack withLevel(ServerLevel world)
++    {
++        double d = DimensionType.getTeleportationScale(this.world.dimensionType(), world.dimensionType());
++        Vec3 position = new Vec3(this.position.x * d, this.position.y, this.position.z * d);
++        return new SnoopyCommandSource(output, position, rotation, world, level, simpleName, name, server, entity, resultConsumer, entityAnchor, signingContext, taskChainer, error, chatOutput);
++    }
++
++    @Override
++    public CommandSourceStack facing(Vec3 position)
++    {
++        Vec3 vec3d = this.entityAnchor.apply(this);
++        double d = position.x - vec3d.x;
++        double e = position.y - vec3d.y;
++        double f = position.z - vec3d.z;
++        double g = Math.sqrt(d * d + f * f);
++        float h = Mth.wrapDegrees((float) (-(Mth.atan2(e, g) * 57.2957763671875D)));
++        float i = Mth.wrapDegrees((float) (Mth.atan2(f, d) * 57.2957763671875D) - 90.0F);
++        return this.withRotation(new Vec2(h, i));
++    }
++
++    @Override
++    public void sendFailure(Component message)
++    {
++        error[0] = message;
++    }
++
++    @Override
++    public void sendSuccess(Supplier<Component> message, boolean broadcastToOps)
++    {
++        chatOutput.add(message.get());
++    }
++
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/Tracer.java
 new file mode 100644
@@ -3518,10 +5904,10 @@ index 0000000000000000000000000000000000000000..520f1f9b7a621cc4b2d215303dd21333
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c8f713b4f3919c21757ac00edef7254444b0b63
+index 0000000000000000000000000000000000000000..50e4b2a3d143313a4baff68e637dbd26a8cc159c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,127 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
 +import org.leavesmc.lumina.carpet.CarpetServer;
@@ -3534,14 +5920,12 @@ index 0000000000000000000000000000000000000000..9c8f713b4f3919c21757ac00edef7254
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.tags.BlockTags;
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.item.DyeColor;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.Block;
 +import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.level.material.MapColor;
 +import net.minecraft.world.phys.Vec3;
 +
 +import javax.annotation.Nullable;

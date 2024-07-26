@@ -35,9 +35,9 @@ index e3228efcb0d85c0c43cd4e52fe0b877414a5ebe5..bdc35ec969486f6f026f6fb9bb0b9c22
  import org.bukkit.loot.LootTable;
  import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.utils.ReflectTargetField;
-
+ 
  // Mojang-Mapped reflection
-
+ 
 @@ -222,8 +216,10 @@ public class NMS_1_20_R4 extends NMS_Common {
          // entitySelectorUsesSelector = EntitySelector::usesSelector;
          Field usesSelector = null;
@@ -62,7 +62,7 @@ index 8302e4bedc03795c4cda526466fa4dc279b2dd21..17351285d16956d22eca0d5dce336699
 -    public final boolean usesSelector; // Lumina - Command API
 +    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
 +    private final boolean usesSelector;
-
+ 
      public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
          this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
