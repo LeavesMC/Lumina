@@ -15,5 +15,7 @@ Lumina
 
 **为了让默认时更符合Vanilla行为，我们修改了部分Paper与Spigot配置项目的默认值，详见[修改列表](./ModifiedConfigList.md)**
 
+### 一些梗图 by Sun_HE
+![meme2.jpg](meme2.jpg)
 **下图并无任何种族歧视倾向 | There is no racial discrimination in the picture below**
 ![meme.jpg](meme.jpg)
