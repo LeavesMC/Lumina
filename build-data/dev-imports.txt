@@ -1,1 +1,6 @@
 minecraft net.minecraft.world.level.levelgen.feature.CoralFeature
+minecraft net.minecraft.world.level.block.BarrierBlock
+minecraft net.minecraft.commands.arguments.blocks.BlockInput
+minecraft net.minecraft.world.level.block.ChainBlock
+minecraft net.minecraft.server.commands.CloneCommands
+minecraft net.minecraft.world.level.lighting.DynamicGraphMinFixedPoint

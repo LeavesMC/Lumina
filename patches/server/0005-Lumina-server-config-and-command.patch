@@ -85,12 +85,34 @@ index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff
          // CraftBukkit start
          // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
          this.server.loadPlugins();
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
+index 66bdac50130f523f9dc4379b103b7a469f9ca36b..fef188c644ea1974cc5cd4b7044b6f9502965273 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
+@@ -24,10 +24,16 @@ public class MinecraftInternalPlugin extends PluginBase {
+     private final String pluginName;
+     private PluginDescriptionFile pdf;
+ 
++    // Lumina start
+     public MinecraftInternalPlugin() {
+-        this.pluginName = "Minecraft";
++        this("MinecraftInternalPlugin");
++    }
++
++    public MinecraftInternalPlugin(String pluginName) {
++        this.pluginName = pluginName;
+         pdf = new PluginDescriptionFile(pluginName, "1.0", "nms");
+     }
++    // Lumina end
+ 
+     public void setEnabled(boolean enabled) {
+         this.enabled = enabled;
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52d0fba3d8
+index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759d13bbbd5
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,224 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
@@ -103,6 +125,7 @@ index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52
 +import org.bukkit.command.ConsoleCommandSender;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.config.ConfigNodeInfo;
 +import org.leavesmc.lumina.config.LuminaConfig;
 +import org.leavesmc.lumina.config.Validator;
 +import org.slf4j.Logger;
@@ -132,7 +155,7 @@ index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52
 +                                ).withArguments(new GreedyStringArgument("value")
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
 +                                            String node = (String) info.previousArgs().get("node");
-+                                            LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                            ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                            if (node == null || node.isEmpty() || nodeInfo == null) {
 +                                                return new String[]{};
 +                                            }
@@ -140,7 +163,7 @@ index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52
 +                                        }))
 +                                ).executes((sender, args) -> {
 +                                    String node = (String) args.get("node");
-+                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
 +                                        sendError(sender, "No config node specified.");
 +                                        return;
@@ -251,7 +274,7 @@ index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
 +                                ).executes((sender, args) -> {
 +                                    String node = (String) args.get("node");
-+                                    LuminaConfig.ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
 +                                        sendError(sender, "No config node specified.");
 +                                        return;
@@ -315,155 +338,61 @@ index 0000000000000000000000000000000000000000..fa6f3fa44629f21cab220267191f5e52
 +    }
 +}
 \ No newline at end of file
-diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java b/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ca9b57fbd49d9307712b917f8169b24eaec1f50e
+index 0000000000000000000000000000000000000000..5f7f258f8ddcde9f050691371662e18cb5f305a5
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
-@@ -0,0 +1,14 @@
++++ b/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java
+@@ -0,0 +1,10 @@
 +package org.leavesmc.lumina.config;
 +
-+import org.leavesmc.lumina.config.modules.*;
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++import java.lang.reflect.Field;
 +
-+@ConfigSerializable
-+public class ConfigModule {
-+    public String configVersion = "1";
-+    public Fix fix = new Fix();
-+    public Protocol protocol = new Protocol();
-+    public Performance performance = new Performance();
-+    public Modify modify = new Modify();
-+    public Misc misc = new Misc();
++public record ConfigNodeInfo(
++        String[] suggestions,
++        Class<?> type,
++        Field field, Object parent,
++        Validator<?> validator) {
 +}
-\ No newline at end of file
-diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6d9a6e1e0aafe8dc61b65568c9ed17670c55dc3c
+index 0000000000000000000000000000000000000000..fb991c96f88429099a42b43a9de2cf1825f2d89b
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,168 @@
++++ b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
+@@ -0,0 +1,87 @@
 +package org.leavesmc.lumina.config;
 +
-+import io.papermc.paper.threadedregions.RegionizedServer;
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.annotations.Suggestion;
 +import org.leavesmc.lumina.config.annotations.Validate;
-+import org.spongepowered.configurate.CommentedConfigurationNode;
-+import org.spongepowered.configurate.ConfigurateException;
-+import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
-+import org.spongepowered.configurate.loader.ConfigurationLoader;
-+import org.spongepowered.configurate.yaml.NodeStyle;
-+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
 +import java.lang.annotation.Annotation;
 +import java.lang.reflect.Field;
 +import java.lang.reflect.InvocationTargetException;
-+import java.nio.file.Files;
-+import java.nio.file.Path;
-+import java.nio.file.Paths;
-+import java.util.*;
++import java.util.Arrays;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
 +import java.util.concurrent.CompletableFuture;
 +
-+public class LuminaConfig {
-+    private static final Set<Class<?>> CONFIG_FIELD_TYPES = new HashSet<>(Arrays.asList(
++public class ConfigUtils {
++    static final Set<Class<?>> CONFIG_FIELD_TYPES = new HashSet<>(Arrays.asList(
 +            String.class,
 +            boolean.class,
 +            int.class,
 +            long.class,
 +            double.class));
-+    public static ConfigModule configModule;
-+    public static boolean alreadyInit = false;
-+    private static final MinecraftInternalPlugin NULL_PLUGIN = new MinecraftInternalPlugin();
-+    private static ConfigurationLoader<CommentedConfigurationNode> loader;
-+    private static CommentedConfigurationNode node;
-+    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
++    static final MinecraftInternalPlugin INTERNAL_PLUGIN = new MinecraftInternalPlugin("LuminaConfigSystem");
 +
-+    public static void setup() {
-+        if (alreadyInit) {
-+            return;
-+        }
-+        Path hoconConfigPath = Path.of("lumina.conf");
-+        boolean useHocon = Boolean.getBoolean("lumina.config.style.hocon") || Files.exists(hoconConfigPath);
-+        boolean jsonStyle = Boolean.getBoolean("lumina.config.style.json");
-+        if (useHocon || jsonStyle) {
-+            loader = HoconConfigurationLoader.builder()
-+                    .emitComments(true)
-+                    .emitJsonCompatible(jsonStyle)
-+                    .prettyPrinting(true)
-+                    .path(hoconConfigPath)
-+                    .build();
-+        } else {
-+            loader = YamlConfigurationLoader.builder()
-+                    .nodeStyle(NodeStyle.BLOCK)
-+                    .indent(2)
-+                    .path(Paths.get("lumina.yml"))
-+                    .build();
-+        }
-+
-+        try {
-+            node = loader.load();
-+            configModule = node.get(ConfigModule.class);
-+            node.set(ConfigModule.class, configModule);
-+            loader.save(node);
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
-+        try {
-+            generateNodeInfos(ConfigModule.class, null, LuminaConfig.configModule);
-+        } catch (IllegalAccessException e) {
-+            throw new RuntimeException(e);
-+        }
-+        alreadyInit = true;
++    @Contract("_ -> new")
++    public static @NotNull CompletableFuture<Void> runAsync(Runnable runnable) {
++        return CompletableFuture.runAsync(runnable, task -> Bukkit.getGlobalRegionScheduler().run(ConfigUtils.INTERNAL_PLUGIN, scheduled -> task.run()));
 +    }
 +
-+    public static void reload() {
-+        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
-+        try {
-+            configModule = loader.load().get(ConfigModule.class);
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
-+
-+    public static void save() {
-+        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
-+        try {
-+            node.set(ConfigModule.class, configModule);
-+            loader.save(node);
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
-+
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> reloadAsync() {
-+        return CompletableFuture.runAsync(LuminaConfig::reload, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
-+    }
-+
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> saveAsync() {
-+        return CompletableFuture.runAsync(LuminaConfig::save, task -> Bukkit.getGlobalRegionScheduler().run(NULL_PLUGIN, scheduled -> task.run()));
-+    }
-+
-+    private static @NotNull String toHyphen(String input) {
-+        if (input == null || input.isEmpty()) {
-+            return "";
-+        }
-+        StringBuilder sb = new StringBuilder();
-+        for (int i = 0; i < input.length(); i++) {
-+            char ch = input.charAt(i);
-+            if (Character.isUpperCase(ch) && i > 0) {
-+                sb.append('-');
-+            }
-+            sb.append(Character.toLowerCase(ch));
-+        }
-+        return sb.toString();
-+    }
-+
-+    private static void generateNodeInfos(@NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
++    public static void generateNodeInfos(Map<String, ConfigNodeInfo> nodeInfoMap, @NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
 +        for (Field field : clazz.getFields()) {
 +            String fieldName = field.getName();
 +            Class<?> fieldType = field.getType();
@@ -487,7 +416,7 @@ index 0000000000000000000000000000000000000000..6d9a6e1e0aafe8dc61b65568c9ed1767
 +                if ("boolean".equals(fieldType.getSimpleName())) {
 +                    suggestions = new String[]{"true", "false"};
 +                    haveSuggestions = true;
-+                } else if (CONFIG_FIELD_TYPES.contains(fieldType)) {
++                } else if (ConfigUtils.CONFIG_FIELD_TYPES.contains(fieldType)) {
 +                    suggestions = new String[]{field.get(parent).toString()};
 +                    haveSuggestions = true;
 +                } else if (fieldType.isEnum()) {
@@ -496,23 +425,149 @@ index 0000000000000000000000000000000000000000..6d9a6e1e0aafe8dc61b65568c9ed1767
 +                }
 +            }
 +            if (haveSuggestions) {
-+                nodeInfos.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
++                nodeInfoMap.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
 +            } else {
-+                generateNodeInfos(fieldType, key, field.get(parent));
++                generateNodeInfos(nodeInfoMap, fieldType, key, field.get(parent));
 +            }
 +        }
 +    }
 +
-+    public record ConfigNodeInfo(
-+            String[] suggestions,
-+            Class<?> type,
-+            Field field, Object parent,
-+            Validator<?> validator) {
++    private static @NotNull String toHyphen(String input) {
++        if (input == null || input.isEmpty()) {
++            return "";
++        }
++        StringBuilder sb = new StringBuilder();
++        for (int i = 0; i < input.length(); i++) {
++            char ch = input.charAt(i);
++            if (Character.isUpperCase(ch) && i > 0) {
++                sb.append('-');
++            }
++            sb.append(Character.toLowerCase(ch));
++        }
++        return sb.toString();
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..48734da792646a8e690a4c8aba114e0b9cdf896e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
+@@ -0,0 +1,91 @@
++package org.leavesmc.lumina.config;
++
++import io.papermc.paper.threadedregions.RegionizedServer;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.spongepowered.configurate.CommentedConfigurationNode;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
++import org.spongepowered.configurate.loader.ConfigurationLoader;
++import org.spongepowered.configurate.yaml.NodeStyle;
++import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
++
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.util.*;
++import java.util.concurrent.CompletableFuture;
++
++public class LuminaConfig {
++    public static LuminaConfigModule configModule;
++    private static ConfigurationLoader<CommentedConfigurationNode> loader;
++    private static CommentedConfigurationNode node;
++    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
++
++    public static void setup() {
++        Path hoconConfigPath = Path.of("lumina.conf");
++        boolean useHocon = Boolean.getBoolean("lumina.config.style.hocon") || Files.exists(hoconConfigPath);
++        boolean jsonStyle = Boolean.getBoolean("lumina.config.style.json");
++        if (useHocon || jsonStyle) {
++            loader = HoconConfigurationLoader.builder()
++                    .emitComments(true)
++                    .emitJsonCompatible(jsonStyle)
++                    .prettyPrinting(true)
++                    .path(hoconConfigPath)
++                    .build();
++        } else {
++            loader = YamlConfigurationLoader.builder()
++                    .nodeStyle(NodeStyle.BLOCK)
++                    .indent(2)
++                    .path(Path.of("lumina.yml"))
++                    .build();
++        }
++
++        loadConfig();
++        saveConfig();
++
++        try {
++            ConfigUtils.generateNodeInfos(nodeInfos, LuminaConfigModule.class, null, LuminaConfig.configModule);
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static void reload() {
++        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
++        loadConfig();
++    }
++
++    private static void loadConfig() {
++        try {
++            node = loader.load();
++            configModule = node.get(LuminaConfigModule.class);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static void save() {
++        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
++        saveConfig();
++    }
++
++    private static void saveConfig() {
++        try {
++            node.set(LuminaConfigModule.class, configModule);
++            loader.save(node);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    @Contract(" -> new")
++    public static @NotNull CompletableFuture<Void> reloadAsync() {
++        return ConfigUtils.runAsync(LuminaConfig::reload);
++    }
++
++    @Contract(" -> new")
++    public static @NotNull CompletableFuture<Void> saveAsync() {
++        return ConfigUtils.runAsync(LuminaConfig::save);
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfigModule.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfigModule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7c2bf30ef6035575e56c8743f1abee8ac8b8d558
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfigModule.java
+@@ -0,0 +1,14 @@
++package org.leavesmc.lumina.config;
++
++import org.leavesmc.lumina.config.modules.*;
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class LuminaConfigModule {
++    public String configVersion = "1";
++    public Fix fix = new Fix();
++    public Protocol protocol = new Protocol();
++    public Performance performance = new Performance();
++    public Modify modify = new Modify();
++    public Misc misc = new Misc();
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/Validator.java b/src/main/java/org/leavesmc/lumina/config/Validator.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d58e875318
+index 0000000000000000000000000000000000000000..18cc13bccf468ae730402449be0bd5303a39ee39
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/Validator.java
 @@ -0,0 +1,121 @@
@@ -532,7 +587,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static ValidationResult validateString(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, String newValue) {
++    public static ValidationResult validateString(@NotNull ConfigNodeInfo nodeInfo, String newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<String> validator = (Validator<String>) nodeInfo.validator();
@@ -547,7 +602,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static ValidationResult validateBoolean(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Boolean newValue) {
++    public static ValidationResult validateBoolean(@NotNull ConfigNodeInfo nodeInfo, Boolean newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<Boolean> validator = (Validator<Boolean>) nodeInfo.validator();
@@ -562,7 +617,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static ValidationResult validateInteger(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Integer newValue) {
++    public static ValidationResult validateInteger(@NotNull ConfigNodeInfo nodeInfo, Integer newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<Integer> validator = (Validator<Integer>) nodeInfo.validator();
@@ -577,7 +632,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static ValidationResult validateLong(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Long newValue) {
++    public static ValidationResult validateLong(@NotNull ConfigNodeInfo nodeInfo, Long newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<Long> validator = (Validator<Long>) nodeInfo.validator();
@@ -592,7 +647,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static ValidationResult validateDouble(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, Double newValue) {
++    public static ValidationResult validateDouble(@NotNull ConfigNodeInfo nodeInfo, Double newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<Double> validator = (Validator<Double>) nodeInfo.validator();
@@ -607,7 +662,7 @@ index 0000000000000000000000000000000000000000..ce31fa93ad6c5a7055094c17fa7901d5
 +    }
 +
 +    @SuppressWarnings("unchecked")
-+    public static <E> ValidationResult validate(@NotNull LuminaConfig.ConfigNodeInfo nodeInfo, E newValue) {
++    public static <E> ValidationResult validate(@NotNull ConfigNodeInfo nodeInfo, E newValue) {
 +        if (nodeInfo.validator() != null) {
 +            try {
 +                Validator<E> validator = (Validator<E>) nodeInfo.validator();
