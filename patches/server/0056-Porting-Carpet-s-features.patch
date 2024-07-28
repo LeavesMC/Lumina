@@ -453,6 +453,22 @@ index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..510017d57f4f6fecf85212994400022f
      }
  
      public boolean isFriendly() {
+diff --git a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
+index e68e464a42096e6c048c81765f85d5e9f4581c6d..8b7081b54b1374a28ae968cfd05fdaae561bc638 100644
+--- a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
++++ b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
+@@ -56,6 +56,11 @@ public class SpawnPlacements {
+     }
+ 
+     public static SpawnPlacementType getPlacementType(EntityType<?> type) {
++        // Lumina start - Porting Carpet's features - piglins spawning in bastions
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.piglinsSpawningInBastions && type == EntityType.PIGLIN_BRUTE) {
++             return SpawnPlacementTypes.ON_GROUND;
++        }
++        // Lumina end - Porting Carpet's features - piglins spawning in bastions
+         SpawnPlacements.Data data = DATA_BY_TYPE.get(type);
+         return data == null ? SpawnPlacementTypes.NO_RESTRICTIONS : data.placement;
+     }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 index 7873462c6146b7431011a2b73eb7414f61afbccf..9f7e74ea6b4cc7b8bae8f8170d8064e2ffdfd5b1 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
