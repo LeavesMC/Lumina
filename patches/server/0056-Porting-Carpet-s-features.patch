@@ -454,7 +454,7 @@ index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..510017d57f4f6fecf85212994400022f
  
      public boolean isFriendly() {
 diff --git a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
-index e68e464a42096e6c048c81765f85d5e9f4581c6d..8b7081b54b1374a28ae968cfd05fdaae561bc638 100644
+index 1661f71bb875f4143d860c9ead0f9334cf4a5c0b..db282dd1c16791107e4887ea5005ed2b8cbe3843 100644
 --- a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
 +++ b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
 @@ -56,6 +56,11 @@ public class SpawnPlacements {
@@ -1703,27 +1703,57 @@ index 4caceb37f0aec4a1d326fe45ff096e6473b64447..25b13cf76b62d4c64d0548627c60c37c
                      }
                  }
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..431d95c45f6fab95241396794bccfedf41339f40 100644
+index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..5ed265b87c365550a055cca45210acebd17fdc7d 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 @@ -69,6 +69,12 @@ public class PistonBaseBlock extends DirectionalBlock {
      protected static final VoxelShape DOWN_AABB = Block.box(0.0D, 4.0D, 0.0D, 16.0D, 16.0D, 16.0D);
      private final boolean isSticky;
  
-+    // Lumina start - Porting Carpet's features - movable block entities // TODO
++    // Lumina start - Porting Carpet's features - rotator block
 +    public boolean publicShouldExtend(Level world_1, BlockPos blockPos_1, Direction direction_1) {
 +        return getNeighborSignal(world_1, blockPos_1,direction_1);
 +    }
-+    // Lumina end - Porting Carpet's features - movable block entities
++    // Lumina end - Porting Carpet's features - rotator block
 +
      @Override
      public MapCodec<PistonBaseBlock> codec() {
          return PistonBaseBlock.CODEC;
+@@ -193,6 +199,7 @@ public class PistonBaseBlock extends DirectionalBlock {
+         if (world.hasSignal(pos, Direction.DOWN)) {
+             return true;
+         } else {
++            if(true) return org.leavesmc.lumina.carpet.helpers.QuasiConnectivity.hasQuasiSignal(world, pos); // Lumina - Porting Carpet's features - quasi connectivity
+             BlockPos blockposition1 = pos.above();
+             Direction[] aenumdirection1 = Direction.values();
+ 
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 58b570cfdd52b414752b5a117946d59031eafe94..799ecfcc947407d57e36ce47305d33f3cb5595f5 100644
+index 58b570cfdd52b414752b5a117946d59031eafe94..475bf2fa0c24ddb133e264fbb9528a4bdd603077 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -157,7 +157,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -136,6 +136,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+                         }
+ 
+                         entity = (Entity)var12.next();
++                        // Lumina start - Porting Carpet's features - creative no clip
++                        if (entity instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake && blockEntity.getMovedState().is(Blocks.SLIME_BLOCK)) {
++                            Vec3 vec3d = entity.getDeltaMovement();
++                            double x = vec3d.x;
++                            double y = vec3d.y;
++                            double z = vec3d.z;
++                            Direction di = blockEntity.getMovementDirection();
++                            switch (di.getAxis()) {
++                                case X -> x = di.getStepX();
++                                case Y -> y = di.getStepY();
++                                case Z -> z = di.getStepZ();
++                            }
++                            entity.setDeltaMovement(x, y, z);
++                        }
++                        // Lumina end - Porting Carpet's features - creative no clip
+                         if (entity.getPistonPushReaction() != PushReaction.IGNORE) {
+                             if (!bl) {
+                                 break;
+@@ -157,7 +172,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
                                          h = (double)direction.getStepZ();
                                  }
  
@@ -1732,7 +1762,7 @@ index 58b570cfdd52b414752b5a117946d59031eafe94..799ecfcc947407d57e36ce47305d33f3
                                  // Paper - EAR items stuck in in slime pushed by a piston
                                  entity.activatedTick = Math.max(entity.activatedTick, io.papermc.paper.threadedregions.RegionizedServer.getCurrentTick() + 10); // Folia - region threading
                                  entity.activatedImmunityTick = Math.max(entity.activatedImmunityTick, io.papermc.paper.threadedregions.RegionizedServer.getCurrentTick() + 10); // Folia - region threading
-@@ -193,6 +193,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -193,6 +208,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      private static void moveEntityByPiston(Direction direction, Entity entity, double distance, Direction movementDirection) {
@@ -1740,6 +1770,89 @@ index 58b570cfdd52b414752b5a117946d59031eafe94..799ecfcc947407d57e36ce47305d33f3
          NOCLIP.set(direction);
          entity.move(
              MoverType.PISTON,
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java b/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
+index 205e223c356634bd6bc6bd58c6f0b7fda61a6f5f..8a3417b876af9fe1813c42cb5155e2ce20e62534 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
+@@ -19,6 +19,34 @@ public class PistonStructureResolver {
+     private final List<BlockPos> toPush = Lists.newArrayList();
+     private final List<BlockPos> toDestroy = Lists.newArrayList();
+     private final Direction pistonDirection;
++    // Lumina start - Porting Carpet's features - custom sticky
++    private BlockPos pos_addBlockLine;
++    private BlockPos behindPos_addBlockLine;
++    private Direction dir_addBranchingBlocks;
++    private BlockPos neighborPos_addBranchingBlocks;
++
++    private boolean onAddBlockLineCanStickToEachOther(BlockState state, BlockState behindState) {
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChainBlock chainBlock){
++            return chainBlock.isStickyToNeighbor(level, pos_addBlockLine, state, behindPos_addBlockLine, behindState, pushDirection.getOpposite(), pushDirection);
++        }
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChestBlock chestBlock){
++            return chestBlock.isStickyToNeighbor(level, pos_addBlockLine, state, behindPos_addBlockLine, behindState, pushDirection.getOpposite(), pushDirection);
++        }
++
++        return canStickToEachOther(state, behindState);
++    }
++
++    private boolean onAddBranchingBlocksCanStickToEachOther(BlockState neighborState, BlockState state, BlockPos pos) {
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChainBlock chainBlock) {
++            return chainBlock.isStickyToNeighbor(level, pos, state, neighborPos_addBranchingBlocks, neighborState, dir_addBranchingBlocks, pushDirection);
++        }
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChestBlock chestBlock) {
++            return chestBlock.isStickyToNeighbor(level, pos, state, neighborPos_addBranchingBlocks, neighborState, dir_addBranchingBlocks, pushDirection);
++        }
++
++        return canStickToEachOther(neighborState, state);
++    }
++    // Lumina end - Porting Carpet's features - custom sticky
+ 
+     public PistonStructureResolver(Level world, BlockPos pos, Direction dir, boolean retracted) {
+         this.level = world;
+@@ -60,6 +88,14 @@ public class PistonStructureResolver {
+     }
+ 
+     private static boolean isSticky(BlockState state) {
++        // Lumina start - Porting Carpet's features - custom sticky
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChainBlock chainBlock){
++            return chainBlock.isSticky(state);
++        }
++        if (state.getBlock() instanceof net.minecraft.world.level.block.ChestBlock chestBlock){
++            return chestBlock.isSticky(state);
++        }
++        // Lumina end - Porting Carpet's features - custom sticky
+         return state.is(Blocks.SLIME_BLOCK) || state.is(Blocks.HONEY_BLOCK);
+     }
+ 
+@@ -87,9 +123,13 @@ public class PistonStructureResolver {
+                 while (isSticky(blockState)) {
+                     BlockPos blockPos = pos.relative(this.pushDirection.getOpposite(), i);
+                     BlockState blockState2 = blockState;
++                    // Lumina start - Porting Carpet's features - custom sticky
++                    pos_addBlockLine = blockPos.relative(pushDirection);
++                    behindPos_addBlockLine = blockPos;
++                    // Lumina end - Porting Carpet's features - custom sticky
+                     blockState = this.level.getBlockState(blockPos);
+                     if (blockState.isAir()
+-                        || !canStickToEachOther(blockState2, blockState)
++                        || !onAddBlockLineCanStickToEachOther(blockState2, blockState) // Lumina - Porting Carpet's features - custom sticky
+                         || !PistonBaseBlock.isPushable(blockState, this.level, blockPos, this.pushDirection, false, this.pushDirection.getOpposite())
+                         || blockPos.equals(this.pistonPos)) {
+                         break;
+@@ -171,8 +211,12 @@ public class PistonStructureResolver {
+         for (Direction direction : Direction.values()) {
+             if (direction.getAxis() != this.pushDirection.getAxis()) {
+                 BlockPos blockPos = pos.relative(direction);
++                // Lumina start - Porting Carpet's features - custom sticky
++                dir_addBranchingBlocks = direction;
++                neighborPos_addBranchingBlocks = blockPos;
++                // Lumina end - Porting Carpet's features - custom sticky
+                 BlockState blockState2 = this.level.getBlockState(blockPos);
+-                if (canStickToEachOther(blockState2, blockState) && !this.addBlockLine(blockPos, direction)) {
++                if (onAddBranchingBlocksCanStickToEachOther(blockState2, blockState, blockPos) && !this.addBlockLine(blockPos, direction)) { // Lumina - Porting Carpet's features - custom sticky
+                     return false;
+                 }
+             }
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 index 2034ca2edd3aff61d94416266e75402babd3e741..1b95d8ac61d9d4a3717a65fdf1dac6d6596b661a 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
@@ -2267,7 +2380,7 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..43a4b19c8d9195f0f88cc1d8444386d444d43be2
+index 0000000000000000000000000000000000000000..2752556bb7cdaf54f97e231a5f5a20bba05edb77
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 @@ -0,0 +1,473 @@
@@ -2354,7 +2467,7 @@ index 0000000000000000000000000000000000000000..43a4b19c8d9195f0f88cc1d8444386d4
 +    @Validate(QuasiConnectivityValidator.class)
 +    @Comment("""
 +            Pistons, droppers, and dispensers check for power to the block(s) above them.
-+            Defines the range at which pistons, droppers, and dispensers check for 'quasi power""")
++            Defines the range at which pistons, droppers, and dispensers check for quasi power""")
 +    public int quasiConnectivity = 1;
 +
 +    @Comment("""
