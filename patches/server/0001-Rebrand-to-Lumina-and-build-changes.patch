@@ -153,7 +153,7 @@ index 29bd788ae8bc61c1e62a4f84b9e259931a7041ce..a3cb03e0e85b8190b4800e5330b403e3
              ).openBufferedStream()) {
                  final JsonObject json = new Gson().fromJson(reader, JsonObject.class);
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-index e9b6ca3aa25e140467ae866d572483050ea3fa0e..fbbf774f90b70ca94d0c3945ebc3616f7b321f22 100644
+index e9b6ca3aa25e140467ae866d572483050ea3fa0e..43fff05dad3ec1e0ce87af2b6073761ecd39c046 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 @@ -11,7 +11,7 @@ public final class Versioning {
@@ -161,7 +161,7 @@ index e9b6ca3aa25e140467ae866d572483050ea3fa0e..fbbf774f90b70ca94d0c3945ebc3616f
          String result = "Unknown-Version";
  
 -        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/dev.folia/folia-api/pom.properties"); // Folia
-+        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/org.leavesmc.lumin/lumina-api/pom.properties"); // Folia // Lumina
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/org.leavesmc.lumina/lumina-api/pom.properties"); // Folia // Lumina
          Properties properties = new Properties();
  
          if (stream != null) {
@@ -170,7 +170,7 @@ index e9b6ca3aa25e140467ae866d572483050ea3fa0e..fbbf774f90b70ca94d0c3945ebc3616f
                  result = properties.getProperty("version");
              } catch (IOException ex) {
 -                Logger.getLogger(Versioning.class.getName()).log(Level.SEVERE, "Could not get Bukkit version!", ex);
-+                Logger.getLogger(Versioning.class.getName()).log(Level.SEVERE, "Could not get Lumina version!", ex);
++                Logger.getLogger(Versioning.class.getName()).log(Level.SEVERE, "Could not get Lumina version!", ex); // Lumina
              }
          }
  

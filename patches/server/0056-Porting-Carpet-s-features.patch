@@ -788,7 +788,7 @@ index b0f2e614c90137c526de865bd64469f09b95c964..4120da2d83249e40054a293dce3e30c7
      private void touch(Entity entity) {
          entity.playerTouch(this);
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java b/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
-index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0103012a0 100644
+index fe92fffd7cab267024af18d010345d9b67c62045..a435e105e34d604289b896ccaedd323bbd60c75c 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
 +++ b/src/main/java/net/minecraft/world/entity/projectile/AbstractArrow.java
 @@ -55,7 +55,7 @@ import org.bukkit.event.player.PlayerPickupArrowEvent;
@@ -813,15 +813,7 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
      }
  
      protected AbstractArrow(EntityType<? extends AbstractArrow> type, double x, double y, double z, Level world, ItemStack stack) {
-@@ -119,6 +123,7 @@ public abstract class AbstractArrow extends Projectile {
-         this(type, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, stack);
-         this.setOwner(owner);
-     }
-+    public AbstractArrow(EntityType<? extends Projectile> entityType_1, Level world_1) { super(entityType_1, world_1); } // Lumina - Porting Carpet's features
- 
-     public void setSoundEvent(SoundEvent sound) {
-         this.soundEvent = sound;
-@@ -162,6 +167,11 @@ public abstract class AbstractArrow extends Projectile {
+@@ -162,6 +166,11 @@ public abstract class AbstractArrow extends Projectile {
  
      @Override
      public void tick() {
@@ -833,7 +825,7 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
          super.tick();
          // Folia start - region threading - make sure entities do not move into regions they do not own
          if (!io.papermc.paper.util.TickThread.isTickThreadFor((net.minecraft.server.level.ServerLevel)this.level(), this.position(), this.getDeltaMovement(), 1)) {
-@@ -386,6 +396,12 @@ public abstract class AbstractArrow extends Projectile {
+@@ -386,6 +395,12 @@ public abstract class AbstractArrow extends Projectile {
  
              if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
                  this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
@@ -846,7 +838,7 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
                  return;
              }
  
-@@ -426,6 +442,12 @@ public abstract class AbstractArrow extends Projectile {
+@@ -426,6 +441,12 @@ public abstract class AbstractArrow extends Projectile {
  
          if (entity.hurt(damagesource, (float) i)) {
              if (flag) {
@@ -859,7 +851,7 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
                  return;
              }
  
-@@ -486,7 +508,12 @@ public abstract class AbstractArrow extends Projectile {
+@@ -486,7 +507,12 @@ public abstract class AbstractArrow extends Projectile {
                  this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
          }
@@ -873,7 +865,7 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
      }
  
      @Override
-@@ -507,6 +534,12 @@ public abstract class AbstractArrow extends Projectile {
+@@ -507,6 +533,12 @@ public abstract class AbstractArrow extends Projectile {
          this.setSoundEvent(SoundEvents.ARROW_HIT);
          this.setShotFromCrossbow(false);
          this.resetPiercedEntities();
