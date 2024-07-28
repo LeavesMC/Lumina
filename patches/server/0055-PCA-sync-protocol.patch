@@ -64,7 +64,7 @@ index 2cd8ac8840c2c0346fbf209c5ae3bb67eb3905e8..d146a0aa42ba3f817ff53a43f7cd880c
      @Override
      public boolean stillValid(Player player) {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-index 89b5ad89833ee76ca5d08439795d877c88439f3b..a9462d275c3b0f7d4cabe22fe3c1c609e31b538d 100644
+index a99fe191c429bb528209dd0f31b509acf9cccbb5..ed61a1a90f139d0f07442b19a2c547e87a6eff9a 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 @@ -555,6 +555,16 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
@@ -243,7 +243,7 @@ index ab63a233f7db352e325fa4498dd35b125fa8fcea..1b388b5fef740fb540617e541a05d39a
      protected Component getDefaultName() {
          return Component.translatable("container.dispenser");
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index dd7ad1c7e356c2bba597b73b46e005c957f44c52..236fd8d93c0a1950f1c86cee3a5d278cf6817798 100644
+index 957c217653a664bab26db476724d288b18d87102..5a51c11074f629f640374094b59fb986ac2b77e1 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -170,6 +170,16 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen

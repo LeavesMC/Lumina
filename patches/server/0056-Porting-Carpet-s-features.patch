@@ -3,7 +3,10 @@ From: MC_XiaoHei <xiaohei.xor7@outlook.com>
 Date: Fri, 26 Jul 2024 01:09:46 +0800
 Subject: [PATCH] Porting Carpet's features
 
-This patch is Powered by fabric-carpet(https://github.com/gnembon/fabric-carpet) and Leaves(https://github.com/LeavesMC/Leaves)
+This patch is Powered by:
+* fabric-carpet(https://github.com/gnembon/fabric-carpet)
+* plusls-carpet-addition(https://github.com/plusls/plusls-carpet-addition)
+* Leaves(https://github.com/LeavesMC/Leaves)
 Leaves License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
 
 fabric-carpet License:
@@ -29,8 +32,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
+
 diff --git a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
-index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..0e5c10733100313f4dbe654acce17d652c6d378a 100644
+index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..45cb98509a481cbfd375d6127f11b487f72238f6 100644
 --- a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 +++ b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 @@ -59,7 +59,7 @@ public class BlockInput implements Predicate<BlockInWorld> {
@@ -38,7 +43,7 @@ index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..0e5c10733100313f4dbe654acce17d65
  
      public boolean place(ServerLevel world, BlockPos pos, int flags) {
 -        BlockState blockState = Block.updateFromNeighbourShapes(this.state, world, pos);
-+        BlockState blockState = (org.leavesmc.lumina.carpet.CarpetServer.IMPENDING_FILL_SKIP_UPDATES.get()) ? this.state : Block.updateFromNeighbourShapes(this.state, world, pos); // Lumina - Porting Carpet's features
++        BlockState blockState = (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) ? this.state : Block.updateFromNeighbourShapes(this.state, world, pos); // Lumina - Porting Carpet's features
          if (blockState.isAir()) {
              blockState = this.state;
          }
@@ -161,6 +166,23 @@ index 95bb9d341ff28d37934ceba4ef07c95211cf578a..68853aeace0bb51beaf497a97e6e2879
              }
  
              if (k == 0) {
+diff --git a/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java b/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
+index 87275b46c4411fd51d6572ec7b3f924e347d4ed7..33d58dd7cca3dd4031ee63f00a0cd2ff360f5fd9 100644
+--- a/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
++++ b/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
+@@ -183,8 +183,10 @@ public class ForceLoadCommand {
+             int o = SectionPos.blockToSectionCoord(k);
+             int p = SectionPos.blockToSectionCoord(l);
+             long q = ((long)(o - m) + 1L) * ((long)(p - n) + 1L);
+-            if (q > 256L) {
+-                throw ERROR_TOO_MANY_CHUNKS.create(256, q);
++            // Lumina start - Porting Carpet's features
++            if (q > (long)org.leavesmc.lumina.carpet.CarpetConfig.configModule.forceloadLimit) {
++                throw ERROR_TOO_MANY_CHUNKS.create(org.leavesmc.lumina.carpet.CarpetConfig.configModule.forceloadLimit, q);
++                // Lumina end - Porting Carpet's features
+             } else {
+                 ServerLevel serverLevel = source.getLevel();
+                 ResourceKey<Level> resourceKey = serverLevel.dimension();
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 index 25aadc085d6af9f6c619bd2f5347180989514441..bed1a0366daa4467ce54b3e67ffd804503cbabee 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
@@ -292,6 +314,19 @@ index bbb856fb9b4082d752a6761bb5196fffa48fbd6c..3f9785e1af4c96a1ae3de8ff80a7bd36
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
          // Purpur start
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..d7ec9b92c74abcf9ba9da828ba1961c7c2d6ed3f 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -3460,7 +3460,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+             }
+ 
+             boolean flag1 = packet.slotNum() >= 1 && packet.slotNum() <= 45;
+-            boolean flag2 = itemstack.isEmpty() || itemstack.getCount() <= itemstack.getMaxStackSize();
++            boolean flag2 = itemstack.isEmpty() || itemstack.getCount() <= org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack); // Leaves - stackable shulker boxes
+             if (flag || (flag1 && !ItemStack.matches(this.player.inventoryMenu.getSlot(packet.slotNum()).getItem(), packet.itemStack()))) { // Insist on valid slot
+                 // CraftBukkit start - Call click event
+                 InventoryView inventory = this.player.inventoryMenu.getBukkitView();
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
 index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..0b7a7f739bde72fd20a8d92f3c8fe5c75c325bb8 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
@@ -317,6 +352,45 @@ index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..0b7a7f739bde72fd20a8d92f3c8fe5c7
  
          return optional;
      }
+diff --git a/src/main/java/net/minecraft/world/Container.java b/src/main/java/net/minecraft/world/Container.java
+index 541cb29a10e2c87a8214ff5beadb71bc1922d353..add96448c9b9b722aba20bfecb3c107d06fc9398 100644
+--- a/src/main/java/net/minecraft/world/Container.java
++++ b/src/main/java/net/minecraft/world/Container.java
+@@ -94,6 +94,12 @@ public interface Container extends Clearable {
+         return Math.min(this.getMaxStackSize(), stack.getMaxStackSize());
+     }
+ 
++    // Leaves start - stackable shulker boxes
++    default int getMaxStackLeaves(ItemStack stack) {
++        return Math.min(this.getMaxStackSize(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack));
++    }
++    // Leaves end - stackable shulker boxes
++
+     void setChanged();
+ 
+     boolean stillValid(Player player);
+diff --git a/src/main/java/net/minecraft/world/SimpleContainer.java b/src/main/java/net/minecraft/world/SimpleContainer.java
+index d04bf7d06855022c973073fb84c5d3d65f2553e1..9bedd76330e71ca7f3feecf0b90ec960c35d1a6f 100644
+--- a/src/main/java/net/minecraft/world/SimpleContainer.java
++++ b/src/main/java/net/minecraft/world/SimpleContainer.java
+@@ -222,7 +222,7 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
+     @Override
+     public void setItem(int slot, ItemStack stack) {
+         this.items.set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack));
+         this.setChanged();
+     }
+ 
+@@ -318,7 +318,7 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
+     }
+ 
+     private void moveItemsBetweenStacks(ItemStack source, ItemStack target) {
+-        int i = this.getMaxStackSize(target);
++        int i = this.getMaxStackLeaves(target); // Leaves - stackable shulker boxes
+         int j = Math.min(source.getCount(), i - target.getCount());
+ 
+         if (j > 0) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index c17f8b0d8fe362a5a0255c5f639f2b6eb077f0f9..38c6403c780e276910cb0c30cb12b066249be81e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
@@ -411,6 +485,184 @@ index d504d10fbe45dfe3f2f3d08d2473df6cd18f6dcf..2aeacaca3c1f62e067fef9c82e9f261c
          if (this.blockState.isAir()) {
              this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index 4b59206a342e7fc4174439df6842d0c677be2c4c..18ca447bdd5873151d1d73b2a39cd4cf02906252 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -22,10 +22,12 @@ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.SlotAccess;
+ import net.minecraft.world.entity.TraceableEntity;
++import net.minecraft.world.item.BlockItem;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.ShulkerBoxBlock;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.phys.Vec3;
+ // CraftBukkit start
+@@ -35,6 +37,7 @@ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.Stats;
+ import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.bukkit.entity.Player;
++import org.bukkit.block.ShulkerBox;
+ import org.bukkit.event.entity.EntityPickupItemEvent;
+ import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.bukkit.event.player.PlayerPickupItemEvent;
+@@ -96,6 +99,22 @@ public class ItemEntity extends Entity implements TraceableEntity {
+         this.bobOffs = entity.bobOffs;
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public void thunderHit(ServerLevel world, net.minecraft.world.entity.LightningBolt lightning) {
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.lightningKillsDropsFix) {
++            if (this.age > 8) { //Only kill item if it's older than 8 ticks
++                super.thunderHit(world, lightning);
++            }
++        } else {
++            super.thunderHit(world, lightning);
++        }
++    }
++
++    public int getPickupDelayCM() {
++        return this.pickupDelay;
++    }
++    // Lumina end - Porting Carpet's features
++
+     @Override
+     public boolean dampensVibrations() {
+         return this.getItem().is(ItemTags.DAMPENS_VIBRATIONS);
+@@ -313,10 +332,49 @@ public class ItemEntity extends Entity implements TraceableEntity {
+     private boolean isMergable() {
+         ItemStack itemstack = this.getItem();
+ 
+-        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < itemstack.getMaxStackSize(); // Paper - Alternative item-despawn-rate
++        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack); // Paper - Alternative item-despawn-rate // Leaves - stackable shulker boxes
++    }
++
++    // Leaves end - stackable shulker boxes
++    private boolean tryStackShulkerBoxes(ItemEntity other) {
++        ItemStack selfStack = this.getItem();
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.shulkerBoxStackSize == 1 || !(selfStack.getItem() instanceof BlockItem bi) || !(bi.getBlock() instanceof ShulkerBoxBlock)) {
++            return false;
++        }
++
++        ItemStack otherStack = other.getItem();
++        if (selfStack.getItem() == otherStack.getItem()
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(selfStack)
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(otherStack)
++            && Objects.equals(selfStack.getComponents(), otherStack.getComponents()) // empty block entity tags are cleaned up when spawning
++            && selfStack.getCount() != org.leavesmc.lumina.carpet.CarpetConfig.configModule.shulkerBoxStackSize) {
++            int amount = Math.min(otherStack.getCount(), org.leavesmc.lumina.carpet.CarpetConfig.configModule.shulkerBoxStackSize - selfStack.getCount());
++
++            selfStack.grow(amount);
++            this.setItem(selfStack);
++
++            this.pickupDelay = Math.max(other.pickupDelay, this.pickupDelay);
++            this.age = Math.min(other.getAge(), this.age);
++
++            otherStack.shrink(amount);
++            if (otherStack.isEmpty()) {
++                other.discard();
++            }
++            else {
++                other.setItem(otherStack);
++            }
++            return true;
++        }
++        return false;
+     }
++    // Leaves end - stackable shulker boxes
+ 
+     private void tryToMerge(ItemEntity other) {
++        // Leaves start - stackable shulker boxes
++        if (tryStackShulkerBoxes(other)) {
++            return;
++        }
++        // Leaves end - stackable shulker boxes
+         ItemStack itemstack = this.getItem();
+         ItemStack itemstack1 = other.getItem();
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/monster/Guardian.java b/src/main/java/net/minecraft/world/entity/monster/Guardian.java
+index 6c2e2fd5826a5f8070502e20d1d140c3d70bd0d3..b126ae421ea2cde627857d5366e2a1d4b77a761b 100644
+--- a/src/main/java/net/minecraft/world/entity/monster/Guardian.java
++++ b/src/main/java/net/minecraft/world/entity/monster/Guardian.java
+@@ -70,6 +70,28 @@ public class Guardian extends Monster {
+         this.clientSideTailAnimationO = this.clientSideTailAnimation;
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public void thunderHit(net.minecraft.server.level.ServerLevel serverWorld, net.minecraft.world.entity.LightningBolt lightningEntity) {
++        if (!this.level().isClientSide && !this.isRemoved() && org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableSponges && !((Object)this instanceof ElderGuardian)) {
++            ElderGuardian elderGuardian = new ElderGuardian(EntityType.ELDER_GUARDIAN ,this.level());
++            elderGuardian.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
++            elderGuardian.finalizeSpawn(serverWorld ,this.level().getCurrentDifficultyAt(elderGuardian.blockPosition()), MobSpawnType.CONVERSION, null);
++            elderGuardian.setNoAi(this.isNoAi());
++
++            if (this.hasCustomName()) {
++                elderGuardian.setCustomName(this.getCustomName());
++                elderGuardian.setCustomNameVisible(this.isCustomNameVisible());
++            }
++
++            this.level().addFreshEntity(elderGuardian);
++            this.discard(); // discard remove();
++        }
++        else {
++            super.thunderHit(serverWorld, lightningEntity);
++        }
++    }
++    // Lumina end - Porting Carpet's features
++
+     @Override
+     protected void registerGoals() {
+         MoveTowardsRestrictionGoal pathfindergoalmovetowardsrestriction = new MoveTowardsRestrictionGoal(this, 1.0D);
+diff --git a/src/main/java/net/minecraft/world/entity/monster/Husk.java b/src/main/java/net/minecraft/world/entity/monster/Husk.java
+index c34c8483a026f61fe20935697d321d7ef5d8dfbc..3abda4d1c01939b323e4e9e1a1e0b2d1477cf62b 100644
+--- a/src/main/java/net/minecraft/world/entity/monster/Husk.java
++++ b/src/main/java/net/minecraft/world/entity/monster/Husk.java
+@@ -23,7 +23,7 @@ public class Husk extends Zombie {
+     }
+ 
+     public static boolean checkHuskSpawnRules(EntityType<Husk> type, ServerLevelAccessor world, MobSpawnType spawnReason, BlockPos pos, RandomSource random) {
+-        return checkMonsterSpawnRules(type, world, spawnReason, pos, random) && (MobSpawnType.isSpawner(spawnReason) || world.canSeeSky(pos));
++        return checkMonsterSpawnRules(type, world, spawnReason, pos, random) && (MobSpawnType.isSpawner(spawnReason) || world.canSeeSky(pos) || (org.leavesmc.lumina.carpet.CarpetConfig.configModule.huskSpawningInTemples && org.leavesmc.lumina.carpet.utils.SpawnOverrides.isStructureAtPosition((net.minecraft.server.level.ServerLevel)world, net.minecraft.world.level.levelgen.structure.BuiltinStructures.DESERT_PYRAMID, pos))); // Lumina - Porting Carpet's features
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/entity/player/Inventory.java b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+index ca7fbe4f8c1e1d2fb90095aa35be4dda3029c23e..d1378c5be891e41b9d43765b2d307e0e5e95f013 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Inventory.java
++++ b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+@@ -111,7 +111,7 @@ public class Inventory implements Container, Nameable {
+     }
+ 
+     private boolean hasRemainingSpaceForItem(ItemStack existingStack, ItemStack stack) {
+-        return !existingStack.isEmpty() && existingStack.isStackable() && existingStack.getCount() < this.getMaxStackSize(existingStack) && ItemStack.isSameItemSameComponents(existingStack, stack); // Paper - check if itemstack is stackable first
++        return !existingStack.isEmpty() && org.leavesmc.leaves.util.ShulkerBoxUtils.isStackable(existingStack) && existingStack.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(existingStack) && ItemStack.isSameItemSameComponents(existingStack, stack); // Paper - check if itemstack is stackable first
+     }
+ 
+     // CraftBukkit start - Watch method above! :D
+@@ -279,7 +279,9 @@ public class Inventory implements Container, Nameable {
+             this.setItem(slot, itemstack1);
+         }
+ 
+-        int k = this.getMaxStackSize(itemstack1) - itemstack1.getCount();
++        // Leaves start - stackable shulker boxes
++        int k = org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1) - itemstack1.getCount();
++        // Leaves end - stackable shulker boxes
+         int l = Math.min(j, k);
+ 
+         if (l == 0) {
+@@ -394,7 +396,7 @@ public class Inventory implements Container, Nameable {
+                 }
+ 
+                 if (i != -1) {
+-                    int j = stack.getMaxStackSize() - this.getItem(i).getCount();
++                    int j = org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack) - this.getItem(i).getCount(); // Leaves - stackable shulker boxes
+ 
+                     if (this.add(i, stack.split(j)) && notifiesClient && this.player instanceof ServerPlayer) {
+                         ((ServerPlayer) this.player).connection.send(new ClientboundContainerSetSlotPacket(-2, 0, i, this.getItem(i)));
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
 index b0f2e614c90137c526de865bd64469f09b95c964..4120da2d83249e40054a293dce3e30c7390de6a6 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
@@ -563,8 +815,21 @@ index fe92fffd7cab267024af18d010345d9b67c62045..6dd085b7d53de14e8cb1a85bcaf00dc0
      }
  
      protected SoundEvent getDefaultHitGroundSoundEvent() {
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/ContainerEntity.java b/src/main/java/net/minecraft/world/entity/vehicle/ContainerEntity.java
+index 845eff7401b811c179dc9dee70eca0d724be5c80..c88b98bd4ebec40649b9cfcf47ca20359ea2fb52 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/ContainerEntity.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/ContainerEntity.java
+@@ -162,7 +162,7 @@ public interface ContainerEntity extends Container, MenuProvider {
+     default void setChestVehicleItem(int slot, ItemStack stack) {
+         this.unpackChestVehicleLootTable(null);
+         this.getItemStacks().set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack)); // Leaves - stackable shulker boxes
+     }
+ 
+     default SlotAccess getChestVehicleSlot(int slot) {
 diff --git a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
-index 9319faaed7afe83e10c98f82c005d853713ed408..005fa211e01f8bdce697a1e4afe8f39b6a1bcb09 100644
+index 32910f677b0522ac8ec513fa0d00b714b52cfae4..005fa211e01f8bdce697a1e4afe8f39b6a1bcb09 100644
 --- a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
 @@ -399,6 +399,26 @@ public abstract class AbstractContainerMenu {
@@ -594,6 +859,100 @@ index 9319faaed7afe83e10c98f82c005d853713ed408..005fa211e01f8bdce697a1e4afe8f39b
          Inventory playerinventory = player.getInventory();
          Slot slot;
          ItemStack itemstack;
+@@ -454,7 +474,7 @@ public abstract class AbstractContainerMenu {
+ 
+                         if (slot1 != null && AbstractContainerMenu.canItemQuickReplace(slot1, itemstack2, true) && slot1.mayPlace(itemstack2) && (this.quickcraftType == 2 || itemstack2.getCount() >= this.quickcraftSlots.size()) && this.canDragTo(slot1)) {
+                             int j1 = slot1.hasItem() ? slot1.getItem().getCount() : 0;
+-                            int k1 = Math.min(itemstack1.getMaxStackSize(), slot1.getMaxStackSize(itemstack1));
++                            int k1 = Math.min(org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1), slot1.getMaxStackSize(itemstack1)); // Leaves - stackable shulker boxes                            int l1 = Math.min(AbstractContainerMenu.getQuickCraftPlaceCount(this.quickcraftSlots, this.quickcraftType, itemstack1) + j1, k1);
+                             int l1 = Math.min(AbstractContainerMenu.getQuickCraftPlaceCount(this.quickcraftSlots, this.quickcraftType, itemstack1) + j1, k1);
+ 
+                             l -= l1 - j1;
+@@ -573,7 +593,7 @@ public abstract class AbstractContainerMenu {
+                                     slot.setByPlayer(itemstack3);
+                                 }
+                             } else if (ItemStack.isSameItemSameComponents(itemstack, itemstack3)) {
+-                                Optional<ItemStack> optional1 = slot.tryRemove(itemstack.getCount(), itemstack3.getMaxStackSize() - itemstack3.getCount(), player);
++                                Optional<ItemStack> optional1 = slot.tryRemove(itemstack.getCount(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack3) - itemstack3.getCount(), player);
+ 
+                                 optional1.ifPresent((itemstack4) -> {
+                                     itemstack3.grow(itemstack4.getCount());
+@@ -643,7 +663,7 @@ public abstract class AbstractContainerMenu {
+                         slot2 = (Slot) this.slots.get(slotIndex);
+                         if (slot2.hasItem()) {
+                             itemstack1 = slot2.getItem();
+-                            this.setCarried(itemstack1.copyWithCount(itemstack1.getMaxStackSize()));
++                            this.setCarried(itemstack1.copyWithCount(org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1))); // Leaves - stackable shulker boxes
+                         }
+                     } else if (actionType == ClickType.THROW && this.getCarried().isEmpty() && slotIndex >= 0) {
+                         slot2 = (Slot) this.slots.get(slotIndex);
+@@ -658,13 +678,13 @@ public abstract class AbstractContainerMenu {
+                             j2 = button == 0 ? 1 : -1;
+ 
+                             for (i2 = 0; i2 < 2; ++i2) {
+-                                for (int k2 = l; k2 >= 0 && k2 < this.slots.size() && itemstack1.getCount() < itemstack1.getMaxStackSize(); k2 += j2) {
++                                for (int k2 = l; k2 >= 0 && k2 < this.slots.size() && itemstack1.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1); k2 += j2) { // Leaves - stackable shulker boxes
+                                     Slot slot3 = (Slot) this.slots.get(k2);
+ 
+                                     if (slot3.hasItem() && AbstractContainerMenu.canItemQuickReplace(slot3, itemstack1, true) && slot3.mayPickup(player) && this.canTakeItemForPickAll(itemstack1, slot3)) {
+                                         ItemStack itemstack5 = slot3.getItem();
+ 
+-                                        if (i2 != 0 || itemstack5.getCount() != itemstack5.getMaxStackSize()) {
++                                        if (i2 != 0 || itemstack5.getCount() != org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack5)) {
+                                             ItemStack itemstack6 = slot3.safeTake(itemstack5.getCount(), itemstack1.getMaxStackSize() - itemstack1.getCount(), player);
+ 
+                                             itemstack1.grow(itemstack6.getCount());
+@@ -787,7 +807,7 @@ public abstract class AbstractContainerMenu {
+         ItemStack itemstack1;
+         int l;
+ 
+-        if (stack.isStackable()) {
++        if (org.leavesmc.leaves.util.ShulkerBoxUtils.isStackable(stack)) { // Leaves - stackable shulker boxes
+             while (!stack.isEmpty()) {
+                 if (fromLast) {
+                     if (k < startIndex) {
+@@ -806,6 +826,7 @@ public abstract class AbstractContainerMenu {
+                 // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+                 if (!itemstack1.isEmpty() && ItemStack.isSameItemSameComponents(stack, itemstack1)) {
+                     l = itemstack1.getCount() + stack.getCount();
++                    // int i1 = org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1); // Leaves - stackable shulker boxes // disabled temporarily
+                     int i1 = slot.getMaxStackSize(itemstack1);
+ 
+                     if (l <= i1) {
+@@ -857,6 +878,7 @@ public abstract class AbstractContainerMenu {
+                 }
+                 // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+                 if (itemstack1.isEmpty() && slot.mayPlace(stack)) {
++                    // l = org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack1); // Leaves - stackable shulker boxes // disabled temporarily
+                     l = slot.getMaxStackSize(stack);
+                     // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
+                     if (isCheck) {
+diff --git a/src/main/java/net/minecraft/world/inventory/MerchantContainer.java b/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
+index 9140fab07aab32065f7a3b5d13dd17d61dc6d646..210b88b5d87fad641188cf5907c54824d21163ce 100644
+--- a/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
++++ b/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
+@@ -130,7 +130,7 @@ public class MerchantContainer implements Container {
+     @Override
+     public void setItem(int slot, ItemStack stack) {
+         this.itemStacks.set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack)); // Leaves - stackable shulker boxes
+         if (this.isPaymentSlot(slot)) {
+             this.updateSellItem();
+         }
+diff --git a/src/main/java/net/minecraft/world/inventory/Slot.java b/src/main/java/net/minecraft/world/inventory/Slot.java
+index c39c773112fb8b534b926f2f2b47fe6fbb69fcb2..ae9338b8a5598e7a257b469adae72858fed95c39 100644
+--- a/src/main/java/net/minecraft/world/inventory/Slot.java
++++ b/src/main/java/net/minecraft/world/inventory/Slot.java
+@@ -76,7 +76,7 @@ public class Slot {
+     }
+ 
+     public int getMaxStackSize(ItemStack stack) {
+-        return Math.min(this.getMaxStackSize(), stack.getMaxStackSize());
++        return Math.min(this.getMaxStackSize(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack)); // Leaves - stackable shulker boxes
+     }
+ 
+     @Nullable
 diff --git a/src/main/java/net/minecraft/world/item/BlockItem.java b/src/main/java/net/minecraft/world/item/BlockItem.java
 index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..2913bee2c00d6e8f1a5a7e40951891313d8f0228 100644
 --- a/src/main/java/net/minecraft/world/item/BlockItem.java
@@ -607,6 +966,19 @@ index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..2913bee2c00d6e8f1a5a7e4095189131
          org.bukkit.entity.Player player = (context.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity() : null;
  
          BlockCanBuildEvent event = new BlockCanBuildEvent(CraftBlock.at(context.getLevel(), context.getClickedPos()), player, CraftBlockData.fromData(state), defaultReturn, org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(context.getHand())); // Paper - Expose hand in BlockCanBuildEvent
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 41400c4fcd5d204ba9624f776a3e2eaf29a5dff9..0de4dcaa1731725e355a141fdf31f04b0b189942 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -228,7 +228,7 @@ public final class ItemStack implements DataComponentHolder {
+     @Deprecated
+     @Nullable
+     private Item item;
+-    private PatchedDataComponentMap components;
++    public PatchedDataComponentMap components; // Leaves - stackable shulker boxes
+     @Nullable
+     private Entity entityRepresentation;
+ 
 diff --git a/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java b/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java
 index f8f909ebdad5e96379e8bd8c610164ef0697368e..225259124bc7ab5a238475a0246ccf54cc7ea775 100644
 --- a/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java
@@ -683,19 +1055,22 @@ index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..809ea2940d2ac028edf77bcd30bb97f7
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index a0b61c77b23abec531b0b8f9b576fb4501067163..f48573716caf535543925c1bceca0cdff22bed67 100644
+index a0b61c77b23abec531b0b8f9b576fb4501067163..1bae95d892cf8de2c8a6f31c0bd3ab4e0fd4f851 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -102,7 +102,7 @@ import org.bukkit.event.block.BlockPhysicsEvent;
+@@ -102,7 +102,10 @@ import org.bukkit.event.block.BlockPhysicsEvent;
  // CraftBukkit end
  
  public abstract class Level implements LevelAccessor, AutoCloseable {
 -
-+    Map<net.minecraft.world.entity.EntityType<?>, Entity> precookedMobs = new HashMap<>(); // Lumina - Porting Carpet's features
++    // Lumina start - Porting Carpet's features
++    Map<net.minecraft.world.entity.EntityType<?>, Entity> precookedMobs = new HashMap<>();
++    private static final RuntimeException CONTROL_FLOW_EXCEPTION = new RuntimeException("Should be caught for control flow in World_getOtherEntitiesLimited!");
++    // Lumina end - Porting Carpet's features
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, new ResourceLocation("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, new ResourceLocation("the_nether"));
-@@ -175,6 +175,16 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -175,6 +178,105 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return (CraftServer) Bukkit.getServer();
      }
  
@@ -707,11 +1082,149 @@ index a0b61c77b23abec531b0b8f9b576fb4501067163..f48573716caf535543925c1bceca0cdf
 +    public Map<net.minecraft.world.entity.EntityType<?>, Entity> getPrecookedMobs() {
 +        return precookedMobs;
 +    }
++
++    public List<Entity> getOtherEntitiesLimited(@org.jetbrains.annotations.Nullable Entity except, AABB box, Predicate<? super Entity> predicate, int limit) {
++        this.getProfiler().incrementCounter("getEntities"); // visit
++        java.util.concurrent.atomic.AtomicInteger checkedEntities = new java.util.concurrent.atomic.AtomicInteger();
++        List<Entity> list = Lists.newArrayList();
++        try {
++            this.getEntities().get(box, (entity) -> {
++                if (checkedEntities.getAndIncrement() > limit) {
++                    throw CONTROL_FLOW_EXCEPTION;
++                }
++
++                if (entity != except && predicate.test(entity)) {
++                    list.add(entity);
++                }
++
++                if (entity instanceof EnderDragon) {
++                    EnderDragonPart[] var4 = ((EnderDragon) entity).getSubEntities();
++
++                    for (EnderDragonPart enderDragonPart : var4) {
++                        if (entity != except && predicate.test(enderDragonPart)) {
++                            list.add(enderDragonPart);
++                        }
++                    }
++                }
++            });
++        } catch (RuntimeException e) {
++            if (e != CONTROL_FLOW_EXCEPTION)
++                // If it wasn't the exception we were watching, rethrow it
++                throw e;
++        }
++        return list;
++    }
++
++    public boolean setBlockStateWithBlockEntity(BlockPos blockPos_1, BlockState blockState_1, BlockEntity newBlockEntity, int int_1) {
++        if (isOutsideBuildHeight(blockPos_1) || !this.isClientSide && isDebug()) return false;
++        LevelChunk worldChunk_1 = this.getChunkAt(blockPos_1);
++        Block block_1 = blockState_1.getBlock();
++
++        BlockState blockState_2;
++        if (newBlockEntity != null && block_1 instanceof net.minecraft.world.level.block.EntityBlock) {
++            blockState_2 = worldChunk_1.setBlockStateWithBlockEntity(blockPos_1, blockState_1, newBlockEntity, (int_1 & 64) != 0);
++            if (newBlockEntity instanceof net.minecraft.world.level.block.entity.LidBlockEntity) {
++                scheduleTick(blockPos_1, block_1, 5);
++            }
++        }
++        else {
++            blockState_2 = worldChunk_1.setBlockState(blockPos_1, blockState_1, (int_1 & 64) != 0);
++        }
++
++        if (blockState_2 == null) {
++            return false;
++        }
++        else {
++            BlockState blockState_3 = this.getBlockState(blockPos_1);
++
++            if (blockState_3 != blockState_2 && (blockState_3.getLightBlock((BlockGetter) this, blockPos_1) != blockState_2.getLightBlock((BlockGetter) this, blockPos_1) || blockState_3.getLightEmission() != blockState_2.getLightEmission() || blockState_3.useShapeForLightOcclusion() || blockState_2.useShapeForLightOcclusion())) {
++                ProfilerFiller profiler = getProfiler();
++                profiler.push("queueCheckLight");
++                this.getChunkSource().getLightEngine().checkBlock(blockPos_1);
++                profiler.pop();
++            }
++
++            if (blockState_3 == blockState_1) {
++                if (blockState_2 != blockState_3) {
++                    this.setBlocksDirty(blockPos_1, blockState_2, blockState_3);
++                }
++
++                if ((int_1 & 2) != 0 && (!this.isClientSide || (int_1 & 4) == 0) && (this.isClientSide || worldChunk_1.getFullStatus() != null && worldChunk_1.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {
++                    this.sendBlockUpdated(blockPos_1, blockState_2, blockState_1, int_1);
++                }
++
++                if (!this.isClientSide && (int_1 & 1) != 0) {
++                    this.updateNeighborsAt(blockPos_1, blockState_2.getBlock());
++                    if (blockState_1.hasAnalogOutputSignal()) {
++                        updateNeighbourForOutputSignal(blockPos_1, block_1);
++                    }
++                }
++
++                if ((int_1 & 16) == 0) {
++                    int int_2 = int_1 & -34;
++                    blockState_2.updateIndirectNeighbourShapes(this, blockPos_1, int_2); // prepare
++                    blockState_1.updateNeighbourShapes(this, blockPos_1, int_2); // updateNeighbours
++                    blockState_1.updateIndirectNeighbourShapes(this, blockPos_1, int_2); // prepare
++                }
++                this.onBlockStateChange(blockPos_1, blockState_2, blockState_3);
++            }
++            return true;
++        }
++    }
 +    // Lumina end - Porting Carpet's features
 +
      // Paper start - Use getChunkIfLoadedImmediately
      @Override
      public boolean hasChunk(int chunkX, int chunkZ) {
+@@ -1032,13 +1134,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+             }
+ 
+             if ((i & 1) != 0) {
+-                this.blockUpdated(blockposition, iblockdata1.getBlock());
++                if (!org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) this.blockUpdated(blockposition, iblockdata1.getBlock()); // Lumina - Porting Carpet's features
+                 if (!this.isClientSide && iblockdata.hasAnalogOutputSignal()) {
+                     this.updateNeighbourForOutputSignal(blockposition, newBlock.getBlock());
+                 }
+             }
+ 
+-            if ((i & 16) == 0 && j > 0) {
++            if ((i & (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get() ? -1 : 16)) == 0 && j > 0) { // Lumina - Porting Carpet's features
+                 int k = i & -34;
+ 
+                 // CraftBukkit start
+diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+index 20f2b575c8131621edea0e75fbf38a9fe20a36c4..8e43f36c32f80ad20e44a9df90d7e0efffd58a66 100644
+--- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+@@ -58,9 +58,27 @@ public abstract class AbstractCauldronBlock extends Block {
+         ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
+     ) {
+         CauldronInteraction cauldronInteraction = this.interactions.map().get(stack.getItem());
+-        return cauldronInteraction.interact(state, world, pos, player, hand, stack);
++        return wrapInteractor(cauldronInteraction, state, world, pos, player, hand, stack);
+     }
+ 
++    // Leaves start - stackable shulker boxes
++    private ItemInteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack) {
++        int count = -1;
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.shulkerBoxStackSize > 1 && itemStack.getItem() instanceof net.minecraft.world.item.BlockItem bi &&
++            bi.getBlock() instanceof ShulkerBoxBlock) {
++            count = itemStack.getCount();
++        }
++        ItemInteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack);
++        if (count > 0 && result.consumesAction()) {
++            ItemStack current = playerEntity.getItemInHand(hand);
++            if (current.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof ShulkerBoxBlock) {
++                current.setCount(count);
++            }
++        }
++        return result;
++    }
++    // Leaves end - stackable shulker boxes
++
+     @Override
+     protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+         return SHAPE;
 diff --git a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java b/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
 index f114299226082d5c2a306d211c498b12a15d2ddb..321b0f7e81e6ca82e3ba9f424baab3cfd0a70a34 100644
 --- a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
@@ -903,6 +1416,106 @@ index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..a6f1df7d0937d86f1d29d5027221b559
          boolean flag2 = (Boolean) state.getValue(DispenserBlock.TRIGGERED);
  
          if (flag1 && !flag2) {
+diff --git a/src/main/java/net/minecraft/world/level/block/HopperBlock.java b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
+index 86e5617d445ce762aa374e236a0ccdfe5901fce5..20a1e3ebfcd361f47a7435f7597de56ff834794e 100644
+--- a/src/main/java/net/minecraft/world/level/block/HopperBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
+@@ -98,7 +98,10 @@ public class HopperBlock extends BaseEntityBlock {
+ 
+     @Override
+     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+-        Direction direction = ctx.getClickedFace().getOpposite();
++        // Lumina start - Porting Carpet's features
++        Direction direction = ctx.getClickedFace();
++        if (!org.leavesmc.lumina.carpet.helpers.BlockRotator.flippinEligibility(ctx.getPlayer())) direction = direction.getOpposite();
++        // Lumina end - Porting Carpet's features
+         return this.defaultBlockState()
+             .setValue(FACING, direction.getAxis() == Direction.Axis.Y ? Direction.DOWN : direction)
+             .setValue(ENABLED, Boolean.valueOf(true));
+diff --git a/src/main/java/net/minecraft/world/level/block/InfestedBlock.java b/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
+index f1e349f55a7152f507eff62a4d9fe80805b27308..f15892def527c5b2cff2bc4c2c9aeba5b438123c 100644
+--- a/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
+@@ -56,6 +56,11 @@ public class InfestedBlock extends Block {
+             entitysilverfish.moveTo((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D, 0.0F, 0.0F);
+             world.addFreshEntity(entitysilverfish, SpawnReason.SILVERFISH_BLOCK); // CraftBukkit - add SpawnReason
+             entitysilverfish.spawnAnim();
++            // Lumina start - Porting Carpet's features
++            if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.silverFishDropGravel) {
++                popResource(world, pos, new ItemStack(Blocks.GRAVEL));
++            }
++            // Lumina end - Porting Carpet's features
+         }
+ 
+     }
+diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+index 84623c632d8c2f0fa7ec939c711316d757117d23..1aa8b19863a0eb82dcafbf200a9bca75711e1bb7 100644
+--- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+@@ -190,6 +190,13 @@ public class LiquidBlock extends Block implements BucketPickup {
+                 BlockPos blockposition1 = pos.relative(enumdirection.getOpposite());
+ 
+                 if (world.getFluidState(blockposition1).is(FluidTags.WATER)) {
++                    // Lumina start - Porting Carpet's features
++                    if(org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableDeepslate && !world.getFluidState(pos).isSource() && world.dimension() == Level.OVERWORLD && pos.getY() < 0) {
++                        world.setBlockAndUpdate(pos, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
++                        this.fizz(world, pos);
++                        return false;
++                    }
++                    // Lumina end - Porting Carpet's features
+                     Block block = world.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
+ 
+                     // CraftBukkit start
+@@ -210,7 +217,22 @@ public class LiquidBlock extends Block implements BucketPickup {
+                 }
+             }
+         }
+-
++        // Lumina start - Porting Carpet's features
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableBlackstone) {
++            if (fluid.is(FluidTags.LAVA)) {
++                for(Direction direction : Direction.values()) {
++                    if (direction != Direction.DOWN) {
++                        BlockPos blockPos = pos.relative(direction); // offset
++                        if (world.getBlockState(blockPos).is(Blocks.BLUE_ICE)) {
++                            world.setBlockAndUpdate(pos, Blocks.BLACKSTONE.defaultBlockState());
++                            fizz(world, pos);
++                            return false;
++                        }
++                    }
++                }
++            }
++        }
++        // Lumina end - Porting Carpet's features
+         return true;
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+index ed61a1a90f139d0f07442b19a2c547e87a6eff9a..a9462d275c3b0f7d4cabe22fe3c1c609e31b538d 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -546,7 +546,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
+         boolean flag = !stack.isEmpty() && ItemStack.isSameItemSameComponents(itemstack1, stack);
+ 
+         this.items.set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack)); // Leaves - stackable shulker boxes
+         if (slot == 0 && !flag) {
+             this.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(this.level, this.recipeType, this, this.cookSpeedMultiplier); // Paper - cook speed multiplier API
+             this.cookingProgress = 0;
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
+index 21c747f00892a8372c3ef239f63d59ccaa315295..4de789780bfef0ed4f480cb2d010144835b944c5 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
+@@ -146,7 +146,7 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
+     @Override
+     public void setItem(int slot, ItemStack stack) {
+         this.getItems().set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack)); // Leaves - stackable shulker boxes
+         this.setChanged();
+     }
+ 
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..ca47695d36a29ec6fcdff22567f8d605da59536c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
@@ -926,6 +1539,65 @@ index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..ca47695d36a29ec6fcdff22567f8d605
      // Folia start - region ticking
      public void updateTicks(final long fromTickOffset, final long fromRedstoneTimeOffset) {
  
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index 5a51c11074f629f640374094b59fb986ac2b77e1..2bd0f5f9ddd95032785be176e02acf2b34ea60d1 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -22,6 +22,7 @@ import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.inventory.AbstractContainerMenu;
+ import net.minecraft.world.inventory.HopperMenu;
++import net.minecraft.world.item.DyeColor;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
+@@ -161,7 +162,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     public void setItem(int slot, ItemStack stack) {
+         this.unpackLootTable((Player) null);
+         this.getItems().set(slot, stack);
+-        stack.limitSize(this.getMaxStackSize(stack));
++        stack.limitSize(this.getMaxStackLeaves(stack)); // Leaves - stackable shulker boxes
+     }
+ 
+     @Override
+@@ -486,6 +487,25 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     // Paper end - Perf: Optimize Hoppers
+ 
+     private static boolean ejectItems(Level world, BlockPos pos, HopperBlockEntity blockEntity) {
++        // Lumina start - Porting Carpet's features
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.hopperCounters) {
++            Direction hopperFacing = world.getBlockState(pos).getValue(HopperBlock.FACING);
++            DyeColor woolColor = org.leavesmc.lumina.carpet.utils.WoolTool.getWoolColorAtPosition(
++                    world,
++                    pos.relative(hopperFacing));
++            if (woolColor != null) {
++                Container inventory = HopperBlockEntity.getContainerAt(world, pos);
++                for (int i = 0; i < inventory.getContainerSize(); ++i) {
++                    if (!inventory.getItem(i).isEmpty()) {
++                        ItemStack itemstack = inventory.getItem(i);//.copy();
++                        org.leavesmc.lumina.carpet.helpers.HopperCounter.getCounter(woolColor).add(world.getServer(), itemstack);
++                        inventory.setItem(i, ItemStack.EMPTY);
++                    }
++                }
++                return true;
++            }
++        }
++        // Lumina end - Porting Carpet's features
+         Container iinventory = HopperBlockEntity.getAttachedContainer(world, pos, blockEntity);
+ 
+         if (iinventory == null) {
+@@ -783,9 +803,9 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+             if (itemstack1.isEmpty()) {
+                 // Spigot start - SPIGOT-6693, InventorySubcontainer#setItem
+                 ItemStack leftover = ItemStack.EMPTY; // Paper - Make hoppers respect inventory max stack size
+-                if (!stack.isEmpty() && stack.getCount() > to.getMaxStackSize()) {
++                if (!stack.isEmpty() && (stack.getCount() > to.getMaxStackSize() || stack.getCount() > stack.getMaxStackSize())) { // Leaves - stackable shulker boxes
+                     leftover = stack; // Paper - Make hoppers respect inventory max stack size
+-                    stack = stack.split(to.getMaxStackSize());
++                    stack = stack.split(Math.min(to.getMaxStackSize(), stack.getMaxStackSize())); // Leaves - stackable shulker boxes
+                 }
+                 // Spigot end
+                 IGNORE_TILE_UPDATES.set(Boolean.TRUE); // Paper - Perf: Optimize Hoppers // Folia - region threading
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
 index 4caceb37f0aec4a1d326fe45ff096e6473b64447..25b13cf76b62d4c64d0548627c60c37c103e541c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
@@ -1003,14 +1675,14 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..1543f9d114f91f8cbf2f5faef306323c
          }
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java b/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
-index 1aac95b03a9e2e37c24f2a30bcb259c1424e1c78..8742344ce029786361f59bcd80777e2f57afa49c 100644
+index 1aac95b03a9e2e37c24f2a30bcb259c1424e1c78..5fd8f8296b76e391c23537ab480fbaf99d5e3000 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -349,6 +349,7 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
      public abstract void removeBlockEntity(BlockPos pos);
  
      public void markPosForPostprocessing(BlockPos pos) {
-+        if (org.leavesmc.lumina.carpet.CarpetServer.SKIP_GENERATION_CHECKS.get()) return; // Lumina - Porting Carpet's features
++        if (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get()) return; // Lumina - Porting Carpet's features
          ChunkAccess.LOGGER.warn("Trying to mark a block for PostProcessing @ {}, but this operation is not supported.", pos);
      }
  
@@ -1031,6 +1703,122 @@ index 9a17f3d0b53b2ab0358012e4238164f8af0a6c6e..d36ee851511fb2c5a0b20d3dc570bd1e
              Structure structure = (Structure) entry.getKey();
              StructureSpawnOverride structurespawnoverride = (StructureSpawnOverride) structure.spawnOverrides().get(group);
  
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b5f6ac1d4 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -99,6 +99,79 @@ public class LevelChunk extends ChunkAccess {
+         this(world, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, (LevelChunkSection[]) null, (LevelChunk.PostLoadProcessor) null, (BlendingData) null);
+     }
+ 
++    // Lumina start - Porting Carpet's features
++    public BlockState setBlockStateWithBlockEntity(BlockPos blockPos_1, BlockState newBlockState, BlockEntity newBlockEntity, boolean boolean_1) {
++        int x = blockPos_1.getX() & 15;
++        int y = blockPos_1.getY();
++        int z = blockPos_1.getZ() & 15;
++        LevelChunkSection chunkSection = this.getSection(this.getSectionIndex(y));
++        if (chunkSection.hasOnlyAir()) {
++            if (newBlockState.isAir()) {
++                return null;
++            }
++        }
++
++        boolean boolean_2 = chunkSection.hasOnlyAir();
++        BlockState oldBlockState = chunkSection.setBlockState(x, y & 15, z, newBlockState);
++        if (oldBlockState == newBlockState) {
++            return null;
++        }
++        else {
++            Block newBlock = newBlockState.getBlock();
++            Block oldBlock = oldBlockState.getBlock();
++            ((Heightmap) this.heightmaps.get(Heightmap.Types.MOTION_BLOCKING)).update(x, y, z, newBlockState);
++            ((Heightmap) this.heightmaps.get(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES)).update(x, y, z, newBlockState);
++            ((Heightmap) this.heightmaps.get(Heightmap.Types.OCEAN_FLOOR)).update(x, y, z, newBlockState);
++            ((Heightmap) this.heightmaps.get(Heightmap.Types.WORLD_SURFACE)).update(x, y, z, newBlockState);
++            boolean boolean_3 = chunkSection.hasOnlyAir();
++            if (boolean_2 != boolean_3) {
++                this.level.getChunkSource().getLightEngine().updateSectionStatus(blockPos_1, boolean_3);
++            }
++
++            if (!this.level.isClientSide) {
++                if (!(oldBlock instanceof net.minecraft.world.level.block.piston.MovingPistonBlock))//this is a movableTE special case, if condition wasn't there it would remove the blockentity that was carried for some reason
++                    oldBlockState.onRemove(this.level, blockPos_1, newBlockState, boolean_1);//this kills it
++            }
++            else if (oldBlock != newBlock && oldBlock instanceof EntityBlock) {
++                this.level.removeBlockEntity(blockPos_1);
++            }
++
++            if (chunkSection.getBlockState(x, y & 15, z).getBlock() != newBlock) {
++                return null;
++            }
++            else {
++                BlockEntity oldBlockEntity = null;
++                if (oldBlockState.hasBlockEntity()) {
++                    oldBlockEntity = this.getBlockEntity(blockPos_1, LevelChunk.EntityCreationType.CHECK);
++                    if (oldBlockEntity != null) {
++                        oldBlockEntity.setBlockState(oldBlockState);
++                        updateBlockEntityTicker(oldBlockEntity);
++                    }
++                }
++
++                if (oldBlockState.hasBlockEntity()) {
++                    if (newBlockEntity == null) {
++                        newBlockEntity = ((EntityBlock) newBlock).newBlockEntity(blockPos_1, newBlockState);
++                    }
++                    if (newBlockEntity != oldBlockEntity && newBlockEntity != null) {
++                        newBlockEntity.clearRemoved();
++                        this.level.setBlockEntity(newBlockEntity);
++                        newBlockEntity.setBlockState(newBlockState);
++                        updateBlockEntityTicker(newBlockEntity);
++                    }
++                }
++
++                if (!this.level.isClientSide) {
++                    newBlockState.onPlace(this.level, blockPos_1, oldBlockState, boolean_1); //This can call setblockstate! (e.g. hopper does)
++                }
++
++                this.unsaved = true; // shouldSave
++                return oldBlockState;
++            }
++        }
++    }
++    // Lumina end - Porting Carpet's features
++
+     public LevelChunk(Level world, ChunkPos pos, UpgradeData upgradeData, LevelChunkTicks<Block> blockTickScheduler, LevelChunkTicks<Fluid> fluidTickScheduler, long inhabitedTime, @Nullable LevelChunkSection[] sectionArrayInitializer, @Nullable LevelChunk.PostLoadProcessor entityLoader, @Nullable BlendingData blendingData) {
+         super(pos, upgradeData, world, net.minecraft.server.MinecraftServer.getServer().registryAccess().registryOrThrow(Registries.BIOME), inhabitedTime, sectionArrayInitializer, blendingData); // Paper - Anti-Xray - The world isn't ready yet, use server singleton for registry
+         this.tickersInLevel = Maps.newHashMap();
+@@ -461,7 +534,16 @@ public class LevelChunk extends ChunkAccess {
+                 boolean flag3 = iblockdata1.hasBlockEntity();
+ 
+                 if (!this.level.isClientSide && !this.level.getCurrentWorldData().isBlockPlaceCancelled) { // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent // Folia - region threading
+-                    iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
++                    // Lumina start - Porting Carpet's features
++                    if (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) { // doing due dilligence from AbstractBlock onStateReplaced{
++                        if (iblockdata1.hasBlockEntity() && !iblockdata1.is(iblockdata.getBlock())) {
++                            this.level.removeBlockEntity(blockposition);
++                        }
++                    }
++                    else {
++                        iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
++                    }
++                    // Lumina end - Porting Carpet's features
+                 } else if (!iblockdata1.is(block) && flag3) {
+                     this.removeBlockEntity(blockposition);
+                 }
+@@ -471,11 +553,11 @@ public class LevelChunk extends ChunkAccess {
+                 } else {
+                     // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
+                     if (!this.level.isClientSide && doPlace && (!this.level.getCurrentWorldData().captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // Folia - region threading
+-                        iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
++                        if (!org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
+                     }
+ 
+                     if (iblockdata.hasBlockEntity()) {
+-                        BlockEntity tileentity = this.getBlockEntity(blockposition, LevelChunk.EntityCreationType.CHECK);
++                        BlockEntity tileentity = (!org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableBlockEntities) ? this.getBlockEntity(blockposition, LevelChunk.EntityCreationType.CHECK) : this.level.getBlockEntity(blockposition); // Lumina - Porting Carpet's features
+ 
+                         if (tileentity == null) {
+                             tileentity = ((EntityBlock) block).newBlockEntity(blockposition, iblockdata);
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
 index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..c56ffe58c426760c0f3ff2243535943e06730c14 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
@@ -1048,6 +1836,56 @@ index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..c56ffe58c426760c0f3ff2243535943e
      @Override
      public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
          RandomSource randomSource = context.random();
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
+index 4ccb92ca80752eb614114b554f65bb8427785d41..ebaa3ae35a3acc651a3118001339f37755858360 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
+@@ -49,8 +49,14 @@ public class HugeFungusFeature extends Feature<HugeFungusConfiguration> {
+                 }
+             }
+ 
++            // Lumina start - Porting Carpet's features
+             boolean bl = !hugeFungusConfiguration.planted && randomSource.nextFloat() < 0.06F;
+             worldGenLevel.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 4);
++            boolean natural = !hugeFungusConfiguration.planted;
++            bl = natural && bl ||
++                    !natural && (org.leavesmc.lumina.carpet.CarpetConfig.configModule.thickFungusGrowth == org.leavesmc.lumina.carpet.CarpetConfigModule.FungusGrowthMode.ALL ||
++                            org.leavesmc.lumina.carpet.CarpetConfig.configModule.thickFungusGrowth == org.leavesmc.lumina.carpet.CarpetConfigModule.FungusGrowthMode.RANDOM && randomSource.nextFloat() < 0.06F);
++            // Lumina end - Porting Carpet's features
+             this.placeStem(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
+             this.placeHat(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
+             return true;
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index 58296b67f80587af485b0068e461cfd3d8d6f96f..3a6a45c6846e640474f2b50e04ed5da26abefc21 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -501,7 +501,7 @@ public abstract class FlowingFluid extends Fluid {
+         if (block instanceof LiquidBlockContainer ifluidcontainer) {
+             return ifluidcontainer.canPlaceLiquid((Player) null, world, pos, state, fluid);
+         } else {
+-            return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) ? (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !state.is(Blocks.STRUCTURE_VOID) ? !state.blocksMotion() : false) : false;
++            return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) && (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !((org.leavesmc.lumina.carpet.CarpetConfig.configModule.liquidDamageDisabled) ? (state.isAir() || state.is(Blocks.WATER) || state.is(Blocks.LAVA)) : state.is(Blocks.STRUCTURE_VOID)) && !state.blocksMotion()); // Lumina - Porting Carpet's features
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/material/LavaFluid.java b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+index 3bb4a9a1a6249e8ba2de237f801210e7f4fd5825..6a4bb0e67232072764e3c8bf970c01a58676efca 100644
+--- a/src/main/java/net/minecraft/world/level/material/LavaFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
+@@ -210,6 +210,13 @@ public abstract class LavaFluid extends FlowingFluid {
+ 
+             if (this.is(FluidTags.LAVA) && fluid1.is(FluidTags.WATER)) {
+                 if (state.getBlock() instanceof LiquidBlock) {
++                    // Lumina start - Porting Carpet's features
++                    if(org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableDeepslate && ((Level)world).dimension() == Level.OVERWORLD && pos.getY() < 0) {
++                        world.setBlock(pos, Blocks.DEEPSLATE.defaultBlockState(), 3);
++                        this.fizz(world, pos);
++                        return;
++                    }
++                    // Lumina end - Porting Carpet's features
+                     // CraftBukkit start
+                     if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world.getMinecraftWorld(), pos, Blocks.STONE.defaultBlockState(), 3)) {
+                         return;
 diff --git a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..fff9b4aca08f50e92e2c31128f910d1765ba2d40 100644
 --- a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
@@ -1198,15 +2036,50 @@ index 0000000000000000000000000000000000000000..25a56039f950d8dae0494233daac8021
 +        }
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d3aa030299ec3fa8170b7fc39b5f23e7eb4141ba
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+@@ -0,0 +1,28 @@
++package org.leavesmc.leaves.util;
++
++import net.minecraft.core.component.DataComponents;
++import net.minecraft.world.item.BlockItem;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.component.ItemContainerContents;
++import net.minecraft.world.level.block.ShulkerBoxBlock;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetConfig;
++
++public class ShulkerBoxUtils {
++
++    public static boolean shulkerBoxNoItem(@NotNull ItemStack stack) {
++        return stack.getComponents().getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().findAny().isEmpty();
++    }
++
++    public static int getItemStackMaxCount(ItemStack stack) {
++        if (CarpetConfig.configModule.shulkerBoxStackSize > 1 && stack.getItem() instanceof BlockItem bi &&
++                bi.getBlock() instanceof ShulkerBoxBlock && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(stack)) {
++            return CarpetConfig.configModule.shulkerBoxStackSize;
++        }
++        return stack.getMaxStackSize();
++    }
++
++    public static boolean isStackable(ItemStack itemStack) {
++        return getItemStackMaxCount(itemStack) > 1 && (!itemStack.isDamageableItem() || !itemStack.isDamaged());
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..15e3009fdb38b5bcbeab8cb0942b2b39b992e6cf
+index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02a12ae9be
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,83 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
++import net.minecraft.world.level.block.Block;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
@@ -1223,7 +2096,10 @@ index 0000000000000000000000000000000000000000..15e3009fdb38b5bcbeab8cb0942b2b39
 +import java.util.concurrent.CompletableFuture;
 +
 +public class CarpetConfig {
++    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
++    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
 +    public static CarpetConfigModule configModule;
++    public static Block structureBlockIgnoredBlock;
 +    private static HoconConfigurationLoader loader;
 +    private static CommentedConfigurationNode node;
 +    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
@@ -1285,10 +2161,10 @@ index 0000000000000000000000000000000000000000..15e3009fdb38b5bcbeab8cb0942b2b39
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d7d4291c9bc795c635e8d63f1b40b305bd372d7a
+index 0000000000000000000000000000000000000000..37a3db1d0bd1eaacf095705a94d83e56e8a52a4f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,487 @@
+@@ -0,0 +1,476 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -1492,11 +2368,6 @@ index 0000000000000000000000000000000000000000..d7d4291c9bc795c635e8d63f1b40b305
 +    @Comment("Customizable forceload chunk limit")
 +    public int forceloadLimit = 256;
 +
-+    @Validate(NonNegativeNumberValidator.class)
-+    @Suggestion({"0", "1", "20"})
-+    @Comment("Customizable maximal entity collision limits, 0 for no limits")
-+    public int maxEntityCollisions = 0;
-+
 +    @Comment("Cactus in dispensers rotates blocks.Rotates block anti-clockwise if possible")
 +    public boolean rotatorBlock = false;
 +
@@ -1525,12 +2396,6 @@ index 0000000000000000000000000000000000000000..d7d4291c9bc795c635e8d63f1b40b305
 +            On servers it needs to be set on both client and server to function properly.
 +            Needs carpet client. Has no effect when set on the server only.""")
 +    public boolean creativeNoClip = false;
-+
-+    @Comment("""
-+            Removes obnoxious messages from the logs
-+            Doesn't display 'Maximum sound pool size 247 reached'
-+            Which is normal with decent farms and contraptions""")
-+    public boolean cleanLogs = false;
 +
 +    @Validate(StructureBlockLimitValidator.class)
 +    @Suggestion({"48", "96", "192", "256"})
@@ -1714,7 +2579,7 @@ index 0000000000000000000000000000000000000000..d7d4291c9bc795c635e8d63f1b40b305
 +            if (ignoredBlock.isEmpty()) {
 +                return false;
 +            }
-+            CarpetServer.structureBlockIgnoredBlock = ignoredBlock.get();
++            CarpetConfig.structureBlockIgnoredBlock = ignoredBlock.get();
 +            return true;
 +        }
 +
@@ -1779,17 +2644,16 @@ index 0000000000000000000000000000000000000000..d7d4291c9bc795c635e8d63f1b40b305
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..49e522f1f580dc9fef970f61f94f49c629ab6562
+index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d8379b43df0
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,118 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
 +import net.kyori.adventure.text.Component;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.world.level.block.Block;
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
@@ -1804,9 +2668,6 @@ index 0000000000000000000000000000000000000000..49e522f1f580dc9fef970f61f94f49c6
 +public class CarpetServer {
 +    public static Plugin PLUGIN = new MinecraftInternalPlugin();
 +    public static final Logger LOGGER = LogUtils.getLogger();
-+    public static Block structureBlockIgnoredBlock;
-+    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
-+    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
 +    // public static final List<CarpetExtension> extensions = new ArrayList<>(); // TODO
 +
 +    // public static void manageExtension(CarpetExtension extension) {
@@ -2059,10 +2920,10 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f91fa28cac0d5554671179b5026c39aad19eec87
+index 0000000000000000000000000000000000000000..e247ef47b5a0b42922a2239801f8963c2f26b075
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,164 @@
 +package org.leavesmc.lumina.carpet.helpers;
 +
 +import net.minecraft.core.BlockPos;
@@ -2098,16 +2959,15 @@ index 0000000000000000000000000000000000000000..f91fa28cac0d5554671179b5026c39aa
 +import net.minecraft.world.phys.BlockHitResult;
 +import net.minecraft.world.phys.Vec3;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
-+import org.leavesmc.lumina.carpet.CarpetServer;
 +
 +public class BlockRotator {
 +    public static boolean flipBlockWithCactus(BlockState state, Level world, Player player, InteractionHand hand, BlockHitResult hit) {
 +        if (!player.getAbilities().mayBuild || !CarpetConfig.configModule.flippinCactus || !playerHoldsCactusMainhand(player)) {
 +            return false;
 +        }
-+        CarpetServer.IMPENDING_FILL_SKIP_UPDATES.set(true);
++        CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.set(true);
 +        boolean retval = flipBlock(state, world, player, hand, hit);
-+        CarpetServer.IMPENDING_FILL_SKIP_UPDATES.set(false);
++        CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.set(false);
 +        return retval;
 +    }
 +
@@ -6528,24 +7388,3 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
 +    }
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigModule.java b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..ca9b57fbd49d9307712b917f8169b24eaec1f50e
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/ConfigModule.java
-@@ -0,0 +1,14 @@
-+package org.leavesmc.lumina.config;
-+
-+import org.leavesmc.lumina.config.modules.*;
-+import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+
-+@ConfigSerializable
-+public class ConfigModule {
-+    public String configVersion = "1";
-+    public Fix fix = new Fix();
-+    public Protocol protocol = new Protocol();
-+    public Performance performance = new Performance();
-+    public Modify modify = new Modify();
-+    public Misc misc = new Misc();
-+}
-\ No newline at end of file

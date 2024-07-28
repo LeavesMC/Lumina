@@ -784,18 +784,16 @@ index 0000000000000000000000000000000000000000..d6f41a391d597655d799249a17445dda
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Modify.java b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f4586276dccdc028dc70a39dac61e9c6ae93f813
+index 0000000000000000000000000000000000000000..b22fa9a59a6a26788a26ba217ac6e8847c71d9f1
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,7 @@
 +package org.leavesmc.lumina.config.modules;
 +
-+import org.leavesmc.lumina.config.modules.protocol.LeavesBladerenProtocolConfig;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 +
 +@ConfigSerializable
 +public class Modify {
-+    public int shulkerBoxStackSize = 1;
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
 new file mode 100644

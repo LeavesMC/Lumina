@@ -13,4 +13,6 @@ Lumina
 
 We are collecting vanilla properties broken by Folia, if you find something, please raise it in an issue, thanks.
 
-**In order to make the default more consistent with Vanilla behavior, we have changed the default values of some Paper and Spigot configuration items, see [Modify List](./ModifiedConfigList.md) for details**
+**In order to make the default more consistent with Vanilla behavior, we have changed the default values of some Paper and Spigot configuration items, see [Modify List](./DefaultModifiedConfigList) for details**
+
+**Although Lumina has ported most of the Carpet features, there are still some features that are not supported, see [Removed Carpet Features](./RemovedCarpetFeatures.md) for details**
