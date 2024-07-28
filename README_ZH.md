@@ -13,7 +13,7 @@ Lumina
 
 我们正在收集 Folia 破坏的原版特性，如果你有发现，请在 issue 中提出，谢谢。
 
-**为了让默认时更符合Vanilla行为，我们修改了部分Paper与Spigot配置项目的默认值，详见[修改列表](./ModifiedConfigList.md)**
+**为了让默认时更符合Vanilla行为，我们修改了部分Paper与Spigot配置项的默认值，详见[修改列表](./ModifiedConfigList.md)**
 
 ### 一些梗图 by Sun_HE
 ![meme2.jpg](meme2.jpg)
