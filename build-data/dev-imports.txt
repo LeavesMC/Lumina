@@ -7,3 +7,4 @@ minecraft net.minecraft.world.level.lighting.DynamicGraphMinFixedPoint
 minecraft net.minecraft.world.level.levelgen.feature.HugeFungusFeature
 minecraft net.minecraft.world.entity.MobCategory
 minecraft net.minecraft.world.item.PickaxeItem
+minecraft net.minecraft.world.level.levelgen.structure.pieces.PieceGeneratorSupplier

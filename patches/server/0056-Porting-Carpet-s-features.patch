@@ -1929,6 +1929,19 @@ index 4ccb92ca80752eb614114b554f65bb8427785d41..ebaa3ae35a3acc651a3118001339f377
              this.placeStem(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
              this.placeHat(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
              return true;
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
+index 05cca3aef35f7ab016790a7ea2328772fcf7bf38..a17bb849a01eb0d8cd6b889ce22d379065ca0770 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
+@@ -23,7 +23,7 @@ public interface PieceGeneratorSupplier<C extends FeatureConfiguration> {
+         Predicate<PieceGeneratorSupplier.Context<C>> predicate, PieceGenerator<C> generator
+     ) {
+         Optional<PieceGenerator<C>> optional = Optional.of(generator);
+-        return context -> predicate.test(context) ? optional : Optional.empty();
++        return context -> (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get() || predicate.test(context)) ? optional : Optional.empty(); // Lumina - Porting Carpet's features
+     }
+ 
+     static <C extends FeatureConfiguration> Predicate<PieceGeneratorSupplier.Context<C>> checkForBiomeOnTop(Heightmap.Types heightmapType) {
 diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 index 58296b67f80587af485b0068e461cfd3d8d6f96f..3a6a45c6846e640474f2b50e04ed5da26abefc21 100644
 --- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
@@ -2235,7 +2248,7 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..add5cab523183f30688b772797c429c5c4b80cb6
+index 0000000000000000000000000000000000000000..43a4b19c8d9195f0f88cc1d8444386d444d43be2
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 @@ -0,0 +1,473 @@
@@ -2348,8 +2361,8 @@ index 0000000000000000000000000000000000000000..add5cab523183f30688b772797c429c5
 +    @Comment("Guardians turn into Elder Guardian when struck by lightning")
 +    public boolean renewableSponges = false;
 +
-+    @Comment("Pistons can push block entities, like hoppers, chests etc.")
-+    public boolean movableBlockEntities = false;
++    // @Comment("Pistons can push block entities, like hoppers, chests etc.")
++    // public boolean movableBlockEntities = false; // TODO
 +
 +    @Comment("""
 +            Chains will stick to each other on the long ends

@@ -67,3 +67,7 @@ Are these two really meaningful? I'm not very familiar with this, could someone 
 ### cleanLogs
 
 Please use the `settings.log-named-deaths` and `settings.log-villager-deaths` in `spigot.yml` to configure
+
+### movableBlockEntities
+
+~~I don't understand carpet's implementation of this~~ If you need it, please raise an issue

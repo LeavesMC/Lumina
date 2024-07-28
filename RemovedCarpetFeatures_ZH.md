@@ -65,3 +65,7 @@ Paper 已经优化了
 ### cleanLogs
 
 请使用 `spigot.yml` 中的 `settings.log-named-deaths`与`settings.log-villager-deaths`配置
+
+### movableBlockEntities
+
+~~这个我不会~~ 有需要提issue吧
