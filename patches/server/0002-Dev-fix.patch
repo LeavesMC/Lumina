@@ -17,3 +17,16 @@ index bc885d2cc95572ec68f1df62555fdba7998b1d93..0211311b3b63bcdea7ebf7bcb2462967
                  streamCodec.encode(value, (T)payload);
              }
  
+diff --git a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
+index e68e464a42096e6c048c81765f85d5e9f4581c6d..1661f71bb875f4143d860c9ead0f9334cf4a5c0b 100644
+--- a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
++++ b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
+@@ -73,7 +73,7 @@ public class SpawnPlacements {
+         EntityType<T> type, ServerLevelAccessor world, MobSpawnType spawnReason, BlockPos pos, RandomSource random
+     ) {
+         SpawnPlacements.Data data = DATA_BY_TYPE.get(type);
+-        return data == null || data.predicate.test(type, world, spawnReason, pos, random);
++        return data == null || data.predicate.test((EntityType) type, world, spawnReason, pos, random); // Lumina - Cast to EntityType
+     }
+ 
+     static {
