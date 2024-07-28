@@ -35,7 +35,7 @@ SOFTWARE.
 plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
-index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..45cb98509a481cbfd375d6127f11b487f72238f6 100644
+index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..a41a8dae6c59f158f847f3cd232d0f69a1d904bb 100644
 --- a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 +++ b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 @@ -59,7 +59,7 @@ public class BlockInput implements Predicate<BlockInWorld> {
@@ -43,7 +43,7 @@ index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..45cb98509a481cbfd375d6127f11b487
  
      public boolean place(ServerLevel world, BlockPos pos, int flags) {
 -        BlockState blockState = Block.updateFromNeighbourShapes(this.state, world, pos);
-+        BlockState blockState = (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) ? this.state : Block.updateFromNeighbourShapes(this.state, world, pos); // Lumina - Porting Carpet's features
++        BlockState blockState = (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) ? this.state : Block.updateFromNeighbourShapes(this.state, world, pos); // Lumina - Porting Carpet's features - fill updates
          if (blockState.isAir()) {
              blockState = this.state;
          }
@@ -112,14 +112,14 @@ index d5e8dd947cb29343074df8074e791357c72e7f7b..950e0fdea581a37a48620a55e352a948
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, callbacks, flush);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8056ddc2164789ac8efab4f5bf2069c4768f7657..aa4f88632335b706b5796ce0cccb9d1bcaa2d684 100644
+index 8056ddc2164789ac8efab4f5bf2069c4768f7657..06e8fd7d5fda88ff4b4ba1112e8457b2c94727f7 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -449,6 +449,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      protected abstract boolean initServer() throws IOException;
  
      protected void loadLevel(String s) { // CraftBukkit
-+        org.leavesmc.lumina.carpet.CarpetServer.onServerLoaded(this); // Lumina - Porting Carpet's features
++        org.leavesmc.lumina.carpet.CarpetServer.onServerLoaded(this); // Lumina - Porting Carpet's features - call onServerLoaded
          if (!JvmProfiler.INSTANCE.isRunning()) {
              ;
          }
@@ -128,7 +128,7 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..aa4f88632335b706b5796ce0cccb9d1b
              }
          }
 -
-+        org.leavesmc.lumina.carpet.CarpetServer.onServerLoadedWorlds(this); // Lumina - Porting Carpet's features
++        org.leavesmc.lumina.carpet.CarpetServer.onServerLoadedWorlds(this); // Lumina - Porting Carpet's features - call onServerLoadedWorlds
      }
  
      protected void forceDifficulty() {}
@@ -136,12 +136,12 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..aa4f88632335b706b5796ce0cccb9d1b
      // Folia end - region threading
  
      public void stopServer() {
-+        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(this); // Lumina - Porting Carpet's features
++        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(this); // Lumina - Porting Carpet's features - call onServerClosed
          // Folia start - region threading
          // halt scheduler
          // don't wait, we may be on a scheduler thread
 diff --git a/src/main/java/net/minecraft/server/commands/CloneCommands.java b/src/main/java/net/minecraft/server/commands/CloneCommands.java
-index 3c62d73f51a65a274f17e6a58f56cb841dbe8dc3..66af9ae53648f8f6fe8c255b5689bf89878c1999 100644
+index 3c62d73f51a65a274f17e6a58f56cb841dbe8dc3..1496151fafc8dfd13663ad9500f1b865696a9a8d 100644
 --- a/src/main/java/net/minecraft/server/commands/CloneCommands.java
 +++ b/src/main/java/net/minecraft/server/commands/CloneCommands.java
 @@ -321,7 +321,7 @@ public class CloneCommands {
@@ -149,12 +149,12 @@ index 3c62d73f51a65a274f17e6a58f56cb841dbe8dc3..66af9ae53648f8f6fe8c255b5689bf89
  
                  for (CloneCommands.CloneBlockInfo cloneBlockInfo4 : list5) {
 -                    serverLevel2.blockUpdated(cloneBlockInfo4.pos, cloneBlockInfo4.state.getBlock());
-+                    if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.fillUpdates) serverLevel2.blockUpdated(cloneBlockInfo4.pos, cloneBlockInfo4.state.getBlock()); // Lumina - Porting Carpet's features
++                    if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.fillUpdates) serverLevel2.blockUpdated(cloneBlockInfo4.pos, cloneBlockInfo4.state.getBlock()); // Lumina - Porting Carpet's features - fill updates
                  }
  
                  serverLevel2.getBlockTicks().copyAreaFrom(serverLevel.getBlockTicks(), boundingBox, blockPos5);
 diff --git a/src/main/java/net/minecraft/server/commands/FillCommand.java b/src/main/java/net/minecraft/server/commands/FillCommand.java
-index 95bb9d341ff28d37934ceba4ef07c95211cf578a..68853aeace0bb51beaf497a97e6e2879f10bf9d3 100644
+index 95bb9d341ff28d37934ceba4ef07c95211cf578a..8098f4517496ff37715adf512ed1850f7916517d 100644
 --- a/src/main/java/net/minecraft/server/commands/FillCommand.java
 +++ b/src/main/java/net/minecraft/server/commands/FillCommand.java
 @@ -197,7 +197,7 @@ public class FillCommand {
@@ -162,12 +162,12 @@ index 95bb9d341ff28d37934ceba4ef07c95211cf578a..68853aeace0bb51beaf497a97e6e2879
              for (BlockPos blockPos2 : list) {
                  Block block2 = serverLevel.getBlockState(blockPos2).getBlock();
 -                serverLevel.blockUpdated(blockPos2, block2);
-+                if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.fillUpdates)  serverLevel.blockUpdated(blockPos2, block2); // Lumina - Porting Carpet's features
++                if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.fillUpdates)  serverLevel.blockUpdated(blockPos2, block2); // Lumina - Porting Carpet's features - fill updates
              }
  
              if (k == 0) {
 diff --git a/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java b/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
-index 87275b46c4411fd51d6572ec7b3f924e347d4ed7..33d58dd7cca3dd4031ee63f00a0cd2ff360f5fd9 100644
+index 87275b46c4411fd51d6572ec7b3f924e347d4ed7..b80aaa9d503741d5d50b025912355dc52190872b 100644
 --- a/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
 +++ b/src/main/java/net/minecraft/server/commands/ForceLoadCommand.java
 @@ -183,8 +183,10 @@ public class ForceLoadCommand {
@@ -176,10 +176,10 @@ index 87275b46c4411fd51d6572ec7b3f924e347d4ed7..33d58dd7cca3dd4031ee63f00a0cd2ff
              long q = ((long)(o - m) + 1L) * ((long)(p - n) + 1L);
 -            if (q > 256L) {
 -                throw ERROR_TOO_MANY_CHUNKS.create(256, q);
-+            // Lumina start - Porting Carpet's features
++            // Lumina start - Porting Carpet's features - forceload limit
 +            if (q > (long)org.leavesmc.lumina.carpet.CarpetConfig.configModule.forceloadLimit) {
 +                throw ERROR_TOO_MANY_CHUNKS.create(org.leavesmc.lumina.carpet.CarpetConfig.configModule.forceloadLimit, q);
-+                // Lumina end - Porting Carpet's features
++                // Lumina end - Porting Carpet's features - forceload limit
              } else {
                  ServerLevel serverLevel = source.getLevel();
                  ResourceKey<Level> resourceKey = serverLevel.dimension();
@@ -196,26 +196,26 @@ index 25aadc085d6af9f6c619bd2f5347180989514441..bed1a0366daa4467ce54b3e67ffd8045
          commandAPIPlugin = org.bukkit.plugin.java.CommandAPIPluginFactory.create();
          dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index dfdb85c14c4afce7879acf9093d54f7480c0a08c..4c419c7c468c5baf041956c84a7d23c1e7dcaebd 100644
+index dfdb85c14c4afce7879acf9093d54f7480c0a08c..92c3f9bdc6e97614ea664bee46616fb73587a7d4 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -962,6 +962,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      private boolean skipPlayer(ServerPlayer player) {
-+        if (!org.leavesmc.lumina.carpet.CarpetConfig.configModule.creativePlayersLoadChunks && player.isCreative()) return true; // Lumina - Porting Carpet's features
++        if (!org.leavesmc.lumina.carpet.CarpetConfig.configModule.creativePlayersLoadChunks && player.isCreative()) return true; // Lumina - Porting Carpet's features - creative players load chunks
          return player.isSpectator() && !this.level.getGameRules().getBoolean(GameRules.RULE_SPECTATORSGENERATECHUNKS);
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/DistanceManager.java b/src/main/java/net/minecraft/server/level/DistanceManager.java
-index 8c42c1f0d67f437423bf6d3958c6409f44556d5c..2003154816d417f6e077de0651c86949d09892c1 100644
+index 8c42c1f0d67f437423bf6d3958c6409f44556d5c..b60b67cd386a40f04ac4759f2806ab0416d2c284 100644
 --- a/src/main/java/net/minecraft/server/level/DistanceManager.java
 +++ b/src/main/java/net/minecraft/server/level/DistanceManager.java
 @@ -44,6 +44,37 @@ public abstract class DistanceManager {
      }
      // Paper end - rewrite chunk system
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - spawn chunks
 +    public void changeSpawnChunks(ChunkPos chunkPos,  int distance)
 +    {
 +        long pos = chunkPos.toLong();
@@ -244,7 +244,7 @@ index 8c42c1f0d67f437423bf6d3958c6409f44556d5c..2003154816d417f6e077de0651c86949
 +        if (distance > 0)
 +            addRegionTicket(TicketType.START, chunkPos, distance, net.minecraft.util.Unit.INSTANCE);
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - spawn chunks
 +
      static final Logger LOGGER = LogUtils.getLogger();
      static final int PLAYER_TICKET_LEVEL = ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING);
@@ -417,14 +417,14 @@ index c17f8b0d8fe362a5a0255c5f639f2b6eb077f0f9..38c6403c780e276910cb0c30cb12b066
  
          if (entityliving instanceof Player entityhuman) {
 diff --git a/src/main/java/net/minecraft/world/entity/ExperienceOrb.java b/src/main/java/net/minecraft/world/entity/ExperienceOrb.java
-index 46d8bcad1545953757659870901cbbdf3340bc15..1af024d573da0562a2537748b0e1b6431e7da61c 100644
+index 46d8bcad1545953757659870901cbbdf3340bc15..f6b06369fd420e487496a84304fa3c70530aa2ac 100644
 --- a/src/main/java/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/src/main/java/net/minecraft/world/entity/ExperienceOrb.java
 @@ -324,6 +324,19 @@ public class ExperienceOrb extends Entity {
  
      @Override
      public void playerTouch(Player player) {
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - xp no cooldown
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.xpNoCooldown && !level().isClientSide) {
 +            player.takeXpDelay = 0;
 +            // reducing the count to 1 and leaving vanilla to deal with it
@@ -436,12 +436,12 @@ index 46d8bcad1545953757659870901cbbdf3340bc15..1af024d573da0562a2537748b0e1b643
 +                this.count--;
 +            }
 +        }
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - xp no cooldown
          if (!this.level().isClientSide) {
              if (player.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                  player.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(player, 2, PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2;
 diff --git a/src/main/java/net/minecraft/world/entity/MobCategory.java b/src/main/java/net/minecraft/world/entity/MobCategory.java
-index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..103409394052c9bdaa4705f6215b0b42c52178dc 100644
+index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..510017d57f4f6fecf85212994400022f06a1bf5d 100644
 --- a/src/main/java/net/minecraft/world/entity/MobCategory.java
 +++ b/src/main/java/net/minecraft/world/entity/MobCategory.java
 @@ -39,7 +39,7 @@ public enum MobCategory implements StringRepresentable {
@@ -449,20 +449,20 @@ index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..103409394052c9bdaa4705f6215b0b42
  
      public int getMaxInstancesPerChunk() {
 -        return this.max;
-+        return ((int) ((double)max*(Math.pow(2.0,(org.leavesmc.lumina.carpet.utils.SpawnReporter.mobcap_exponent/4))))); // Lumina - Porting Carpet's features
++        return ((int) ((double)max*(Math.pow(2.0,(org.leavesmc.lumina.carpet.utils.SpawnReporter.mobcap_exponent/4))))); // Lumina - Porting Carpet's features - mob spawn
      }
  
      public boolean isFriendly() {
 diff --git a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-index 7873462c6146b7431011a2b73eb7414f61afbccf..f5b0250635ca884c6534ba4bc2bad24cee8be6d2 100644
+index 7873462c6146b7431011a2b73eb7414f61afbccf..9f7e74ea6b4cc7b8bae8f8170d8064e2ffdfd5b1 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
-@@ -114,7 +114,16 @@ public abstract class PathNavigation {
+@@ -114,7 +114,17 @@ public abstract class PathNavigation {
      }
      @Nullable
      public Path createPath(BlockPos target, @Nullable Entity entity, int distance) {
 -        return this.createPath(ImmutableSet.of(target), entity, 8, false, distance);
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - log pathfinding
 +        if (!org.leavesmc.lumina.carpet.logging.LoggerRegistry.__pathfinding)
 +            return this.createPath(ImmutableSet.of(target), entity, 8, false, distance);
 +        Set<BlockPos> set_1 = ImmutableSet.of(target);
@@ -472,15 +472,16 @@ index 7873462c6146b7431011a2b73eb7414f61afbccf..f5b0250635ca884c6534ba4bc2bad24c
 +        float duration = (1.0F*((finish - start)/1000))/1000;
 +        set_1.forEach(b -> org.leavesmc.lumina.carpet.logging.logHelpers.PathfindingVisualizer.slowPath(mob, Vec3.atBottomCenterOf(b), duration, path != null)); // ground centered position
 +        return path;
++        // Lumina end - Porting Carpet's features - log pathfinding
          // Paper end - EntityPathfindEvent
      }
  
-@@ -125,7 +134,17 @@ public abstract class PathNavigation {
+@@ -125,7 +135,17 @@ public abstract class PathNavigation {
  
      @Nullable
      public Path createPath(Entity entity, int distance) {
 -        return this.createPath(ImmutableSet.of(entity.blockPosition()), entity, 16, true, distance); // Paper - EntityPathfindEvent
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - log pathfinding
 +        if (!org.leavesmc.lumina.carpet.logging.LoggerRegistry.__pathfinding)
 +            return this.createPath(ImmutableSet.of(entity.blockPosition()), entity, 16, true, distance); // Paper - EntityPathfindEvent
 +        Set<BlockPos> set_1 = ImmutableSet.of(entity.blockPosition());
@@ -490,7 +491,7 @@ index 7873462c6146b7431011a2b73eb7414f61afbccf..f5b0250635ca884c6534ba4bc2bad24c
 +        float duration = (1.0F*((finish - start)/1000))/1000;
 +        set_1.forEach(b -> org.leavesmc.lumina.carpet.logging.logHelpers.PathfindingVisualizer.slowPath(mob, Vec3.atBottomCenterOf(b), duration, path != null));
 +        return path;
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - log pathfinding
      }
  
      @Nullable
@@ -540,7 +541,7 @@ index d504d10fbe45dfe3f2f3d08d2473df6cd18f6dcf..2aeacaca3c1f62e067fef9c82e9f261c
              this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index 4b59206a342e7fc4174439df6842d0c677be2c4c..18ca447bdd5873151d1d73b2a39cd4cf02906252 100644
+index 4b59206a342e7fc4174439df6842d0c677be2c4c..3903231d448575f8fed4365c6c0371a04745faf2 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 @@ -22,10 +22,12 @@ import net.minecraft.world.entity.EntityType;
@@ -568,7 +569,7 @@ index 4b59206a342e7fc4174439df6842d0c677be2c4c..18ca447bdd5873151d1d73b2a39cd4cf
          this.bobOffs = entity.bobOffs;
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - lighting kills items
 +    public void thunderHit(ServerLevel world, net.minecraft.world.entity.LightningBolt lightning) {
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.lightningKillsDropsFix) {
 +            if (this.age > 8) { //Only kill item if it's older than 8 ticks
@@ -582,7 +583,7 @@ index 4b59206a342e7fc4174439df6842d0c677be2c4c..18ca447bdd5873151d1d73b2a39cd4cf
 +    public int getPickupDelayCM() {
 +        return this.pickupDelay;
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - lighting kills items
 +
      @Override
      public boolean dampensVibrations() {
@@ -639,14 +640,14 @@ index 4b59206a342e7fc4174439df6842d0c677be2c4c..18ca447bdd5873151d1d73b2a39cd4cf
          ItemStack itemstack1 = other.getItem();
  
 diff --git a/src/main/java/net/minecraft/world/entity/monster/Guardian.java b/src/main/java/net/minecraft/world/entity/monster/Guardian.java
-index 6c2e2fd5826a5f8070502e20d1d140c3d70bd0d3..b126ae421ea2cde627857d5366e2a1d4b77a761b 100644
+index 6c2e2fd5826a5f8070502e20d1d140c3d70bd0d3..b516fe2e53bb90837879964e81846e4abf172e84 100644
 --- a/src/main/java/net/minecraft/world/entity/monster/Guardian.java
 +++ b/src/main/java/net/minecraft/world/entity/monster/Guardian.java
 @@ -70,6 +70,28 @@ public class Guardian extends Monster {
          this.clientSideTailAnimationO = this.clientSideTailAnimation;
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features reneweable sponges
 +    public void thunderHit(net.minecraft.server.level.ServerLevel serverWorld, net.minecraft.world.entity.LightningBolt lightningEntity) {
 +        if (!this.level().isClientSide && !this.isRemoved() && org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableSponges && !((Object)this instanceof ElderGuardian)) {
 +            ElderGuardian elderGuardian = new ElderGuardian(EntityType.ELDER_GUARDIAN ,this.level());
@@ -666,13 +667,13 @@ index 6c2e2fd5826a5f8070502e20d1d140c3d70bd0d3..b126ae421ea2cde627857d5366e2a1d4
 +            super.thunderHit(serverWorld, lightningEntity);
 +        }
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features reneweable sponges
 +
      @Override
      protected void registerGoals() {
          MoveTowardsRestrictionGoal pathfindergoalmovetowardsrestriction = new MoveTowardsRestrictionGoal(this, 1.0D);
 diff --git a/src/main/java/net/minecraft/world/entity/monster/Husk.java b/src/main/java/net/minecraft/world/entity/monster/Husk.java
-index c34c8483a026f61fe20935697d321d7ef5d8dfbc..3abda4d1c01939b323e4e9e1a1e0b2d1477cf62b 100644
+index c34c8483a026f61fe20935697d321d7ef5d8dfbc..25530549ac1c496835a51f24cf8c04710c062112 100644
 --- a/src/main/java/net/minecraft/world/entity/monster/Husk.java
 +++ b/src/main/java/net/minecraft/world/entity/monster/Husk.java
 @@ -23,7 +23,7 @@ public class Husk extends Zombie {
@@ -680,7 +681,7 @@ index c34c8483a026f61fe20935697d321d7ef5d8dfbc..3abda4d1c01939b323e4e9e1a1e0b2d1
  
      public static boolean checkHuskSpawnRules(EntityType<Husk> type, ServerLevelAccessor world, MobSpawnType spawnReason, BlockPos pos, RandomSource random) {
 -        return checkMonsterSpawnRules(type, world, spawnReason, pos, random) && (MobSpawnType.isSpawner(spawnReason) || world.canSeeSky(pos));
-+        return checkMonsterSpawnRules(type, world, spawnReason, pos, random) && (MobSpawnType.isSpawner(spawnReason) || world.canSeeSky(pos) || (org.leavesmc.lumina.carpet.CarpetConfig.configModule.huskSpawningInTemples && org.leavesmc.lumina.carpet.utils.SpawnOverrides.isStructureAtPosition((net.minecraft.server.level.ServerLevel)world, net.minecraft.world.level.levelgen.structure.BuiltinStructures.DESERT_PYRAMID, pos))); // Lumina - Porting Carpet's features
++        return checkMonsterSpawnRules(type, world, spawnReason, pos, random) && (MobSpawnType.isSpawner(spawnReason) || world.canSeeSky(pos) || (org.leavesmc.lumina.carpet.CarpetConfig.configModule.huskSpawningInTemples && org.leavesmc.lumina.carpet.utils.SpawnOverrides.isStructureAtPosition((net.minecraft.server.level.ServerLevel)world, net.minecraft.world.level.levelgen.structure.BuiltinStructures.DESERT_PYRAMID, pos))); // Lumina - Porting Carpet's features - husks spawning in desert temples
      }
  
      @Override
@@ -883,14 +884,14 @@ index 845eff7401b811c179dc9dee70eca0d724be5c80..c88b98bd4ebec40649b9cfcf47ca2035
  
      default SlotAccess getChestVehicleSlot(int slot) {
 diff --git a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
-index 32910f677b0522ac8ec513fa0d00b714b52cfae4..005fa211e01f8bdce697a1e4afe8f39b6a1bcb09 100644
+index 32910f677b0522ac8ec513fa0d00b714b52cfae4..301012227e15725b5cb9fb54ff11d14f2535b0d6 100644
 --- a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
 +++ b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
 @@ -399,6 +399,26 @@ public abstract class AbstractContainerMenu {
      }
  
      private void doClick(int slotIndex, int button, ClickType actionType, Player player) {
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - ctrlQ crafting fix
 +        if (actionType == ClickType.THROW && org.leavesmc.lumina.carpet.CarpetConfig.configModule.ctrlQCraftingFix && this.getCarried().isEmpty() && slotIndex >= 0)
 +        {
 +            Slot slot_4 = slots.get(slotIndex);
@@ -909,7 +910,7 @@ index 32910f677b0522ac8ec513fa0d00b714b52cfae4..005fa211e01f8bdce697a1e4afe8f39b
 +                }
 +            }
 +        }
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - ctrlQ crafting fix
          Inventory playerinventory = player.getInventory();
          Slot slot;
          ItemStack itemstack;
@@ -1034,7 +1035,7 @@ index 41400c4fcd5d204ba9624f776a3e2eaf29a5dff9..0de4dcaa1731725e355a141fdf31f04b
      private Entity entityRepresentation;
  
 diff --git a/src/main/java/net/minecraft/world/item/PickaxeItem.java b/src/main/java/net/minecraft/world/item/PickaxeItem.java
-index e2f826427a62ab52461a93aa53adfad672137d47..307d6ef5eb610385bff8986271e3919ef5087712 100644
+index e2f826427a62ab52461a93aa53adfad672137d47..7188cdecbea7f1f58fd16a1f36a62eb3c9c262e3 100644
 --- a/src/main/java/net/minecraft/world/item/PickaxeItem.java
 +++ b/src/main/java/net/minecraft/world/item/PickaxeItem.java
 @@ -6,4 +6,15 @@ public class PickaxeItem extends DiggerItem {
@@ -1042,7 +1043,7 @@ index e2f826427a62ab52461a93aa53adfad672137d47..307d6ef5eb610385bff8986271e3919e
          super(material, BlockTags.MINEABLE_WITH_PICKAXE, properties);
      }
 +
-+    // Lumina - Porting Carpet's features
++    // Lumina - Porting Carpet's features - missing tools
 +    public float getDestroySpeed(ItemStack stack, net.minecraft.world.level.block.state.BlockState state) {
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.missingTools && state.getSoundType() == net.minecraft.world.level.block.SoundType.GLASS)
 +        {
@@ -1051,7 +1052,7 @@ index e2f826427a62ab52461a93aa53adfad672137d47..307d6ef5eb610385bff8986271e3919e
 +        }
 +        return super.getDestroySpeed(stack, state);
 +    }
-+    // Lumina - Porting Carpet's features
++    // Lumina - Porting Carpet's features - missing tools
  }
 diff --git a/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java b/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java
 index f8f909ebdad5e96379e8bd8c610164ef0697368e..225259124bc7ab5a238475a0246ccf54cc7ea775 100644
@@ -1129,7 +1130,7 @@ index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..809ea2940d2ac028edf77bcd30bb97f7
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index a0b61c77b23abec531b0b8f9b576fb4501067163..1bae95d892cf8de2c8a6f31c0bd3ab4e0fd4f851 100644
+index a0b61c77b23abec531b0b8f9b576fb4501067163..7fb23c02dc91ed3af27eb4420ce920ab22bdb359 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -102,7 +102,10 @@ import org.bukkit.event.block.BlockPhysicsEvent;
@@ -1144,11 +1145,11 @@ index a0b61c77b23abec531b0b8f9b576fb4501067163..1bae95d892cf8de2c8a6f31c0bd3ab4e
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, new ResourceLocation("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, new ResourceLocation("the_nether"));
-@@ -175,6 +178,105 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -175,6 +178,106 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          return (CraftServer) Bukkit.getServer();
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - fill update
 +    public NeighborUpdater getNeighborUpdater() {
 +        return this.getCurrentWorldData().neighborUpdater;
 +    }
@@ -1188,7 +1189,8 @@ index a0b61c77b23abec531b0b8f9b576fb4501067163..1bae95d892cf8de2c8a6f31c0bd3ab4e
 +        }
 +        return list;
 +    }
-+
++    // Lumina end - Porting Carpet's features - fill update
++    // Lumina start - Porting Carpet's features - movable block entities
 +    public boolean setBlockStateWithBlockEntity(BlockPos blockPos_1, BlockState blockState_1, BlockEntity newBlockEntity, int int_1) {
 +        if (isOutsideBuildHeight(blockPos_1) || !this.isClientSide && isDebug()) return false;
 +        LevelChunk worldChunk_1 = this.getChunkAt(blockPos_1);
@@ -1245,24 +1247,24 @@ index a0b61c77b23abec531b0b8f9b576fb4501067163..1bae95d892cf8de2c8a6f31c0bd3ab4e
 +            return true;
 +        }
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - movable block entities
 +
      // Paper start - Use getChunkIfLoadedImmediately
      @Override
      public boolean hasChunk(int chunkX, int chunkZ) {
-@@ -1032,13 +1134,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1032,13 +1135,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              }
  
              if ((i & 1) != 0) {
 -                this.blockUpdated(blockposition, iblockdata1.getBlock());
-+                if (!org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) this.blockUpdated(blockposition, iblockdata1.getBlock()); // Lumina - Porting Carpet's features
++                if (!org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) this.blockUpdated(blockposition, iblockdata1.getBlock()); // Lumina - Porting Carpet's features - fill updates
                  if (!this.isClientSide && iblockdata.hasAnalogOutputSignal()) {
                      this.updateNeighbourForOutputSignal(blockposition, newBlock.getBlock());
                  }
              }
  
 -            if ((i & 16) == 0 && j > 0) {
-+            if ((i & (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get() ? -1 : 16)) == 0 && j > 0) { // Lumina - Porting Carpet's features
++            if ((i & (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get() ? -1 : 16)) == 0 && j > 0) { // Lumina - Porting Carpet's features - fill updates
                  int k = i & -34;
  
                  // CraftBukkit start
@@ -1300,14 +1302,14 @@ index 20f2b575c8131621edea0e75fbf38a9fe20a36c4..8e43f36c32f80ad20e44a9df90d7e0ef
      protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
          return SHAPE;
 diff --git a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java b/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
-index f114299226082d5c2a306d211c498b12a15d2ddb..321b0f7e81e6ca82e3ba9f424baab3cfd0a70a34 100644
+index f114299226082d5c2a306d211c498b12a15d2ddb..4ea61c3a82b6d6ef81dcb63d4e00230c1b668a05 100644
 --- a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
-@@ -21,13 +21,45 @@ import net.minecraft.world.level.material.Fluids;
+@@ -21,6 +21,38 @@ import net.minecraft.world.level.material.Fluids;
  public class BarrierBlock extends Block implements SimpleWaterloggedBlock {
      public static final MapCodec<BarrierBlock> CODEC = simpleCodec(BarrierBlock::new);
      public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - update suppression block
 +    private boolean shouldPower = false;
 +
 +    public int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
@@ -1338,27 +1340,19 @@ index f114299226082d5c2a306d211c498b12a15d2ddb..321b0f7e81e6ca82e3ba9f424baab3cf
 +            shouldPower = false;
 +        }
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - update suppression block
  
      @Override
      public MapCodec<BarrierBlock> codec() {
-         return CODEC;
-     }
- 
--    protected BarrierBlock(BlockBehaviour.Properties settings) {
-+    public BarrierBlock(BlockBehaviour.Properties settings) { // Lumina - Porting Carpet's features
-         super(settings);
-         this.registerDefaultState(this.defaultBlockState().setValue(WATERLOGGED, Boolean.valueOf(false)));
-     }
 diff --git a/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java b/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
-index 8920855b07a31715327b8102c7faafc9f916825d..dd7792d4a7a4280fb181f2d3ddc1898578cfbdd4 100644
+index 8920855b07a31715327b8102c7faafc9f916825d..e18d13d212ec582c972357015e91f8ecc236b3c9 100644
 --- a/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
 @@ -24,6 +24,19 @@ public class BuddingAmethystBlock extends AmethystBlock {
          super(settings);
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - movable amethyst
 +    public void playerDestroy(net.minecraft.world.level.Level world, net.minecraft.world.entity.player.Player player, BlockPos pos, BlockState state, net.minecraft.world.level.block.entity.BlockEntity blockEntity, net.minecraft.world.item.ItemStack stack) {
 +        super.playerDestroy(world, player, pos, state, blockEntity, stack, true, false);
 +        // doing it here rather than though loottables since loottables are loaded on reload
@@ -1369,20 +1363,20 @@ index 8920855b07a31715327b8102c7faafc9f916825d..dd7792d4a7a4280fb181f2d3ddc18985
 +        )
 +            popResource(world, pos, net.minecraft.world.item.Items.BUDDING_AMETHYST.getDefaultInstance());
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - movable amethyst
 +
      @Override
      protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
          if (random.nextInt(5) == 0) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ChainBlock.java b/src/main/java/net/minecraft/world/level/block/ChainBlock.java
-index 4c6f90b6b9b4bdab6e55790aca11b0b5f37a564f..bb69633c49a09285142c931aab88343e94a7be1d 100644
+index 4c6f90b6b9b4bdab6e55790aca11b0b5f37a564f..fcdd5d203544847c011ed74a47ab4f0f10393934 100644
 --- a/src/main/java/net/minecraft/world/level/block/ChainBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ChainBlock.java
 @@ -27,6 +27,32 @@ public class ChainBlock extends RotatedPillarBlock implements SimpleWaterloggedB
      protected static final VoxelShape Z_AXIS_AABB = Block.box(6.5, 6.5, 0.0, 9.5, 9.5, 16.0);
      protected static final VoxelShape X_AXIS_AABB = Block.box(0.0, 6.5, 6.5, 16.0, 9.5, 9.5);
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - custom sticky
 +    public boolean isSticky(BlockState state) {
 +        return org.leavesmc.lumina.carpet.CarpetConfig.configModule.chainStone.enabled();
 +    }
@@ -1406,22 +1400,23 @@ index 4c6f90b6b9b4bdab6e55790aca11b0b5f37a564f..bb69633c49a09285142c931aab88343e
 +
 +        return Block.canSupportCenter(level, neighborPos, dir.getOpposite());
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - custom sticky
 +
      @Override
      public MapCodec<ChainBlock> codec() {
          return CODEC;
 diff --git a/src/main/java/net/minecraft/world/level/block/ChestBlock.java b/src/main/java/net/minecraft/world/level/block/ChestBlock.java
-index 8fbfd18b3caeed769396b3ffb1b1778b2f38edc0..9ae7acdac7e54b04ad60cabcf6cc5c631fd9db65 100644
+index 8fbfd18b3caeed769396b3ffb1b1778b2f38edc0..a606ba97a912aa99ed077d47c698dc65b97887b7 100644
 --- a/src/main/java/net/minecraft/world/level/block/ChestBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ChestBlock.java
-@@ -103,6 +103,27 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+@@ -103,6 +103,28 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
          }
      };
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - movable block entities
 +    public boolean isSticky(BlockState state) {
-+        return org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableBlockEntities;
++        // return org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableBlockEntities; // TODO
++        return false;
 +    }
 +
 +    public boolean isStickyToNeighbor(Level level, BlockPos pos, BlockState state, BlockPos neighborPos, BlockState neighborState, Direction dir, Direction moveDir) {
@@ -1438,60 +1433,74 @@ index 8fbfd18b3caeed769396b3ffb1b1778b2f38edc0..9ae7acdac7e54b04ad60cabcf6cc5c63
 +
 +        return getConnectedDirection(state) == dir;
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - movable block entities
 +
      // CraftBukkit start
      public static class DoubleInventory implements MenuProvider {
  
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java b/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
-index 7701683000132479d8c8eaa77ac3f93e41a960be..7b9b1d3aad7082292a96ef8d27e6ad91474fa60d 100644
+index 7701683000132479d8c8eaa77ac3f93e41a960be..98d9e13ba59961a83d6bb6b07de7dabe1e6af378 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
 @@ -14,6 +14,11 @@ import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.Fluids;
  
  public class CoralFanBlock extends BaseCoralFanBlock {
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - renewable coral
 +    public boolean isEnabled() {
 +        return org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableCoral == org.leavesmc.lumina.carpet.CarpetConfigModule.RenewableCoralMode.EXPANDED;
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - renewable coral
  
      public static final MapCodec<CoralFanBlock> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
          return instance.group(CoralBlock.DEAD_CORAL_FIELD.forGetter((blockcoralfan) -> {
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java b/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
-index 4c4aa2a63be84ff614a3dc0db2864266755545a2..4fb4ccfb171f306c736727ea5c69847d6ed8a651 100644
+index 4c4aa2a63be84ff614a3dc0db2864266755545a2..3585ae18a31d5f56c2e9f489fb20a9edbacad6c0 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
 @@ -27,6 +27,13 @@ public class CoralPlantBlock extends BaseCoralPlantTypeBlock {
      protected static final float AABB_OFFSET = 6.0F;
      protected static final VoxelShape SHAPE = Block.box(2.0D, 0.0D, 2.0D, 14.0D, 15.0D, 14.0D);
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - renewable coral
 +    public boolean isEnabled() {
 +        return org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableCoral == org.leavesmc.lumina.carpet.CarpetConfigModule.RenewableCoralMode.EXPANDED
 +                || org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableCoral == org.leavesmc.lumina.carpet.CarpetConfigModule.RenewableCoralMode.TRUE;
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - renewable coral
 +
      @Override
      public MapCodec<CoralPlantBlock> codec() {
          return CoralPlantBlock.CODEC;
 diff --git a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
-index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..a6f1df7d0937d86f1d29d5027221b559937fb09c 100644
+index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..64eda8cbe36c04927749d96dae3eaa88a7e33a43 100644
 --- a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
-@@ -125,7 +125,7 @@ public class DispenserBlock extends BaseEntityBlock {
+@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.inventory.AbstractContainerMenu;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.Level;
+@@ -120,12 +121,13 @@ public class DispenserBlock extends BaseEntityBlock {
+     }
+ 
+     protected DispenseItemBehavior getDispenseMethod(Level world, ItemStack stack) {
++        if (stack.getItem() == Items.CACTUS) return new org.leavesmc.lumina.carpet.helpers.BlockRotator.CactusDispenserBehaviour(); // Lumina - Porting Carpet's features - cactus dispenser
+         return (DispenseItemBehavior) (!stack.isItemEnabled(world.enabledFeatures()) ? DispenserBlock.DEFAULT_BEHAVIOR : (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(stack.getItem()));
+     }
  
      @Override
      protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
 -        boolean flag1 = world.hasNeighborSignal(pos) || world.hasNeighborSignal(pos.above());
-+        boolean flag1 = world.hasNeighborSignal(pos) || org.leavesmc.lumina.carpet.helpers.QuasiConnectivity.hasQuasiSignal(world,pos.above()); // Lumina - Porting Carpet's features
++        boolean flag1 = world.hasNeighborSignal(pos) || org.leavesmc.lumina.carpet.helpers.QuasiConnectivity.hasQuasiSignal(world,pos.above()); // Lumina - Porting Carpet's features - quasi connectivity
          boolean flag2 = (Boolean) state.getValue(DispenserBlock.TRIGGERED);
  
          if (flag1 && !flag2) {
 diff --git a/src/main/java/net/minecraft/world/level/block/HopperBlock.java b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
-index 86e5617d445ce762aa374e236a0ccdfe5901fce5..20a1e3ebfcd361f47a7435f7597de56ff834794e 100644
+index 86e5617d445ce762aa374e236a0ccdfe5901fce5..39773b7c4321c4aa88cf2598c42c5d93f367637e 100644
 --- a/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/HopperBlock.java
 @@ -98,7 +98,10 @@ public class HopperBlock extends BaseEntityBlock {
@@ -1499,44 +1508,44 @@ index 86e5617d445ce762aa374e236a0ccdfe5901fce5..20a1e3ebfcd361f47a7435f7597de56f
      @Override
      public BlockState getStateForPlacement(BlockPlaceContext ctx) {
 -        Direction direction = ctx.getClickedFace().getOpposite();
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - cactus
 +        Direction direction = ctx.getClickedFace();
 +        if (!org.leavesmc.lumina.carpet.helpers.BlockRotator.flippinEligibility(ctx.getPlayer())) direction = direction.getOpposite();
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - cactus
          return this.defaultBlockState()
              .setValue(FACING, direction.getAxis() == Direction.Axis.Y ? Direction.DOWN : direction)
              .setValue(ENABLED, Boolean.valueOf(true));
 diff --git a/src/main/java/net/minecraft/world/level/block/InfestedBlock.java b/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
-index f1e349f55a7152f507eff62a4d9fe80805b27308..f15892def527c5b2cff2bc4c2c9aeba5b438123c 100644
+index f1e349f55a7152f507eff62a4d9fe80805b27308..826f29aa6817a4e9fca67589092a718b993ec7a5 100644
 --- a/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/InfestedBlock.java
 @@ -56,6 +56,11 @@ public class InfestedBlock extends Block {
              entitysilverfish.moveTo((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D, 0.0F, 0.0F);
              world.addFreshEntity(entitysilverfish, SpawnReason.SILVERFISH_BLOCK); // CraftBukkit - add SpawnReason
              entitysilverfish.spawnAnim();
-+            // Lumina start - Porting Carpet's features
++            // Lumina start - Porting Carpet's features - silverfish drop gravel
 +            if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.silverFishDropGravel) {
 +                popResource(world, pos, new ItemStack(Blocks.GRAVEL));
 +            }
-+            // Lumina end - Porting Carpet's features
++            // Lumina end - Porting Carpet's features - silverfish drop gravel
          }
  
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
-index 84623c632d8c2f0fa7ec939c711316d757117d23..1aa8b19863a0eb82dcafbf200a9bca75711e1bb7 100644
+index 84623c632d8c2f0fa7ec939c711316d757117d23..a3aa932a64943a1d9d4cd601dd0a0e7a2d0ac5d2 100644
 --- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
 @@ -190,6 +190,13 @@ public class LiquidBlock extends Block implements BucketPickup {
                  BlockPos blockposition1 = pos.relative(enumdirection.getOpposite());
  
                  if (world.getFluidState(blockposition1).is(FluidTags.WATER)) {
-+                    // Lumina start - Porting Carpet's features
++                    // Lumina start - Porting Carpet's features - renewable deepslate
 +                    if(org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableDeepslate && !world.getFluidState(pos).isSource() && world.dimension() == Level.OVERWORLD && pos.getY() < 0) {
 +                        world.setBlockAndUpdate(pos, Blocks.COBBLED_DEEPSLATE.defaultBlockState());
 +                        this.fizz(world, pos);
 +                        return false;
 +                    }
-+                    // Lumina end - Porting Carpet's features
++                    // Lumina end - Porting Carpet's features - renewable deepslate
                      Block block = world.getFluidState(pos).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
  
                      // CraftBukkit start
@@ -1545,7 +1554,7 @@ index 84623c632d8c2f0fa7ec939c711316d757117d23..1aa8b19863a0eb82dcafbf200a9bca75
              }
          }
 -
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - renewable blackstone
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableBlackstone) {
 +            if (fluid.is(FluidTags.LAVA)) {
 +                for(Direction direction : Direction.values()) {
@@ -1560,7 +1569,7 @@ index 84623c632d8c2f0fa7ec939c711316d757117d23..1aa8b19863a0eb82dcafbf200a9bca75
 +                }
 +            }
 +        }
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - renewable blackstone
          return true;
      }
  
@@ -1591,7 +1600,7 @@ index 21c747f00892a8372c3ef239f63d59ccaa315295..4de789780bfef0ed4f480cb2d0101448
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..ca47695d36a29ec6fcdff22567f8d605da59536c 100644
+index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..dcda1c691a8732cc71b8b18d0c4f0defb424d99c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -44,11 +44,17 @@ public abstract class BlockEntity {
@@ -1604,7 +1613,7 @@ index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..ca47695d36a29ec6fcdff22567f8d605
      private BlockState blockState;
      private DataComponentMap components;
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - movable block entity
 +    public void setCMPos(BlockPos newPos) {
 +        worldPosition = newPos;
 +    }
@@ -1614,7 +1623,7 @@ index 2731226ad4e525cd5f185590b9b3648b1fcdcfdd..ca47695d36a29ec6fcdff22567f8d605
      public void updateTicks(final long fromTickOffset, final long fromRedstoneTimeOffset) {
  
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 5a51c11074f629f640374094b59fb986ac2b77e1..2bd0f5f9ddd95032785be176e02acf2b34ea60d1 100644
+index 5a51c11074f629f640374094b59fb986ac2b77e1..491b522060f1126407035f3720f4684bb544078f 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -22,6 +22,7 @@ import net.minecraft.world.entity.item.ItemEntity;
@@ -1638,7 +1647,7 @@ index 5a51c11074f629f640374094b59fb986ac2b77e1..2bd0f5f9ddd95032785be176e02acf2b
      // Paper end - Perf: Optimize Hoppers
  
      private static boolean ejectItems(Level world, BlockPos pos, HopperBlockEntity blockEntity) {
-+        // Lumina start - Porting Carpet's features
++        // Lumina start - Porting Carpet's features - hopper counters
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.hopperCounters) {
 +            Direction hopperFacing = world.getBlockState(pos).getValue(HopperBlock.FACING);
 +            DyeColor woolColor = org.leavesmc.lumina.carpet.utils.WoolTool.getWoolColorAtPosition(
@@ -1656,7 +1665,7 @@ index 5a51c11074f629f640374094b59fb986ac2b77e1..2bd0f5f9ddd95032785be176e02acf2b
 +                return true;
 +            }
 +        }
-+        // Lumina end - Porting Carpet's features
++        // Lumina end - Porting Carpet's features - hopper counters
          Container iinventory = HopperBlockEntity.getAttachedContainer(world, pos, blockEntity);
  
          if (iinventory == null) {
@@ -1686,18 +1695,18 @@ index 4caceb37f0aec4a1d326fe45ff096e6473b64447..25b13cf76b62d4c64d0548627c60c37c
                      }
                  }
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..d3bf0ca9baffb663e03a482d109a734c12ce1f12 100644
+index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..431d95c45f6fab95241396794bccfedf41339f40 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 @@ -69,6 +69,12 @@ public class PistonBaseBlock extends DirectionalBlock {
      protected static final VoxelShape DOWN_AABB = Block.box(0.0D, 4.0D, 0.0D, 16.0D, 16.0D, 16.0D);
      private final boolean isSticky;
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - movable block entities // TODO
 +    public boolean publicShouldExtend(Level world_1, BlockPos blockPos_1, Direction direction_1) {
 +        return getNeighborSignal(world_1, blockPos_1,direction_1);
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - movable block entities
 +
      @Override
      public MapCodec<PistonBaseBlock> codec() {
@@ -1724,7 +1733,7 @@ index 58b570cfdd52b414752b5a117946d59031eafe94..799ecfcc947407d57e36ce47305d33f3
          entity.move(
              MoverType.PISTON,
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 2034ca2edd3aff61d94416266e75402babd3e741..1543f9d114f91f8cbf2f5faef306323ce8e94831 100644
+index 2034ca2edd3aff61d94416266e75402babd3e741..1b95d8ac61d9d4a3717a65fdf1dac6d6596b661a 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -189,7 +189,7 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -1732,7 +1741,7 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..1543f9d114f91f8cbf2f5faef306323c
                  }
  
 -                state.spawnAfterBreak(worldserver, pos, ItemStack.EMPTY, flag);
-+                state.spawnAfterBreak(worldserver, pos, ItemStack.EMPTY, flag || org.leavesmc.lumina.carpet.CarpetConfig.configModule.xpFromExplosions); // Lumina - Porting Carpet's features
++                state.spawnAfterBreak(worldserver, pos, ItemStack.EMPTY, flag || org.leavesmc.lumina.carpet.CarpetConfig.configModule.xpFromExplosions); // Lumina - Porting Carpet's features - xp from explosions
                  state.getDrops(lootparams_a).forEach((itemstack) -> {
                      stackMerger.accept(itemstack, pos);
                  });
@@ -1740,52 +1749,52 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..1543f9d114f91f8cbf2f5faef306323c
          }
  
          public PushReaction getPistonPushReaction() {
-+            // Lumina start - Porting Carpet's features
++            // Lumina start - Porting Carpet's features - movable amethyst
 +            if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableAmethyst && getBlock() instanceof net.minecraft.world.level.block.BuddingAmethystBlock) {
 +                return PushReaction.NORMAL;
 +            }
-+            // Lumina end - Porting Carpet's features
++            // Lumina end - Porting Carpet's features - movable amethyst
              return !this.isDestroyable() ? PushReaction.BLOCK : this.pushReaction; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
          }
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java b/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
-index 1aac95b03a9e2e37c24f2a30bcb259c1424e1c78..5fd8f8296b76e391c23537ab480fbaf99d5e3000 100644
+index 1aac95b03a9e2e37c24f2a30bcb259c1424e1c78..4758fdbd9c729e7bdd024d7d2f341d3ff74a4596 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/ChunkAccess.java
 @@ -349,6 +349,7 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
      public abstract void removeBlockEntity(BlockPos pos);
  
      public void markPosForPostprocessing(BlockPos pos) {
-+        if (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get()) return; // Lumina - Porting Carpet's features
++        if (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get()) return; // Lumina - Porting Carpet's features - Skip generation checks
          ChunkAccess.LOGGER.warn("Trying to mark a block for PostProcessing @ {}, but this operation is not supported.", pos);
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/ChunkGenerator.java b/src/main/java/net/minecraft/world/level/chunk/ChunkGenerator.java
-index 9a17f3d0b53b2ab0358012e4238164f8af0a6c6e..d36ee851511fb2c5a0b20d3dc570bd1e0bf5525b 100644
+index 9a17f3d0b53b2ab0358012e4238164f8af0a6c6e..cdae8bf6b5e83b95a653ec4736c272e69a9f6d57 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/ChunkGenerator.java
 @@ -532,6 +532,12 @@ public abstract class ChunkGenerator {
  
          while (iterator.hasNext()) {
              Entry<Structure, LongSet> entry = (Entry) iterator.next();
-+            // Lumina start - Porting Carpet's features
++            // Lumina start - Porting Carpet's features - custome mob spawn
 +            WeightedRandomList<MobSpawnSettings.SpawnerData> res = org.leavesmc.lumina.carpet.utils.SpawnOverrides.test(accessor, entry.getValue(), group, entry.getKey(), pos);
 +            if (res != null) {
 +                return res;
 +            }
-+            // Lumina end - Porting Carpet's features
++            // Lumina end - Porting Carpet's features - custome mob spawn
              Structure structure = (Structure) entry.getKey();
              StructureSpawnOverride structurespawnoverride = (StructureSpawnOverride) structure.spawnOverrides().get(group);
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b5f6ac1d4 100644
+index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..1e96806c974a9fdb574f851daea2fb67cb9ac409 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -99,6 +99,79 @@ public class LevelChunk extends ChunkAccess {
          this(world, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, (LevelChunkSection[]) null, (LevelChunk.PostLoadProcessor) null, (BlendingData) null);
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - fill updates
 +    public BlockState setBlockStateWithBlockEntity(BlockPos blockPos_1, BlockState newBlockState, BlockEntity newBlockEntity, boolean boolean_1) {
 +        int x = blockPos_1.getX() & 15;
 +        int y = blockPos_1.getY();
@@ -1856,7 +1865,7 @@ index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b
 +            }
 +        }
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - fill updates
 +
      public LevelChunk(Level world, ChunkPos pos, UpgradeData upgradeData, LevelChunkTicks<Block> blockTickScheduler, LevelChunkTicks<Fluid> fluidTickScheduler, long inhabitedTime, @Nullable LevelChunkSection[] sectionArrayInitializer, @Nullable LevelChunk.PostLoadProcessor entityLoader, @Nullable BlendingData blendingData) {
          super(pos, upgradeData, world, net.minecraft.server.MinecraftServer.getServer().registryAccess().registryOrThrow(Registries.BIOME), inhabitedTime, sectionArrayInitializer, blendingData); // Paper - Anti-Xray - The world isn't ready yet, use server singleton for registry
@@ -1866,7 +1875,7 @@ index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b
  
                  if (!this.level.isClientSide && !this.level.getCurrentWorldData().isBlockPlaceCancelled) { // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent // Folia - region threading
 -                    iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
-+                    // Lumina start - Porting Carpet's features
++                    // Lumina start - Porting Carpet's features - fill updates
 +                    if (org.leavesmc.lumina.carpet.CarpetConfig.IMPENDING_FILL_SKIP_UPDATES.get()) { // doing due dilligence from AbstractBlock onStateReplaced{
 +                        if (iblockdata1.hasBlockEntity() && !iblockdata1.is(iblockdata.getBlock())) {
 +                            this.level.removeBlockEntity(blockposition);
@@ -1875,11 +1884,11 @@ index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b
 +                    else {
 +                        iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
 +                    }
-+                    // Lumina end - Porting Carpet's features
++                    // Lumina end - Porting Carpet's features - fill updates
                  } else if (!iblockdata1.is(block) && flag3) {
                      this.removeBlockEntity(blockposition);
                  }
-@@ -471,11 +553,11 @@ public class LevelChunk extends ChunkAccess {
+@@ -471,11 +553,13 @@ public class LevelChunk extends ChunkAccess {
                  } else {
                      // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
                      if (!this.level.isClientSide && doPlace && (!this.level.getCurrentWorldData().captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // Folia - region threading
@@ -1889,48 +1898,50 @@ index b1c86ba3010f67a3a0db34b92df459bcf51ff15f..7e830a4204f3dd32908c2616969e307b
  
                      if (iblockdata.hasBlockEntity()) {
 -                        BlockEntity tileentity = this.getBlockEntity(blockposition, LevelChunk.EntityCreationType.CHECK);
-+                        BlockEntity tileentity = (!org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableBlockEntities) ? this.getBlockEntity(blockposition, LevelChunk.EntityCreationType.CHECK) : this.level.getBlockEntity(blockposition); // Lumina - Porting Carpet's features
++                        BlockEntity tileentity =
++                                // (!org.leavesmc.lumina.carpet.CarpetConfig.configModule.movableBlockEntities) ? this.getBlockEntity(blockposition, LevelChunk.EntityCreationType.CHECK) :
++                                this.level.getBlockEntity(blockposition); // Lumina - Porting Carpet's features - movable block entities // TODO
  
                          if (tileentity == null) {
                              tileentity = ((EntityBlock) block).newBlockEntity(blockposition, iblockdata);
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
-index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..c56ffe58c426760c0f3ff2243535943e06730c14 100644
+index 7bc5ff8eb1174834dcc27363af4a5cef19017b3d..44d75c68eec02c6c6407352b63e32ba6081eb1e5 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/feature/CoralFeature.java
 @@ -22,6 +22,12 @@ public abstract class CoralFeature extends Feature<NoneFeatureConfiguration> {
          super(configCodec);
      }
  
-+    // Lumina start - Porting Carpet's features
++    // Lumina start - Porting Carpet's features - renewable coral
 +    public boolean growSpecific(net.minecraft.world.level.Level worldIn, RandomSource random, BlockPos pos, BlockState blockUnder) {
 +        return placeFeature(worldIn, random, pos, blockUnder);
 +    }
-+    // Lumina end - Porting Carpet's features
++    // Lumina end - Porting Carpet's features - renewable coral
 +
      @Override
      public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
          RandomSource randomSource = context.random();
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
-index 4ccb92ca80752eb614114b554f65bb8427785d41..ebaa3ae35a3acc651a3118001339f37755858360 100644
+index 4ccb92ca80752eb614114b554f65bb8427785d41..bedd0980a2a6318f058666c77d043551e961f845 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java
 @@ -49,8 +49,14 @@ public class HugeFungusFeature extends Feature<HugeFungusConfiguration> {
                  }
              }
  
-+            // Lumina start - Porting Carpet's features
++            // Lumina start - Porting Carpet's features - thick fungus growth
              boolean bl = !hugeFungusConfiguration.planted && randomSource.nextFloat() < 0.06F;
              worldGenLevel.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 4);
 +            boolean natural = !hugeFungusConfiguration.planted;
 +            bl = natural && bl ||
 +                    !natural && (org.leavesmc.lumina.carpet.CarpetConfig.configModule.thickFungusGrowth == org.leavesmc.lumina.carpet.CarpetConfigModule.FungusGrowthMode.ALL ||
 +                            org.leavesmc.lumina.carpet.CarpetConfig.configModule.thickFungusGrowth == org.leavesmc.lumina.carpet.CarpetConfigModule.FungusGrowthMode.RANDOM && randomSource.nextFloat() < 0.06F);
-+            // Lumina end - Porting Carpet's features
++            // Lumina end - Porting Carpet's features - thick fungus growth
              this.placeStem(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
              this.placeHat(worldGenLevel, randomSource, hugeFungusConfiguration, blockPos2, i, bl);
              return true;
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
-index 05cca3aef35f7ab016790a7ea2328772fcf7bf38..a17bb849a01eb0d8cd6b889ce22d379065ca0770 100644
+index 05cca3aef35f7ab016790a7ea2328772fcf7bf38..d63a35ba6886f251b3a4213b6a6fa8774ad51cdb 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pieces/PieceGeneratorSupplier.java
 @@ -23,7 +23,7 @@ public interface PieceGeneratorSupplier<C extends FeatureConfiguration> {
@@ -1938,12 +1949,12 @@ index 05cca3aef35f7ab016790a7ea2328772fcf7bf38..a17bb849a01eb0d8cd6b889ce22d3790
      ) {
          Optional<PieceGenerator<C>> optional = Optional.of(generator);
 -        return context -> predicate.test(context) ? optional : Optional.empty();
-+        return context -> (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get() || predicate.test(context)) ? optional : Optional.empty(); // Lumina - Porting Carpet's features
++        return context -> (org.leavesmc.lumina.carpet.CarpetConfig.SKIP_GENERATION_CHECKS.get() || predicate.test(context)) ? optional : Optional.empty(); // Lumina - Porting Carpet's features - skip generation checks
      }
  
      static <C extends FeatureConfiguration> Predicate<PieceGeneratorSupplier.Context<C>> checkForBiomeOnTop(Heightmap.Types heightmapType) {
 diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
-index 58296b67f80587af485b0068e461cfd3d8d6f96f..3a6a45c6846e640474f2b50e04ed5da26abefc21 100644
+index 58296b67f80587af485b0068e461cfd3d8d6f96f..2762c02ece0f4ff5b8a2d781281c65618277dacc 100644
 --- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
 @@ -501,7 +501,7 @@ public abstract class FlowingFluid extends Fluid {
@@ -1951,30 +1962,30 @@ index 58296b67f80587af485b0068e461cfd3d8d6f96f..3a6a45c6846e640474f2b50e04ed5da2
              return ifluidcontainer.canPlaceLiquid((Player) null, world, pos, state, fluid);
          } else {
 -            return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) ? (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !state.is(Blocks.STRUCTURE_VOID) ? !state.blocksMotion() : false) : false;
-+            return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) && (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !((org.leavesmc.lumina.carpet.CarpetConfig.configModule.liquidDamageDisabled) ? (state.isAir() || state.is(Blocks.WATER) || state.is(Blocks.LAVA)) : state.is(Blocks.STRUCTURE_VOID)) && !state.blocksMotion()); // Lumina - Porting Carpet's features
++            return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE) && !state.is(Blocks.BUBBLE_COLUMN) && (!state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL) && !state.is(Blocks.END_GATEWAY) && !((org.leavesmc.lumina.carpet.CarpetConfig.configModule.liquidDamageDisabled) ? (state.isAir() || state.is(Blocks.WATER) || state.is(Blocks.LAVA)) : state.is(Blocks.STRUCTURE_VOID)) && !state.blocksMotion()); // Lumina - Porting Carpet's features - liquid damage disabled
          }
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/material/LavaFluid.java b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
-index 3bb4a9a1a6249e8ba2de237f801210e7f4fd5825..6a4bb0e67232072764e3c8bf970c01a58676efca 100644
+index 3bb4a9a1a6249e8ba2de237f801210e7f4fd5825..03a91cf6ed6e77262f5208f61b06a151d4efa3e2 100644
 --- a/src/main/java/net/minecraft/world/level/material/LavaFluid.java
 +++ b/src/main/java/net/minecraft/world/level/material/LavaFluid.java
 @@ -210,6 +210,13 @@ public abstract class LavaFluid extends FlowingFluid {
  
              if (this.is(FluidTags.LAVA) && fluid1.is(FluidTags.WATER)) {
                  if (state.getBlock() instanceof LiquidBlock) {
-+                    // Lumina start - Porting Carpet's features
++                    // Lumina start - Porting Carpet's features - renewable deepslate
 +                    if(org.leavesmc.lumina.carpet.CarpetConfig.configModule.renewableDeepslate && ((Level)world).dimension() == Level.OVERWORLD && pos.getY() < 0) {
 +                        world.setBlock(pos, Blocks.DEEPSLATE.defaultBlockState(), 3);
 +                        this.fizz(world, pos);
 +                        return;
 +                    }
-+                    // Lumina end - Porting Carpet's features
++                    // Lumina end - Porting Carpet's features - renewable deepslate
                      // CraftBukkit start
                      if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world.getMinecraftWorld(), pos, Blocks.STONE.defaultBlockState(), 3)) {
                          return;
 diff --git a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
-index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..fff9b4aca08f50e92e2c31128f910d1765ba2d40 100644
+index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5bbdf373f7 100644
 --- a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 +++ b/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
 @@ -15,10 +15,10 @@ import org.slf4j.Logger;
@@ -1982,11 +1993,11 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..fff9b4aca08f50e92e2c31128f910d17
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Level level;
 -    private final int maxChainedNeighborUpdates;
-+    public final int maxChainedNeighborUpdates; // Lumina - Porting Carpet's features
++    public final int maxChainedNeighborUpdates; // Lumina - Porting Carpet's features - access
      private final ArrayDeque<CollectingNeighborUpdater.NeighborUpdates> stack = new ArrayDeque<>();
      private final List<CollectingNeighborUpdater.NeighborUpdates> addedThisLayer = new ArrayList<>();
 -    private int count = 0;
-+    public int count = 0; // Lumina - Porting Carpet's features
++    public int count = 0; // Lumina - Porting Carpet's features - access
  
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
