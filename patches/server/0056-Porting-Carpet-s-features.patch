@@ -1771,9 +1771,18 @@ index 58b570cfdd52b414752b5a117946d59031eafe94..475bf2fa0c24ddb133e264fbb9528a4b
          entity.move(
              MoverType.PISTON,
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java b/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
-index 205e223c356634bd6bc6bd58c6f0b7fda61a6f5f..8a3417b876af9fe1813c42cb5155e2ce20e62534 100644
+index 205e223c356634bd6bc6bd58c6f0b7fda61a6f5f..53d4bc27df9bade309ce082f3e309b8966ab778d 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonStructureResolver.java
+@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.PushReaction;
+ 
+ public class PistonStructureResolver {
+-    public static final int MAX_PUSH_DEPTH = 12;
++    public static int MAX_PUSH_DEPTH = 12; // Lumina - Porting Carpet's features - push limit
+     private final Level level;
+     private final BlockPos pistonPos;
+     private final boolean extending;
 @@ -19,6 +19,34 @@ public class PistonStructureResolver {
      private final List<BlockPos> toPush = Lists.newArrayList();
      private final List<BlockPos> toDestroy = Lists.newArrayList();
@@ -2380,10 +2389,10 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2752556bb7cdaf54f97e231a5f5a20bba05edb77
+index 0000000000000000000000000000000000000000..39da7ed414c7497b062dc09b2d1b059d0d2b9062
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,473 @@
+@@ -0,0 +1,486 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -2575,7 +2584,7 @@ index 0000000000000000000000000000000000000000..2752556bb7cdaf54f97e231a5f5a20bb
 +    @Comment("Customizable piston push limit")
 +    public int pushLimit = PistonStructureResolver.MAX_PUSH_DEPTH;
 +
-+    @Validate(PushLimitValidator.class)
++    @Validate(Zero1024Validator.class)
 +    @Suggestion({"9", "15", "30"})
 +    @Comment("Customizable powered rail power range")
 +    public int railPowerLimit = 9;
@@ -2654,7 +2663,7 @@ index 0000000000000000000000000000000000000000..2752556bb7cdaf54f97e231a5f5a20bb
 +            also toggling the gamerule spectatorsGenerateChunks.""")
 +    public boolean creativePlayersLoadChunks = true;
 +
-+    @Validate(PushLimitValidator.class)
++    @Validate(Zero1024Validator.class)
 +    @Suggestion({"8", "16", "32"})
 +    @Comment("Customizable sculk sensor range")
 +    public int sculkSensorRange = 8;
@@ -2738,6 +2747,19 @@ index 0000000000000000000000000000000000000000..2752556bb7cdaf54f97e231a5f5a20bb
 +
 +
 +    public static class PushLimitValidator extends Validator<Integer> {
++        @Override
++        public boolean validate(Integer newValue, Integer oldValue) {
++            PistonStructureResolver.MAX_PUSH_DEPTH = newValue;
++            return newValue >= 1 && newValue <= 1024;
++        }
++
++        @Override
++        public String getErrorMessage(Integer newValue) {
++            return "Value should be a number from 1 to 1024, but got " + newValue;
++        }
++    }
++
++    public static class Zero1024Validator extends Validator<Integer> {
 +        @Override
 +        public boolean validate(Integer newValue, Integer oldValue) {
 +            return newValue >= 1 && newValue <= 1024;
