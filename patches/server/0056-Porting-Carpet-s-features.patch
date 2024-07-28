@@ -440,6 +440,60 @@ index 46d8bcad1545953757659870901cbbdf3340bc15..1af024d573da0562a2537748b0e1b643
          if (!this.level().isClientSide) {
              if (player.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                  player.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(player, 2, PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2;
+diff --git a/src/main/java/net/minecraft/world/entity/MobCategory.java b/src/main/java/net/minecraft/world/entity/MobCategory.java
+index c9482fc669cb7326d4a22467e6fcb5e6b4747e9d..103409394052c9bdaa4705f6215b0b42c52178dc 100644
+--- a/src/main/java/net/minecraft/world/entity/MobCategory.java
++++ b/src/main/java/net/minecraft/world/entity/MobCategory.java
+@@ -39,7 +39,7 @@ public enum MobCategory implements StringRepresentable {
+     }
+ 
+     public int getMaxInstancesPerChunk() {
+-        return this.max;
++        return ((int) ((double)max*(Math.pow(2.0,(org.leavesmc.lumina.carpet.utils.SpawnReporter.mobcap_exponent/4))))); // Lumina - Porting Carpet's features
+     }
+ 
+     public boolean isFriendly() {
+diff --git a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java b/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+index 7873462c6146b7431011a2b73eb7414f61afbccf..f5b0250635ca884c6534ba4bc2bad24cee8be6d2 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
++++ b/src/main/java/net/minecraft/world/entity/ai/navigation/PathNavigation.java
+@@ -114,7 +114,16 @@ public abstract class PathNavigation {
+     }
+     @Nullable
+     public Path createPath(BlockPos target, @Nullable Entity entity, int distance) {
+-        return this.createPath(ImmutableSet.of(target), entity, 8, false, distance);
++        // Lumina start - Porting Carpet's features
++        if (!org.leavesmc.lumina.carpet.logging.LoggerRegistry.__pathfinding)
++            return this.createPath(ImmutableSet.of(target), entity, 8, false, distance);
++        Set<BlockPos> set_1 = ImmutableSet.of(target);
++        long start = System.nanoTime();
++        Path path = createPath(set_1, entity, 8, false, distance);
++        long finish = System.nanoTime();
++        float duration = (1.0F*((finish - start)/1000))/1000;
++        set_1.forEach(b -> org.leavesmc.lumina.carpet.logging.logHelpers.PathfindingVisualizer.slowPath(mob, Vec3.atBottomCenterOf(b), duration, path != null)); // ground centered position
++        return path;
+         // Paper end - EntityPathfindEvent
+     }
+ 
+@@ -125,7 +134,17 @@ public abstract class PathNavigation {
+ 
+     @Nullable
+     public Path createPath(Entity entity, int distance) {
+-        return this.createPath(ImmutableSet.of(entity.blockPosition()), entity, 16, true, distance); // Paper - EntityPathfindEvent
++        // Lumina start - Porting Carpet's features
++        if (!org.leavesmc.lumina.carpet.logging.LoggerRegistry.__pathfinding)
++            return this.createPath(ImmutableSet.of(entity.blockPosition()), entity, 16, true, distance); // Paper - EntityPathfindEvent
++        Set<BlockPos> set_1 = ImmutableSet.of(entity.blockPosition());
++        long start = System.nanoTime();
++        Path path = createPath(set_1, entity, 16, true, distance);
++        long finish = System.nanoTime();
++        float duration = (1.0F*((finish - start)/1000))/1000;
++        set_1.forEach(b -> org.leavesmc.lumina.carpet.logging.logHelpers.PathfindingVisualizer.slowPath(mob, Vec3.atBottomCenterOf(b), duration, path != null));
++        return path;
++        // Lumina end - Porting Carpet's features
+     }
+ 
+     @Nullable
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 index d504d10fbe45dfe3f2f3d08d2473df6cd18f6dcf..2aeacaca3c1f62e067fef9c82e9f261c3d921330 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
@@ -979,6 +1033,26 @@ index 41400c4fcd5d204ba9624f776a3e2eaf29a5dff9..0de4dcaa1731725e355a141fdf31f04b
      @Nullable
      private Entity entityRepresentation;
  
+diff --git a/src/main/java/net/minecraft/world/item/PickaxeItem.java b/src/main/java/net/minecraft/world/item/PickaxeItem.java
+index e2f826427a62ab52461a93aa53adfad672137d47..307d6ef5eb610385bff8986271e3919ef5087712 100644
+--- a/src/main/java/net/minecraft/world/item/PickaxeItem.java
++++ b/src/main/java/net/minecraft/world/item/PickaxeItem.java
+@@ -6,4 +6,15 @@ public class PickaxeItem extends DiggerItem {
+     public PickaxeItem(Tier material, Item.Properties properties) {
+         super(material, BlockTags.MINEABLE_WITH_PICKAXE, properties);
+     }
++
++    // Lumina - Porting Carpet's features
++    public float getDestroySpeed(ItemStack stack, net.minecraft.world.level.block.state.BlockState state) {
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.missingTools && state.getSoundType() == net.minecraft.world.level.block.SoundType.GLASS)
++        {
++            final net.minecraft.world.item.component.Tool tool = stack.get(net.minecraft.core.component.DataComponents.TOOL);
++            return tool != null ? tool.getMiningSpeed(net.minecraft.world.level.block.Blocks.STONE.defaultBlockState()) : super.getDestroySpeed(stack, state);
++        }
++        return super.getDestroySpeed(stack, state);
++    }
++    // Lumina - Porting Carpet's features
+ }
 diff --git a/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java b/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java
 index f8f909ebdad5e96379e8bd8c610164ef0697368e..225259124bc7ab5a238475a0246ccf54cc7ea775 100644
 --- a/src/main/java/net/minecraft/world/item/StandingAndWallBlockItem.java
