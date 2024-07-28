@@ -35,6 +35,10 @@ The paper has been optimized
 
 The paper has been optimized
 
+### lagFreeSpawning
+
+The paper has been optimized
+
 ### commandTick
 
 The built-in ones should be enough, right

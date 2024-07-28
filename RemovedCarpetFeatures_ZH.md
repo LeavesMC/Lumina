@@ -35,6 +35,10 @@ Paper 已经优化了
 
 Paper 已经优化了
 
+### lagFreeSpawning
+
+Paper 已经优化了
+
 ### commandTick
 
 内置的应该够了吧（x

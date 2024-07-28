@@ -2161,10 +2161,10 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..37a3db1d0bd1eaacf095705a94d83e56e8a52a4f
+index 0000000000000000000000000000000000000000..add5cab523183f30688b772797c429c5c4b80cb6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,476 @@
+@@ -0,0 +1,473 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -2350,9 +2350,6 @@ index 0000000000000000000000000000000000000000..37a3db1d0bd1eaacf095705a94d83e56
 +
 +    @Comment("Disables breaking of blocks caused by flowing liquids")
 +    public boolean liquidDamageDisabled = false;
-+
-+    @Comment("smooth client animations with low tps settings, works only in SP, and will slow down players")
-+    public boolean smoothClientAnimations = true;
 +
 +    @Validate(PushLimitValidator.class)
 +    @Suggestion({"10", "12", "14", "100"})
