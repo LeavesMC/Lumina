@@ -109,10 +109,10 @@ index 66bdac50130f523f9dc4379b103b7a469f9ca36b..fef188c644ea1974cc5cd4b7044b6f95
          this.enabled = enabled;
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759d13bbbd5
+index 0000000000000000000000000000000000000000..dca3a12178dc25433251d854d19cfdeb3d5f6cfa
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,208 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
@@ -131,6 +131,9 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +import org.slf4j.Logger;
 +
 +import java.util.Arrays;
++
++import static net.kyori.adventure.text.Component.*;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
 +
 +public class LuminaCommand {
 +    private LuminaCommand() {
@@ -165,14 +168,14 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                    String node = (String) args.get("node");
 +                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
-+                                        sendError(sender, "No config node specified.");
++                                        sender.sendMessage(text("No config node specified.").color(RED));
 +                                        return;
 +                                    }
 +                                    String value = (String) args.get("value");
 +                                    Class<?> type = nodeInfo.type();
 +                                    Object parent = nodeInfo.parent();
 +                                    if (value == null || value.isEmpty()) {
-+                                        sendError(sender, "No value specified, expected: " + type.getSimpleName());
++                                        sender.sendMessage(text("No value specified, expected: " + type.getSimpleName()).color(RED));
 +                                        return;
 +                                    }
 +                                    try {
@@ -185,7 +188,7 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                Object enumValue = Enum.valueOf(enumType, value);
 +                                                nodeInfo.field().set(parent, enumValue);
 +                                            } catch (IllegalArgumentException ignored) {
-+                                                sendError(sender, "Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value);
++                                                sender.sendMessage(text("Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value).color(RED));
 +                                            }
 +                                        } else {
 +                                            switch (type.getSimpleName()) {
@@ -196,12 +199,12 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                    } else if ("false".equals(value)) {
 +                                                        newValue = false;
 +                                                    } else {
-+                                                        sendError(sender, "Expected boolean, but entered: " + value);
++                                                        sender.sendMessage(text("Expected boolean, but entered: " + value).color(RED));
 +                                                        return;
 +                                                    }
 +                                                    Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
 +                                                    if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                        sendError(sender, result.message());
++                                                        sender.sendMessage(text(result.message()).color(RED));
 +                                                        return;
 +                                                    }
 +                                                    nodeInfo.field().setBoolean(parent, newValue);
@@ -211,12 +214,12 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                        int newValue = Integer.parseInt(value);
 +                                                        Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
 +                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sendError(sender, result.message());
++                                                            sender.sendMessage(text(result.message()).color(RED));
 +                                                            return;
 +                                                        }
 +                                                        nodeInfo.field().setInt(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
-+                                                        sendError(sender, "Expected int, but entered: " + value);
++                                                        sender.sendMessage(text("Expected int, but entered: " + value).color(RED));
 +                                                    }
 +                                                }
 +                                                case "long" -> {
@@ -224,12 +227,12 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                        long newValue = Long.parseLong(value);
 +                                                        Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
 +                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sendError(sender, result.message());
++                                                            sender.sendMessage(text(result.message()).color(RED));
 +                                                            return;
 +                                                        }
 +                                                        nodeInfo.field().setLong(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
-+                                                        sendError(sender, "Expected long, but entered: " + value);
++                                                        sender.sendMessage(text("Expected long, but entered: " + value).color(RED));
 +                                                    }
 +                                                }
 +                                                case "double" -> {
@@ -237,18 +240,18 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                        double newValue = Double.parseDouble(value);
 +                                                        Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
 +                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sendError(sender, result.message());
++                                                            sender.sendMessage(text(result.message()).color(RED));
 +                                                            return;
 +                                                        }
 +                                                        nodeInfo.field().setDouble(parent, newValue);
 +                                                    } catch (NumberFormatException ignored) {
-+                                                        sendError(sender, "Expected double, but entered: " + value);
++                                                        sender.sendMessage(text("Expected double, but entered: " + value).color(RED));
 +                                                    }
 +                                                }
 +                                                case "String" -> {
 +                                                    Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
 +                                                    if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                        sendError(sender, result.message());
++                                                        sender.sendMessage(text(result.message()).color(RED));
 +                                                        return;
 +                                                    }
 +                                                    nodeInfo.field().set(parent, value);
@@ -257,7 +260,7 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                                        throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
 +                                            }
 +                                        }
-+                                        sendSuccess(sender, "Already set " + node + " to " + value);
++                                        sender.sendMessage(text("Set " + node + " to " + value).color(DARK_GREEN));
 +                                        if (save) {
 +                                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
 +                                                LOGGER.info("Saved Lumina config after setting {} to {}", node, value);
@@ -276,11 +279,11 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                                    String node = (String) args.get("node");
 +                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
 +                                    if (node == null || nodeInfo == null) {
-+                                        sendError(sender, "No config node specified.");
++                                        sender.sendMessage(text("No config node specified.").color(RED));
 +                                        return;
 +                                    }
 +                                    try {
-+                                        sendInfo(sender, "The value of " + node + " is " + nodeInfo.field().get(nodeInfo.parent()));
++                                        sender.sendMessage(text("The value of " + node + " is " + nodeInfo.field().get(nodeInfo.parent())));
 +                                    } catch (IllegalAccessException e) {
 +                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
 +                                    }
@@ -288,12 +291,12 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                        ).withSubcommand(new CommandAPICommand("reload")
 +                                .withPermission("lumina.config.reload")
 +                                .executes((sender, args) -> {
-+                                    sendSuccess(sender, "Reloading Lumina config...");
++                                    sender.sendMessage(text("Reloading Lumina config...").color(DARK_GREEN));
 +                                    if (!(sender instanceof ConsoleCommandSender)) {
 +                                        LOGGER.info("Reloading Lumina config...");
 +                                    }
 +                                    LuminaConfig.reloadAsync().thenApply((Void ignored) -> {
-+                                        sendSuccess(sender, "Lumina config reloaded.");
++                                        sender.sendMessage(text("Lumina config reloaded.").color(DARK_GREEN));
 +                                        if (!(sender instanceof ConsoleCommandSender)) {
 +                                            LOGGER.info("Lumina config reloaded.");
 +                                        }
@@ -303,12 +306,12 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                        ).withSubcommand(new CommandAPICommand("save"))
 +                        .withPermission("lumina.config.set") // Cause `set` also called save, so use the same permission node
 +                        .executes((sender, args) -> {
-+                            sendSuccess(sender, "Saving Lumina config...");
++                            sender.sendMessage(text("Saving Lumina config...").color(DARK_GREEN));
 +                            if (!(sender instanceof ConsoleCommandSender)) {
 +                                LOGGER.info("Saving Lumina config...");
 +                            }
 +                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
-+                                sendSuccess(sender, "Lumina config saved.");
++                                sender.sendMessage(text("Lumina config saved.").color(DARK_GREEN));
 +                                if (!(sender instanceof ConsoleCommandSender)) {
 +                                    LOGGER.info("Lumina config saved.");
 +                                }
@@ -316,25 +319,6 @@ index 0000000000000000000000000000000000000000..1b40980e4cf227242f957720c0296759
 +                            });
 +                        })
 +                ).register();
-+    }
-+
-+    public static void sendError(@NotNull CommandSender sender, String message) {
-+        sendMessage(sender, message, NamedTextColor.RED);
-+    }
-+
-+    public static void sendSuccess(@NotNull CommandSender sender, String message) {
-+        sendMessage(sender, message, NamedTextColor.DARK_GREEN);
-+    }
-+
-+    public static void sendInfo(@NotNull CommandSender sender, String message) {
-+        sendMessage(sender, message, NamedTextColor.WHITE);
-+    }
-+
-+    public static void sendMessage(@NotNull CommandSender sender, String message, TextColor color) {
-+        sender.sendMessage(Component
-+                .empty()
-+                .color(color)
-+                .append(Component.text(message)));
 +    }
 +}
 \ No newline at end of file

@@ -3900,10 +3900,10 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c3b6ff535
+index 0000000000000000000000000000000000000000..c9ccd60a6943cc77f7594964d2f69f087731f04e
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,165 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -3911,6 +3911,10 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
 +import dev.jorel.commandapi.wrappers.Rotation;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.Style;
++import net.kyori.adventure.text.format.TextDecoration;
 +import net.minecraft.SharedConstants;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.UUIDUtil;
@@ -3921,14 +3925,20 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +import net.minecraft.world.level.Level;
 +import org.bukkit.*;
 +import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
 +import org.bukkit.permissions.ServerOperator;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
++import org.leavesmc.lumina.carpet.utils.Messenger;
 +
 +import java.util.Arrays;
 +
++import static net.kyori.adventure.text.Component.*;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static net.kyori.adventure.text.format.Style.*;
++import static net.kyori.adventure.text.format.TextDecoration.*;
 +import static org.leavesmc.lumina.LuminaCommand.*;
 +
 +public class PlayerCommand {
@@ -3954,31 +3964,40 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +        private static boolean canSpawn(CommandSender sender, @NotNull CommandArguments args) {
 +            String playerName = (String) args.get("player");
 +            if (playerName == null) {
-+                sendError(sender, "Invalid player name");
++                sender.sendMessage(text("Player name is required").color(RED).style(style(BOLD)));
 +                return false;
 +            }
 +            MinecraftServer server = MinecraftServer.getServer();
 +            PlayerList manager = server.getPlayerList();
 +
 +            if (manager.getPlayerByName(playerName) != null) {
-+                sendInfo(sender, "r Player rb " + playerName + "r  is already logged on");
++                sender.sendMessage(text()
++                        .append(text("Player ").color(RED))
++                        .append(text(playerName).color(RED).style(style(BOLD)))
++                        .append(text(" is already logged on").color(RED))
++                        .build());
++                sender.sendMessage(text("Player " + playerName + " is already logged on").color(RED));
 +                return false;
 +            }
 +            @SuppressWarnings("DataFlowIssue") GameProfile profile = server.getProfileCache().get(playerName).orElse(null);
 +            if (profile == null) {
 +                if (!CarpetConfig.configModule.allowSpawningOfflinePlayers) {
-+                    sendInfo(sender, "r Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.");
++                    sender.sendMessage(text("Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.").color(RED));
 +                    return false;
 +                } else {
 +                    profile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(playerName), playerName);
 +                }
 +            }
 +            if (manager.getBans().isBanned(profile)) {
-+                sendInfo(sender, "r Player rb " + playerName + "r  is banned on this server");
++                sender.sendMessage(text()
++                        .append(text("Player").color(RED))
++                        .append(text(playerName).color(RED).style(style(BOLD)))
++                        .append(text("is banned on this server").color(RED))
++                        .build());
 +                return false;
 +            }
 +            if (manager.isUsingWhitelist() && manager.isWhiteListed(profile) && !sender.isOp()) {
-+                sendInfo(sender, "r Whitelisted players can only be spawned by operators");
++                sender.sendMessage(text("Whitelisted players can only be spawned by operators").color(RED));
 +                return false;
 +            }
 +            return true;
@@ -3995,7 +4014,7 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +            GameType mode = GameType.CREATIVE;
 +            boolean flying = false;
 +            if (sender instanceof Player player) {
-+                ServerPlayer serverPlayer = (ServerPlayer) sender;
++                ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
 +                pos = player.getLocation();
 +                facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
 +                world = player.getWorld();
@@ -4006,7 +4025,7 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +            facing = (Rotation) args.getOrDefault("direction", facing);
 +            world = (World) args.getOrDefault("dimension", world);
 +            if (pos == null) {
-+                sendError(sender, "Need position to spawn player in console.");
++                sender.sendMessage(text("Need position to spawn player in console").color(RED).style(style(BOLD)));
 +                return false;
 +            }
 +            GameMode nullableGameMode = (GameMode) args.get("gamemode");
@@ -4024,17 +4043,17 @@ index 0000000000000000000000000000000000000000..819b5499d1b78c4df5114b3facdce09c
 +            String playerName = (String) args.get("player");
 +            // noinspection DataFlowIssue
 +            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
-+                sendInfo(sender, "rb Player name: " + playerName + " is too long");
++                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED).style(style(BOLD)));
 +                return false;
 +            }
 +
 +            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
-+                sendInfo(sender, "rb Player " + playerName + " cannot be placed outside of the world");
++                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED).style(style(BOLD)));
 +                return false;
 +            }
 +            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
 +            if (!success) {
-+                sendInfo(sender, "rb Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players");
++                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED).style(style(BOLD)));
 +                return false;
 +            }
 +            return true;
