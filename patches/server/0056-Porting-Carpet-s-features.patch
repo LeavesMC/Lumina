@@ -905,18 +905,10 @@ index 4b59206a342e7fc4174439df6842d0c677be2c4c..3903231d448575f8fed4365c6c0371a0
          ItemStack itemstack1 = other.getItem();
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d93caf4f5 100644
+index f11a701b3434b95342a6e8e89f5dea0d0080eff0..616a6334dd695dff0ee579ffe2aacc66e70b0e69 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.state.BlockState;
- // CraftBukkit start;
-+import net.minecraft.world.phys.Vec3;
- import org.bukkit.craftbukkit.event.CraftEventFactory;
- import org.bukkit.event.entity.EntityRemoveEvent;
- import org.bukkit.event.entity.ExplosionPrimeEvent;
-@@ -34,9 +35,16 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -34,9 +34,16 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      public float yield = 4; // CraftBukkit - add field
      public boolean isIncendiary = false; // CraftBukkit - add field
  
@@ -933,16 +925,16 @@ index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d
      }
  
      public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
-@@ -50,6 +58,8 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -50,6 +57,8 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          this.yo = y;
          this.zo = z;
          this.owner = igniter;
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.hardcodeTNTangle != -1.0D) setDeltaMovement(-Math.sin(org.leavesmc.lumina.carpet.CarpetConfig.configModule.hardcodeTNTangle) * 0.02, 0.2, -Math.cos(org.leavesmc.lumina.carpet.CarpetConfig.configModule.hardcodeTNTangle) * 0.02); // Lumina - Porting Carpet's features - hardcode TNT angle
-+        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.tntPrimerMomentumRemoved) this.setDeltaMovement(new Vec3(0.0, 0.20000000298023224D, 0.0)); // Porting Carpet's features - remove TNT primer momentum
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.tntPrimerMomentumRemoved) this.setDeltaMovement(new net.minecraft.world.phys.Vec3(0.0, 0.20000000298023224D, 0.0)); // Porting Carpet's features - remove TNT primer momentum
      }
  
      @Override
-@@ -73,8 +83,15 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -73,8 +82,15 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          return 0.04D;
      }
  
@@ -958,19 +950,19 @@ index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d
          if (this.level().spigotConfig.maxTntTicksPerTick > 0 && ++this.level().getCurrentWorldData().currentPrimedTnt > this.level().spigotConfig.maxTntTicksPerTick) { return; } // Spigot // Folia - region threading
          this.applyGravity();
          this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -86,11 +103,37 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -86,11 +102,37 @@ public class PrimedTnt extends Entity implements TraceableEntity {
          // Paper end - Configurable TNT height nerf
          this.setDeltaMovement(this.getDeltaMovement().scale(0.98D));
          if (this.onGround()) {
 +            // Lumina start - Porting Carpet's features - merge TNT
 +            if(org.leavesmc.lumina.carpet.CarpetConfig.configModule.mergeTNT){
-+                Vec3 velocity = getDeltaMovement();
++                net.minecraft.world.phys.Vec3 velocity = getDeltaMovement();
 +                if(!level().isClientSide && mergeBool && velocity.x == 0 && velocity.y == 0 && velocity.z == 0){
 +                    mergeBool = false;
 +                    for(Entity entity : level().getEntities(this, this.getBoundingBox())){
 +                        if(entity instanceof PrimedTnt && !entity.isRemoved()){
 +                            PrimedTnt entityTNTPrimed = (PrimedTnt)entity;
-+                            Vec3 tntVelocity = entityTNTPrimed.getDeltaMovement();
++                            net.minecraft.world.phys.Vec3 tntVelocity = entityTNTPrimed.getDeltaMovement();
 +                            if(tntVelocity.x == 0 && tntVelocity.y == 0 && tntVelocity.z == 0
 +                                    && this.getX() == entityTNTPrimed.getX() && this.getZ() == entityTNTPrimed.getZ() && this.getY() == entityTNTPrimed.getY()
 +                                    && getFuse() == entityTNTPrimed.getFuse()){
@@ -988,7 +980,7 @@ index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d
          int i = this.getFuse() - 1;
  
 +        // Lumina start - Porting Carpet's features - merge TNT
-+        Vec3 velocity = getDeltaMovement();
++        net.minecraft.world.phys.Vec3 velocity = getDeltaMovement();
 +        if(!level().isClientSide && (velocity.y != 0 || velocity.x != 0 || velocity.z != 0)){
 +            mergeBool = true;
 +        }
@@ -996,11 +988,11 @@ index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d
          this.setFuse(i);
          if (i <= 0) {
              // CraftBukkit start - Need to reverse the order of the explosion and the entity death so we have a location for the event
-@@ -131,14 +174,24 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+@@ -131,6 +173,19 @@ public class PrimedTnt extends Entity implements TraceableEntity {
      }
  
      private void explode() {
-+        // Lumina start - Porting Carpet's features - TNT log helper
++        // Lumina start - Porting Carpet's features - merge tnt
 +        if (org.leavesmc.lumina.carpet.logging.LoggerRegistry.__tnt && logHelper != null)
 +            logHelper.onExploded(getX(), getY(), getZ(), this.level().getGameTime());
 +
@@ -1015,13 +1007,12 @@ index f11a701b3434b95342a6e8e89f5dea0d0080eff0..5bdd02f72a1a4d6424199d6f37d86c4d
 +            }
          // CraftBukkit start
          // float f = 4.0F;
--        ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
- 
--        if (!event.isCancelled()) {
--            this.level().explode(this, this.getX(), this.getY(0.0625D), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
--        }
+         ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent((org.bukkit.entity.Explosive)this.getBukkitEntity());
+@@ -139,6 +194,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
+             this.level().explode(this, this.getX(), this.getY(0.0625D), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
+         }
          // CraftBukkit end
-+        // Lumina end - Porting Carpet's features - TNT log helper
++        // Lumina end - Porting Carpet's features - merge tnt
      }
  
      @Override
@@ -1801,7 +1792,7 @@ index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..809ea2940d2ac028edf77bcd30bb97f7
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index 248e0c46e613bdc831e6203c7fe55932a3da390c..83789c645186d27973cb6fa1b8470cbafe62c27c 100644
+index 248e0c46e613bdc831e6203c7fe55932a3da390c..be96be5c8bbfe9955255d5fb8a3538daf0176127 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
 @@ -503,7 +503,7 @@ public class Explosion {
@@ -1809,7 +1800,7 @@ index 248e0c46e613bdc831e6203c7fe55932a3da390c..83789c645186d27973cb6fa1b8470cba
  
                              BlockPos blockposition = cachedBlock.immutablePos;
 -                            BlockState iblockdata = cachedBlock.blockState;
-+                            BlockState iblockdata = (org.leavesmc.lumina.carpet.CarpetConfig.configModule.explosionNoBlockDamage) ? Blocks.BEDROCK.defaultBlockState() : cachedBlock.blockState; // Lumina - Porting Carpet's features -
++                            BlockState iblockdata = (org.leavesmc.lumina.carpet.CarpetConfig.configModule.explosionNoBlockDamage) ? Blocks.BEDROCK.defaultBlockState() : cachedBlock.blockState; // Lumina - Porting Carpet's features - explosion no block damage
                              // Paper end - optimise explosions
  
                              if (!iblockdata.isDestroyable()) continue; // Paper
