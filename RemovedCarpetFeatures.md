@@ -31,6 +31,10 @@ You won't need it
 
 The paper has been optimized
 
+### tntRandomRange
+
+The implementation of Carpet for this depends on `optimizedTNT`, ~~and I'm too lazy to write it~~
+
 ### fastRedstoneDust
 
 The paper has been optimized

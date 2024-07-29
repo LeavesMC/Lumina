@@ -31,6 +31,10 @@
 
 Paper 已经优化了
 
+### tntRandomRange
+
+Carpet 对于这个的实现方案依赖 optimizedTNT，~~而且我懒得写~~
+
 ### fastRedstoneDust
 
 Paper 已经优化了
