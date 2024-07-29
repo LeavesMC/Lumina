@@ -71,3 +71,7 @@ Please use the `settings.log-named-deaths` and `settings.log-villager-deaths` in
 ### movableBlockEntities
 
 ~~I don't understand carpet's implementation of this~~ If you need it, please raise an issue
+
+### structureBlockLimit && structureBlockIgnored && structureBlockOutlineDistance
+
+I'm not sure how to implement this, TODO

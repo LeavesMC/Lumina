@@ -58,7 +58,7 @@ Paper 已经优化了
 
 去用插件
 
-### viewDistance & simulationDistance
+### viewDistance && simulationDistance
 
 这两个真的有意义吗？我不是很了解这个，麻烦有了解的人帮忙补充一下
 
@@ -69,3 +69,7 @@ Paper 已经优化了
 ### movableBlockEntities
 
 ~~这个我不会~~ 有需要提issue吧
+
+### structureBlockLimit && structureBlockIgnored && structureBlockOutlineDistance
+
+不是很确定该怎么实现，TODO
