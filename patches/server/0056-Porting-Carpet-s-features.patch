@@ -1800,6 +1800,27 @@ index 9d0ac3fb52a76a97bf954fbc5175cea90d385d8c..809ea2940d2ac028edf77bcd30bb97f7
      protected void apply(Map<ResourceLocation, JsonElement> prepared, ResourceManager manager, ProfilerFiller profiler) {
          this.hasErrors = false;
          Builder<RecipeType<?>, RecipeHolder<?>> builder = ImmutableMultimap.builder();
+diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
+index 248e0c46e613bdc831e6203c7fe55932a3da390c..83789c645186d27973cb6fa1b8470cbafe62c27c 100644
+--- a/src/main/java/net/minecraft/world/level/Explosion.java
++++ b/src/main/java/net/minecraft/world/level/Explosion.java
+@@ -503,7 +503,7 @@ public class Explosion {
+                             }
+ 
+                             BlockPos blockposition = cachedBlock.immutablePos;
+-                            BlockState iblockdata = cachedBlock.blockState;
++                            BlockState iblockdata = (org.leavesmc.lumina.carpet.CarpetConfig.configModule.explosionNoBlockDamage) ? Blocks.BEDROCK.defaultBlockState() : cachedBlock.blockState; // Lumina - Porting Carpet's features -
+                             // Paper end - optimise explosions
+ 
+                             if (!iblockdata.isDestroyable()) continue; // Paper
+@@ -649,6 +649,7 @@ public class Explosion {
+     }
+ 
+     public void finalizeExplosion(boolean particles) {
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule.explosionNoBlockDamage) toBlow.clear(); // Lumina - Porting Carpet's features - explosion no block damage
+         if (this.level.isClientSide) {
+             this.level.playLocalSound(this.x, this.y, this.z, (SoundEvent) this.explosionSound.value(), SoundSource.BLOCKS, 4.0F, (1.0F + (this.level.random.nextFloat() - this.level.random.nextFloat()) * 0.2F) * 0.7F, false);
+         }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
 index a0b61c77b23abec531b0b8f9b576fb4501067163..7fb23c02dc91ed3af27eb4420ce920ab22bdb359 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
@@ -3271,10 +3292,10 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8a8acc31d7352e34322e21592b019b1003cdfaaa
+index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8723ab226
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,489 @@
+@@ -0,0 +1,486 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -3328,9 +3349,9 @@ index 0000000000000000000000000000000000000000..8a8acc31d7352e34322e21592b019b10
 +    @Comment("Removes random TNT momentum when primed")
 +    public boolean tntPrimerMomentumRemoved = false;
 +
-+    @Validate(TNTRandomRangeValidator.class)
-+    @Comment("Sets the tnt random explosion range to a fixed value, set to -1 for default behavior")
-+    public double tntRandomRange = -1;
++    // @Validate(TNTRandomRangeValidator.class)
++    // @Comment("Sets the tnt random explosion range to a fixed value, set to -1 for default behavior")
++    // public double tntRandomRange = -1; // TODO
 +
 +    @Validate(TNTAngleValidator.class)
 +    @Comment("Sets the horizontal random angle on TNT for debugging of TNT contraptions, set to -1 for default behavior")
@@ -3494,9 +3515,6 @@ index 0000000000000000000000000000000000000000..8a8acc31d7352e34322e21592b019b10
 +
 +    @Comment("fixes block placement rotation issue when player rotates quickly while placing blocks")
 +    public boolean placementRotationFix = false;
-+
-+    @Comment("Spawning requires much less CPU and Memory")
-+    public boolean lagFreeSpawning = false;
 +
 +    @Comment("Increases for testing purposes number of blue skulls shot by the wither")
 +    public boolean moreBlueSkulls = false;
@@ -8531,14 +8549,15 @@ index 0000000000000000000000000000000000000000..631ef5461d28da8136d136006e395c89
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc01a7938f0
+index 0000000000000000000000000000000000000000..339894f1f49867a098ecba3efc0b9e4a81970bdf
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/WoolTool.java
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,119 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
 +import org.leavesmc.lumina.carpet.CarpetConfig;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
++
 +import java.util.ArrayList;
 +import java.util.List;
 +import java.util.Map;
@@ -8563,8 +8582,7 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 + * A series of utility functions and variables for dealing predominantly with hopper counters and determining which counter
 + * to add their items to, as well as helping dealing with carpet functionality.
 + */
-+public class WoolTool
-+{
++public class WoolTool {
 +    /**
 +     * A map from a wool {@link Block} to its {@link DyeColor} which is used in {@link WoolTool#getWoolColorAtPosition}
 +     * to get the colour of wool at a position.
@@ -8595,14 +8613,11 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +     *     <li>Green - Prints the contents of the counter of the colour of wool underneath the carpet</li>
 +     * </ul>
 +     */
-+    public static void carpetPlacedAction(DyeColor color, Player placer, BlockPos pos, ServerLevel worldIn)
-+    {
-+        if (!CarpetConfig.configModule.carpets)
-+        {
++    public static void carpetPlacedAction(DyeColor color, Player placer, BlockPos pos, ServerLevel worldIn) {
++        if (!CarpetConfig.configModule.carpets) {
 +            return;
 +        }
-+        switch (color)
-+        {
++        switch (color) {
 +            case PINK:
 +                if (!CarpetConfig.configModule.commandSpawn)
 +                    Messenger.send(placer, SpawnReporter.report(pos, worldIn));
@@ -8613,13 +8628,11 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +                    Messenger.send(placer, SpawnReporter.handleWoolAction(pos, worldIn));
 +                break;
 +            case BROWN:
-+                if (!CarpetConfig.configModule.commandDistance)
-+                {
++                if (!CarpetConfig.configModule.commandDistance) {
 +                    CommandSourceStack source = placer.createCommandSourceStack();
 +                    if (!DistanceCalculator.hasStartingPoint(source) || placer.isShiftKeyDown()) {
-+                        DistanceCalculator.setStart(source, Vec3.atLowerCornerOf(pos) ); // zero padded pos
-+                    }
-+                    else {
++                        DistanceCalculator.setStart(source, Vec3.atLowerCornerOf(pos)); // zero padded pos
++                    } else {
 +                        DistanceCalculator.setEnd(source, Vec3.atLowerCornerOf(pos));
 +                    }
 +                }
@@ -8629,8 +8642,7 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +                    Messenger.send(placer, BlockInfo.blockInfo(pos.below(), worldIn));
 +                break;
 +            case GREEN:
-+                if (CarpetConfig.configModule.hopperCounters)
-+                {
++                if (CarpetConfig.configModule.hopperCounters) {
 +                    DyeColor under = getWoolColorAtPosition(worldIn, pos.below());
 +                    if (under == null) return;
 +                    HopperCounter counter = HopperCounter.getCounter(under);
@@ -8638,14 +8650,13 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +                }
 +                break;
 +            case RED:
-+                if (CarpetConfig.configModule.hopperCounters)
-+                {
++                if (CarpetConfig.configModule.hopperCounters) {
 +                    DyeColor under = getWoolColorAtPosition(worldIn, pos.below());
 +                    if (under == null) return;
 +                    HopperCounter counter = HopperCounter.getCounter(under);
 +                    counter.reset(placer.getServer());
 +                    List<Component> res = new ArrayList<>();
-+                    res.add(Messenger.s(String.format("%s counter reset",under.toString())));
++                    res.add(Messenger.s(String.format("%s counter reset", under.toString())));
 +                    Messenger.send(placer, res);
 +                }
 +                break;
@@ -8656,8 +8667,7 @@ index 0000000000000000000000000000000000000000..029554341653efaceb38e5120cd9cdc0
 +     * Gets the colour of wool at the position, for hoppers to be able to decide whether to add their items to the global counter.
 +     */
 +    @Nullable
-+    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos)
-+    {
++    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos) {
 +        BlockState state = worldIn.getBlockState(pos);
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
 +    }
