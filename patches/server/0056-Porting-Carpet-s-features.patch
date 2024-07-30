@@ -3915,10 +3915,10 @@ index 0000000000000000000000000000000000000000..73173055e3a98ec0bd069634f86e1a31
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17d3c2de77
+index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a43c6bef53
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,498 @@
+@@ -0,0 +1,482 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -3942,7 +3942,6 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
-+import org.bukkit.permissions.Permission;
 +import org.bukkit.permissions.ServerOperator;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
@@ -3950,11 +3949,11 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +import org.leavesmc.lumina.carpet.CarpetConfig;
 +import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
++import org.leavesmc.lumina.utils.PermissionUtils;
 +
 +import java.util.Arrays;
 +import java.util.List;
 +import java.util.function.Consumer;
-+import java.util.stream.Collectors;
 +
 +import static net.kyori.adventure.text.Component.*;
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -3998,7 +3997,7 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +    }
 +
 +    private static void registerPermissions() {
-+        addPermissionAndBind(
++        PermissionUtils.addPermissionAndBind(
 +                "carpet.command.player",
 +                "Player command",
 +                List.of(
@@ -4025,7 +4024,7 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +                        "&.manipulate-real"
 +                )
 +        );
-+        addPermissionAndBind(
++        PermissionUtils.addPermissionAndBind(
 +                createPlayerCommandPermission("look"),
 +                "Look to a direction",
 +                List.of(
@@ -4039,7 +4038,7 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +                        "&.direction"
 +                )
 +        );
-+        addPermissionAndBind(
++        PermissionUtils.addPermissionAndBind(
 +                createPlayerCommandPermission("turn"),
 +                "Turn to a direction",
 +                List.of(
@@ -4049,7 +4048,7 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +                        "&.rotation"
 +                )
 +        );
-+        addPermissionAndBind(
++        PermissionUtils.addPermissionAndBind(
 +                createPlayerCommandPermission("move"),
 +                "Move to a direction",
 +                List.of(
@@ -4396,21 +4395,6 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +        return playerName;
 +    }
 +
-+    private static void addPermission(Permission permission) {
-+        Bukkit.getPluginManager().addPermission(permission);
-+    }
-+
-+    private static void addPermissionAndBind(String name, String description, @NotNull List<String> enabledChildren) {
-+        addPermission(new Permission(
-+                name,
-+                description,
-+                Permission.DEFAULT_PERMISSION,
-+                enabledChildren.stream().collect(Collectors.toMap(
-+                        child -> child.replaceFirst("&", name),
-+                        child -> true)
-+                )));
-+    }
-+
 +    @Contract(pure = true)
 +    private static @NotNull String createPlayerCommandPermission(String sub) {
 +        return "carpet.command.player." + sub;
@@ -4419,10 +4403,10 @@ index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6fbdca20ec2cc477bf34d7c0520722a571c17c4e
+index 0000000000000000000000000000000000000000..a13405ddfb628cc3b12ed66a29e302366841f04d
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,77 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4445,6 +4429,7 @@ index 0000000000000000000000000000000000000000..6fbdca20ec2cc477bf34d7c0520722a5
 +public class TrackCommand {
 +    public static void register() {
 +        createBase()
++                .withPermission("carpet.command.track")
 +                .withArguments(new LiteralArgument("clear"))
 +                .executes((sender, args) -> {
 +                    System.out.println(args.get("type"));
@@ -4452,6 +4437,7 @@ index 0000000000000000000000000000000000000000..6fbdca20ec2cc477bf34d7c0520722a5
 +                    return 1;
 +                }).register("carpet");
 +        createBase()
++                .withPermission("carpet.command.track")
 +                .withArguments(new StringArgument("aspect").replaceSuggestions(
 +                        ArgumentSuggestions.strings(info ->
 +                                ASPECTS.get((EntityType<?>) info.previousArgs().get("type")).toArray(new String[0])))
@@ -8032,45 +8018,43 @@ index 0000000000000000000000000000000000000000..0eb66c8bd216e84e5ad946b9cc4c2507
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..37f872e12f345f7342dde52fa0c6083a2564afbb
+index 0000000000000000000000000000000000000000..2a8e9054262d900f5ebe53a100834051fb05cab1
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,57 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
 +import com.google.common.collect.Sets;
 +
 +import java.util.HashMap;
-+import java.util.HashSet;
 +import java.util.Map;
 +import java.util.Set;
-+import java.util.stream.Stream;
 +
-+import net.minecraft.commands.CommandSourceStack;
-+import net.minecraft.core.registries.Registries;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.EntityType;
++import org.jetbrains.annotations.NotNull;
 +
 +public class MobAI {
-+    private static Map<EntityType<?>, Set<TrackingType>> aiTrackers = new HashMap<>();
++    @SuppressWarnings("MapOrSetKeyShouldOverrideHashCodeEquals")
++    private static final Map<EntityType<?>, Set<TrackingType>> AI_TRACKERS = new HashMap<>();
 +
 +    public static void resetTrackers() {
-+        aiTrackers.clear();
++        AI_TRACKERS.clear();
 +    }
 +
-+    public static boolean isTracking(Entity e, TrackingType type) {
++    public static boolean isTracking(@NotNull Entity e, TrackingType type) {
 +        if (e.getCommandSenderWorld().isClientSide())
 +            return false;
-+        Set<TrackingType> currentTrackers = aiTrackers.get(e.getType());
++        Set<TrackingType> currentTrackers = AI_TRACKERS.get(e.getType());
 +        if (currentTrackers == null)
 +            return false;
 +        return currentTrackers.contains(type);
 +    }
 +
-+    public static void clearTracking(final MinecraftServer server, EntityType<? extends Entity> etype) {
-+        aiTrackers.remove(etype);
++    public static void clearTracking(final @NotNull MinecraftServer server, EntityType<? extends Entity> etype) {
++        AI_TRACKERS.remove(etype);
 +        for (ServerLevel world : server.getAllLevels()) {
 +            for (Entity e : world.getEntities(etype, Entity::hasCustomName)) {
 +                e.setCustomNameVisible(false);
@@ -8080,26 +8064,11 @@ index 0000000000000000000000000000000000000000..37f872e12f345f7342dde52fa0c6083a
 +    }
 +
 +    public static void startTracking(EntityType<?> e, TrackingType type) {
-+        aiTrackers.putIfAbsent(e, Sets.newHashSet());
-+        aiTrackers.get(e).add(type);
++        AI_TRACKERS.putIfAbsent(e, Sets.newHashSet());
++        AI_TRACKERS.get(e).add(type);
 +    }
 +
-+    public static Stream<String> availbleTypes(CommandSourceStack source) {
-+        Set<EntityType<?>> types = new HashSet<>();
-+        for (TrackingType type : TrackingType.values()) {
-+            types.addAll(type.types);
-+        }
-+        return types.stream().map(t -> source.registryAccess().registryOrThrow(Registries.ENTITY_TYPE).getKey(t).getPath());
-+    }
-+
-+    public static Stream<String> availableFor(EntityType<?> entityType) {
-+        Set<TrackingType> availableOptions = new HashSet<>();
-+        for (TrackingType type : TrackingType.values())
-+            if (type.types.contains(entityType))
-+                availableOptions.add(type);
-+        return availableOptions.stream().map(t -> t.name().toLowerCase());
-+    }
-+
++    @SuppressWarnings("MapOrSetKeyShouldOverrideHashCodeEquals")
 +    public enum TrackingType {
 +        IRON_GOLEM_SPAWNING(Set.of(EntityType.VILLAGER)),
 +        BREEDING(Set.of(EntityType.VILLAGER));
@@ -9109,5 +9078,36 @@ index 0000000000000000000000000000000000000000..339894f1f49867a098ecba3efc0b9e4a
 +    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos) {
 +        BlockState state = worldIn.getBlockState(pos);
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6399ccb0a549b24e8bb66254bb7e1fd18e76cf95
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
+@@ -0,0 +1,25 @@
++package org.leavesmc.lumina.utils;
++
++import org.bukkit.Bukkit;
++import org.bukkit.permissions.Permission;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.List;
++import java.util.stream.Collectors;
++
++public class PermissionUtils {
++    private static void addPermission(Permission permission) {
++        Bukkit.getPluginManager().addPermission(permission);
++    }
++
++    public static void addPermissionAndBind(String name, String description, @NotNull List<String> enabledChildren) {
++        addPermission(new Permission(
++                name,
++                description,
++                Permission.DEFAULT_PERMISSION,
++                enabledChildren.stream().collect(Collectors.toMap(
++                        child -> child.replaceFirst("&", name),
++                        child -> true)
++                )));
 +    }
 +}
