@@ -3776,10 +3776,10 @@ index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d8379b43df0
+index 0000000000000000000000000000000000000000..b6b8226647a278b23a36036dd8dbbce4b659c468
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,120 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -3789,6 +3789,7 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
++import org.leavesmc.lumina.carpet.command.TrackCommand;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
 +import org.leavesmc.lumina.carpet.logging.HUDController;
 +import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
@@ -3850,6 +3851,7 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +            return;
 +        }
 +        PlayerCommand.register();
++        TrackCommand.register();
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
@@ -3898,16 +3900,28 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +    //                 This behaviour will not work in later Carpet versions and the manager won't be registered!""".formatted(ext.getClass().getName()));
 +    // } // TODO
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/Context.java b/src/main/java/org/leavesmc/lumina/carpet/command/Context.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..73173055e3a98ec0bd069634f86e1a31b6d7051e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/Context.java
+@@ -0,0 +1,7 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.executors.CommandArguments;
++import org.bukkit.command.CommandSender;
++
++record Context(CommandSender sender, CommandArguments args) {
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f38164d19fae765ddf10195b1728eb298264db98
+index 0000000000000000000000000000000000000000..dbc8a12178ffeb2f0f79504662ae9a17d3c2de77
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,501 @@
+@@ -0,0 +1,498 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
-+import com.mojang.brigadier.arguments.IntegerArgumentType;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
@@ -4402,8 +4416,87 @@ index 0000000000000000000000000000000000000000..f38164d19fae765ddf10195b1728eb29
 +        return "carpet.command.player." + sub;
 +    }
 +
-+    private record Context(CommandSender sender, CommandArguments args) {
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6fbdca20ec2cc477bf34d7c0520722a571c17c4e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
+@@ -0,0 +1,75 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.*;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityType;
++import org.leavesmc.lumina.carpet.utils.MobAI;
++import org.leavesmc.lumina.carpet.utils.MobAI.TrackingType;
++
++import java.util.Map;
++import java.util.Set;
++
++import static net.kyori.adventure.text.Component.*;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static org.leavesmc.lumina.carpet.utils.MobAI.TrackingType.*;
++
++public class TrackCommand {
++    public static void register() {
++        createBase()
++                .withArguments(new LiteralArgument("clear"))
++                .executes((sender, args) -> {
++                    System.out.println(args.get("type"));
++                    MobAI.clearTracking(MinecraftServer.getServer(), (EntityType<? extends Entity>) args.get("type"));
++                    return 1;
++                }).register("carpet");
++        createBase()
++                .withArguments(new StringArgument("aspect").replaceSuggestions(
++                        ArgumentSuggestions.strings(info ->
++                                ASPECTS.get((EntityType<?>) info.previousArgs().get("type")).toArray(new String[0])))
++                ).executes((sender, args) -> {
++                    String aspectStr = (String) args.get("aspect");
++                    if (aspectStr == null) {
++                        sender.sendMessage(text("Aspect is required").color(RED));
++                        return;
++                    }
++                    try {
++                        TrackingType aspect = valueOf(aspectStr.toUpperCase());
++                        MobAI.startTracking((EntityType<?>) args.get("type"), aspect);
++                    } catch (IllegalArgumentException ignored) {
++                        sender.sendMessage(text("Invalid aspect: ").append(text(aspectStr).color(RED)));
++                    }
++
++                }).register("carpet");
 +    }
++
++    private static CommandAPICommand createBase() {
++        return new CommandAPICommand("track")
++                .withPermission("lumina.command.track")
++                .withArguments(trackTypeArgument("type"));
++    }
++
++    public static Argument<EntityType<? extends Entity>> trackTypeArgument(String nodeName) {
++        return new CustomArgument<EntityType<? extends Entity>, String>(new StringArgument(nodeName), info -> {
++            EntityType<? extends Entity> type = ENTITY_TYPES.get(info.currentInput());
++            if (type == null) {
++                throw CustomArgument.CustomArgumentException.fromMessageBuilder(
++                        new CustomArgument.MessageBuilder("Unsupported entity type: ").appendArgInput());
++            } else {
++                return type;
++            }
++        }).replaceSuggestions(ArgumentSuggestions.strings("villager"));
++    }
++
++    private static final Map<String, EntityType<? extends Entity>> ENTITY_TYPES = Map.of(
++            "villager", EntityType.VILLAGER
++    );
++
++    @SuppressWarnings("MapOrSetKeyShouldOverrideHashCodeEquals")
++    private static final Map<EntityType<? extends Entity>, Set<String>> ASPECTS = Map.of(
++            EntityType.VILLAGER, Set.of("breeding", "iron_golem_spawning")
++    );
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
 new file mode 100644
