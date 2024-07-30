@@ -3900,21 +3900,18 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c9ccd60a6943cc77f7594964d2f69f087731f04e
+index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0beee9167
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,165 @@
+@@ -0,0 +1,407 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
++import dev.jorel.commandapi.executors.CommandExecutor;
 +import dev.jorel.commandapi.wrappers.Rotation;
-+import net.kyori.adventure.text.Component;
-+import net.kyori.adventure.text.format.NamedTextColor;
-+import net.kyori.adventure.text.format.Style;
-+import net.kyori.adventure.text.format.TextDecoration;
 +import net.minecraft.SharedConstants;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.UUIDUtil;
@@ -3927,46 +3924,185 @@ index 0000000000000000000000000000000000000000..c9ccd60a6943cc77f7594964d2f69f08
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
++import org.bukkit.permissions.Permission;
 +import org.bukkit.permissions.ServerOperator;
++import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
++import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
-+import org.leavesmc.lumina.carpet.utils.Messenger;
 +
 +import java.util.Arrays;
++import java.util.List;
++import java.util.function.Consumer;
++import java.util.stream.Collectors;
 +
 +import static net.kyori.adventure.text.Component.*;
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
 +import static net.kyori.adventure.text.format.Style.*;
 +import static net.kyori.adventure.text.format.TextDecoration.*;
-+import static org.leavesmc.lumina.LuminaCommand.*;
++import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
++import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.Action.*;
++import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.ActionType.*;
 +
 +public class PlayerCommand {
 +    public static void register() {
-+        SpawnCommand.register();
++        SubCommandSpawn.register();
++        SubCommandKill.register();
++        registerActionCommand("use", USE);
++        registerActionCommand("jump", JUMP);
++        registerActionCommand("attack", ATTACK);
++        registerActionCommand("drop", DROP_ITEM);
++        registerDropCommand("drop", false);
++        registerActionCommand("dropStack", DROP_STACK);
++        registerDropCommand("dropStack", true);
++        registerActionCommand("swapHands", SWAP_HANDS);
++        registerPermissions();
 +    }
 +
-+    private static class SpawnCommand {
++    private static void registerPermissions() {
++        addPermissionAndBind(
++                "carpet.command.player",
++                "Player command",
++                List.of(
++                        "&.spawn",
++                        "&.kill",
++                        "&.shadow",
++                        "&.use",
++                        "&.jump",
++                        "&.attack",
++                        "&.drop",
++                        "&.dropStack",
++                        "&.swapHands",
++                        "&.hotbar",
++                        "&.mount",
++                        "&.dismount",
++                        "&.sneak",
++                        "&.unsneak",
++                        "&.sprint",
++                        "&.unsprint",
++                        "&.look",
++                        "&.turn",
++                        "&.move",
++                        "&.stop",
++                        "&.manipulate-real"
++                )
++        );
++        addPermissionAndBind(
++                createPlayerCommandPermission("look"),
++                "Look to a direction",
++                List.of(
++                        "&.north",
++                        "&.south",
++                        "&.east",
++                        "&.west",
++                        "&.up",
++                        "&.down",
++                        "&.at",
++                        "&.direction"
++                )
++        );
++        addPermissionAndBind(
++                createPlayerCommandPermission("turn"),
++                "Turn to a direction",
++                List.of(
++                        "&.left",
++                        "&.right",
++                        "&.back",
++                        "&.rotation"
++                )
++        );
++        addPermissionAndBind(
++                createPlayerCommandPermission("move"),
++                "Move to a direction",
++                List.of(
++                        "&.forward",
++                        "&.backward",
++                        "&.left",
++                        "&.right"
++                )
++        );
++    }
++
++    private static class SubCommandSpawn {
 +        public static void register() {
-+            createBase("spawn").withOptionalArguments(
-+                    new LiteralArgument("at").combineWith(new LocationArgument("position")),
-+                    new LiteralArgument("facing").combineWith(new RotationArgument("direction")),
-+                    new LiteralArgument("in").combineWith(new WorldArgument("dimension")),
-+                    new LiteralArgument("in")
-+                            .withRequirement(ServerOperator::isOp)
-+                            .combineWith(new MultiLiteralArgument("gamemode", Arrays
-+                                    .stream(GameType.values())
-+                                    .map(GameType::name)
-+                                    .toArray(String[]::new)))
-+            ).executes(SpawnCommand::spawn).register("carpet");
++            createBase("spawn")
++                    .withOptionalArguments(
++                            new LiteralArgument("at").combineWith(new LocationArgument("position")),
++                            new LiteralArgument("facing").combineWith(new RotationArgument("direction")),
++                            new LiteralArgument("in").combineWith(new WorldArgument("dimension")),
++                            new LiteralArgument("in")
++                                    .withRequirement(ServerOperator::isOp)
++                                    .combineWith(new MultiLiteralArgument("gamemode", Arrays
++                                            .stream(GameType.values())
++                                            .map(GameType::name)
++                                            .toArray(String[]::new)))
++                    ).executes(SubCommandSpawn::spawn).register("carpet");
 +        }
 +
-+        private static boolean canSpawn(CommandSender sender, @NotNull CommandArguments args) {
-+            String playerName = (String) args.get("player");
++        private static void spawn(CommandSender sender, CommandArguments args) {
++            Context context = new Context(sender, args);
++            if (!canSpawn(context)) {
++                return;
++            }
++            Location pos = null;
++            Rotation facing = new Rotation(0, 0);
++            World world = Bukkit.getWorld(new NamespacedKey("minecraft", "overworld"));
++            GameType mode = GameType.CREATIVE;
++            boolean flying = false;
++            if (sender instanceof Player player) {
++                ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
++                pos = player.getLocation();
++                facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
++                world = player.getWorld();
++                mode = serverPlayer.gameMode.getGameModeForPlayer();
++                flying = serverPlayer.getAbilities().flying;
++            }
++            pos = (Location) args.getOrDefault("position", pos);
++            facing = (Rotation) args.getOrDefault("direction", facing);
++            world = (World) args.getOrDefault("dimension", world);
++            if (pos == null) {
++                sender.sendMessage(text("Need position to spawn player in console").color(RED).style(style(BOLD)));
++                return;
++            }
++            GameMode nullableGameMode = (GameMode) args.get("gamemode");
++            if (nullableGameMode != null) {
++                mode = GameType.byId(nullableGameMode.getValue());
++            }
++
++            if (mode == GameType.SPECTATOR) {
++                // Force override flying to true for spectator players, or they will fell out of the world.
++                flying = true;
++            } else if (mode.isSurvival()) {
++                // Force override flying to false for survival-like players, or they will fly too
++                flying = false;
++            }
++            String playerName = getPlayerName(context);
 +            if (playerName == null) {
-+                sender.sendMessage(text("Player name is required").color(RED).style(style(BOLD)));
++                return;
++            }
++            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
++                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED).style(style(BOLD)));
++                return;
++            }
++
++            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
++                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED).style(style(BOLD)));
++                return;
++            }
++            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
++            if (!success) {
++                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED).style(style(BOLD)));
++            }
++        }
++
++        private static boolean canSpawn(Context context) {
++            String playerName = getPlayerName(context);
++            if (playerName == null) {
 +                return false;
 +            }
++            CommandSender sender = context.sender();
 +            MinecraftServer server = MinecraftServer.getServer();
 +            PlayerList manager = server.getPlayerList();
 +
@@ -4002,71 +4138,177 @@ index 0000000000000000000000000000000000000000..c9ccd60a6943cc77f7594964d2f69f08
 +            }
 +            return true;
 +        }
++    }
 +
-+        @SuppressWarnings("UnusedReturnValue")
-+        private static boolean spawn(CommandSender sender, CommandArguments args) {
-+            if (!canSpawn(sender, args)) {
-+                return false;
-+            }
-+            Location pos = null;
-+            Rotation facing = new Rotation(0, 0);
-+            World world = Bukkit.getWorld(new NamespacedKey("minecraft", "overworld"));
-+            GameType mode = GameType.CREATIVE;
-+            boolean flying = false;
-+            if (sender instanceof Player player) {
-+                ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
-+                pos = player.getLocation();
-+                facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
-+                world = player.getWorld();
-+                mode = serverPlayer.gameMode.getGameModeForPlayer();
-+                flying = serverPlayer.getAbilities().flying;
-+            }
-+            pos = (Location) args.getOrDefault("position", pos);
-+            facing = (Rotation) args.getOrDefault("direction", facing);
-+            world = (World) args.getOrDefault("dimension", world);
-+            if (pos == null) {
-+                sender.sendMessage(text("Need position to spawn player in console").color(RED).style(style(BOLD)));
-+                return false;
-+            }
-+            GameMode nullableGameMode = (GameMode) args.get("gamemode");
-+            if (nullableGameMode != null) {
-+                mode = GameType.byId(nullableGameMode.getValue());
-+            }
-+
-+            if (mode == GameType.SPECTATOR) {
-+                // Force override flying to true for spectator players, or they will fell out of the world.
-+                flying = true;
-+            } else if (mode.isSurvival()) {
-+                // Force override flying to false for survival-like players, or they will fly too
-+                flying = false;
-+            }
-+            String playerName = (String) args.get("player");
-+            // noinspection DataFlowIssue
-+            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
-+                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED).style(style(BOLD)));
-+                return false;
-+            }
-+
-+            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
-+                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED).style(style(BOLD)));
-+                return false;
-+            }
-+            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
-+            if (!success) {
-+                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED).style(style(BOLD)));
-+                return false;
-+            }
-+            return true;
++    private static class SubCommandKill {
++        public static void register() {
++            createBase("kill")
++                    .executes(SubCommandKill::kill)
++                    .register("carpet");
 +        }
++
++        private static void kill(CommandSender sender, CommandArguments args) {
++            Context context = new Context(sender, args);
++            if (!canKill(context)) {
++                return;
++            }
++            Player player = getOnlinePlayer(context);
++            if (player == null) {
++                return;
++            }
++            ((CraftPlayer) player).getHandle().kill();
++            sender.sendMessage(text("Player " + player.getName() + " has been killed").color(GREEN));
++        }
++
++        private static boolean canKill(Context context) {
++            ServerPlayer player = getOnlineServerPlayer(context);
++            CommandSender sender = context.sender();
++            if (player == null) {
++                sender.sendMessage(text("No such player").color(RED));
++            }
++            if (player instanceof EntityPlayerMPFake) {
++                return canManipulate(context, "kill");
++            }
++            sender.sendMessage(text("Only fake players can be killed by this command").color(RED));
++            return false;
++        }
++    }
++
++    private static void registerActionCommand(String name, ActionType type) {
++        createBase(name)
++                .executes(manipulation(name, ap -> ap.start(type, Action.once())));
++        createBase(name)
++                .withArguments(new LiteralArgument("once"))
++                .executes(manipulation(name, ap -> ap.start(type, Action.once())));
++        createBase(name)
++                .withArguments(new LiteralArgument("continuous"))
++                .executes(manipulation(name, ap -> ap.start(type, Action.continuous())));
++        // noinspection DataFlowIssue
++        createBase(name)
++                .withArguments(
++                        new LiteralArgument("interval"),
++                        new IntegerArgument("ticks", 1)
++                ).executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), name,
++                                ap -> ap.start(type, Action.interval((Integer) args.get("ticks")))));
++    }
++
++    private static void registerDropCommand(String name, boolean dropAll) {
++        createBase(name)
++                .withArguments(new LiteralArgument("all"))
++                .executes(manipulation(name, ap -> ap.drop(-2, dropAll)));
++        createBase(name)
++                .withArguments(new LiteralArgument("mainhand"))
++                .executes(manipulation(name, ap -> ap.drop(-1, dropAll)));
++        createBase(name)
++                .withArguments(new LiteralArgument("offhand"))
++                .executes(manipulation(name, ap -> ap.drop(40, dropAll)));
++        // noinspection DataFlowIssue
++        createBase(name)
++                .withArguments(new IntegerArgument("slot", 0, 40))
++                .executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), name,
++                                ap -> ap.drop((Integer) args.get("slot"), dropAll)));
++
++    }
++
++    @Contract(pure = true)
++    private static @NotNull CommandExecutor manipulation(String name, Consumer<EntityPlayerActionPack> action) {
++        return (sender, args) -> manipulate(new Context(sender, args), name, action);
++    }
++
++    private static void manipulate(Context context, String name, Consumer<EntityPlayerActionPack> action) {
++        if (!canManipulate(context, name)) {
++            return;
++        }
++        // noinspection DataFlowIssue
++        action.accept(getOnlineServerPlayer(context).getActionPack());
 +    }
 +
 +    private static CommandAPICommand createBase(String literal) {
 +        return new CommandAPICommand("player")
 +                .withPermission("carpet.command.player")
 +                .withArguments(
-+                        new StringArgument("player"),
++                        new StringArgument("player").replaceSuggestions(ArgumentSuggestions.strings(info ->
++                                MinecraftServer
++                                        .getServer()
++                                        .getPlayerList()
++                                        .getPlayers()
++                                        .stream().map(ServerPlayer::getScoreboardName)
++                                        .toArray(String[]::new))),
 +                        new LiteralArgument(literal)
-+                );
++                ).withPermission(createPlayerCommandPermission(literal));
++    }
++
++    private static boolean canManipulate(@NotNull Context context, String name) {
++        CommandSender sender = context.sender();
++        String permission = createPlayerCommandPermission(name);
++        if (sender.hasPermission(permission)) {
++            Player player = getOnlinePlayer(context);
++            if (player == null) {
++                return false;
++            }
++            if (sender == player || player instanceof EntityPlayerMPFake) {
++                return true;
++            }
++            String manipulateRealPermission = createPlayerCommandPermission("manipulate-real");
++            if (sender.hasPermission(manipulateRealPermission)) {
++                return true;
++            }
++            permission = permission + " and " + manipulateRealPermission;
++        }
++        sender.sendMessage(text("Require permission: " + permission).color(RED));
++        return false;
++    }
++
++    private static @Nullable Player getOnlinePlayer(Context context) {
++        String playerName = getPlayerName(context);
++        if (playerName == null) {
++            context.sender().sendMessage(text("No such player").color(RED));
++            return null;
++        }
++        return Bukkit.getPlayer(playerName);
++    }
++
++    private static @Nullable ServerPlayer getOnlineServerPlayer(Context context) {
++        String playerName = getPlayerName(context);
++        if (playerName == null) {
++            context.sender().sendMessage(text("No such player").color(RED));
++            return null;
++        }
++        return MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
++    }
++
++    private static @Nullable String getPlayerName(@NotNull Context context) {
++        String playerName = (String) context.args().get("player");
++        if (playerName == null) {
++            context.sender().sendMessage(text("Require player name").color(RED));
++            return null;
++        }
++        return playerName;
++    }
++
++    private static void addPermission(Permission permission) {
++        Bukkit.getPluginManager().addPermission(permission);
++    }
++
++    private static void addPermissionAndBind(String name, String description, @NotNull List<String> enabledChildren) {
++        addPermission(new Permission(
++                name,
++                description,
++                Permission.DEFAULT_PERMISSION,
++                enabledChildren.stream().collect(Collectors.toMap(
++                        child -> child.replaceFirst("&", name),
++                        child -> true)
++                )));
++    }
++
++    @Contract(pure = true)
++    private static @NotNull String createPlayerCommandPermission(String sub) {
++        return "carpet.command.player." + sub;
++    }
++
++    private record Context(CommandSender sender, CommandArguments args) {
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/BlockRotator.java
