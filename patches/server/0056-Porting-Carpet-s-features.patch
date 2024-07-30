@@ -3900,13 +3900,14 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0beee9167
+index 0000000000000000000000000000000000000000..d8e1132527f20bc118a5d12b1d0076da1f9df5ec
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,407 @@
+@@ -0,0 +1,499 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
++import com.mojang.brigadier.arguments.IntegerArgumentType;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
@@ -3914,12 +3915,15 @@ index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0
 +import dev.jorel.commandapi.wrappers.Rotation;
 +import net.minecraft.SharedConstants;
 +import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
 +import net.minecraft.core.UUIDUtil;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.server.players.PlayerList;
 +import net.minecraft.world.level.GameType;
 +import net.minecraft.world.level.Level;
++import net.minecraft.world.phys.Vec2;
++import net.minecraft.world.phys.Vec3;
 +import org.bukkit.*;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -3943,13 +3947,13 @@ index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0
 +import static net.kyori.adventure.text.format.Style.*;
 +import static net.kyori.adventure.text.format.TextDecoration.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
-+import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.Action.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.ActionType.*;
 +
 +public class PlayerCommand {
 +    public static void register() {
 +        SubCommandSpawn.register();
 +        SubCommandKill.register();
++        SubCommandShadow.register();
 +        registerActionCommand("use", USE);
 +        registerActionCommand("jump", JUMP);
 +        registerActionCommand("attack", ATTACK);
@@ -3958,6 +3962,23 @@ index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0
 +        registerActionCommand("dropStack", DROP_STACK);
 +        registerDropCommand("dropStack", true);
 +        registerActionCommand("swapHands", SWAP_HANDS);
++        registerManipulateCommand("mount", ap -> ap.mount(false));
++        registerManipulateCommand("mount", ap -> ap.mount(true), "anything");
++        registerManipulateCommand("dismount", EntityPlayerActionPack::dismount);
++        registerManipulateCommand("sneak", ap -> ap.setSneaking(true));
++        registerManipulateCommand("unsneak", ap -> ap.setSneaking(false));
++        registerManipulateCommand("sprint", ap -> ap.setSprinting(true));
++        registerManipulateCommand("unsprint", ap -> ap.setSprinting(false));
++        registerSubCommandLook();
++        registerSubCommandTurn();
++        registerSubCommandMove();
++        //noinspection DataFlowIssue
++        createBase("hotbar")
++                .withArguments(new IntegerArgument("slot", 0, 8))
++                .executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), "hotbar",
++                                ap -> ap.setSlot((Integer) args.get("slot"))))
++                .register("carpet");
 +        registerPermissions();
 +    }
 +
@@ -4174,15 +4195,95 @@ index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0
 +        }
 +    }
 +
++    private static class SubCommandShadow {
++        public static void register() {
++            // TODO
++        }
++    }
++
++    private static void registerSubCommandLook() {
++        registerManipulateCommand("look", ap -> ap.look(Direction.NORTH), "north");
++        registerManipulateCommand("look", ap -> ap.look(Direction.SOUTH), "south");
++        registerManipulateCommand("look", ap -> ap.look(Direction.EAST), "east");
++        registerManipulateCommand("look", ap -> ap.look(Direction.WEST), "west");
++        registerManipulateCommand("look", ap -> ap.look(Direction.UP), "up");
++        registerManipulateCommand("look", ap -> ap.look(Direction.DOWN), "down");
++        createBase("look")
++                .withArguments(
++                        new LiteralArgument("direction"),
++                        new RotationArgument("direction")
++                ).executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), "look",
++                                ap -> {
++                                    Rotation rotation = (Rotation) args.get("direction");
++                                    if (rotation == null) {
++                                        sender.sendMessage(text("Invalid rotation").color(RED));
++                                        return;
++                                    }
++                                    ap.look(new Vec2(rotation.getYaw(), rotation.getPitch()));
++                                })
++                ).register("carpet");
++        createBase("look")
++                .withArguments(
++                        new LiteralArgument("at"),
++                        new LocationArgument("position")
++                ).executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), "look",
++                                ap -> {
++                                    Location location = (Location) args.get("position");
++                                    if (location == null) {
++                                        sender.sendMessage(text("Invalid location").color(RED));
++                                        return;
++                                    }
++                                    ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
++                                })
++                ).register("carpet");
++    }
++
++    private static void registerSubCommandTurn() {
++        registerManipulateCommand("turn", ap -> ap.turn(-90, 0), "left");
++        registerManipulateCommand("turn", ap -> ap.turn(90, 0), "right");
++        registerManipulateCommand("turn", ap -> ap.turn(180, 0), "back");
++        createBase("turn")
++                .withArguments(new RotationArgument("rotation"))
++                .executes((CommandExecutor) (sender, args) ->
++                        manipulate(new Context(sender, args), "turn",
++                                ap -> {
++                                    Rotation rotation = (Rotation) args.get("rotation");
++                                    if (rotation == null) {
++                                        sender.sendMessage(text("Invalid rotation").color(RED));
++                                        return;
++                                    }
++                                    ap.turn(rotation.getYaw(), rotation.getPitch());
++                                })
++                ).register("carpet");
++    }
++
++    private static void registerSubCommandMove() {
++        registerManipulateCommand("move", ap -> ap.setForward(0).setStrafing(0));
++        registerManipulateCommand("move", ap -> ap.setForward(1), "forward");
++        registerManipulateCommand("move", ap -> ap.setForward(-1), "backward");
++        registerManipulateCommand("move", ap -> ap.setStrafing(-1), "right");
++        registerManipulateCommand("move", ap -> ap.setStrafing(1), "left");
++    }
++
++    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action, String literal) {
++        createBase(name)
++                .withArguments(new MultiLiteralArgument("_literals", literal))
++                .executes((CommandExecutor) (sender, args2) -> manipulate(new Context(sender, args2), name, action))
++                .register("carpet");
++    }
++
++    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action) {
++        createBase(name)
++                .executes((CommandExecutor) (sender, args2) -> manipulate(new Context(sender, args2), name, action))
++                .register("carpet");
++    }
++
 +    private static void registerActionCommand(String name, ActionType type) {
-+        createBase(name)
-+                .executes(manipulation(name, ap -> ap.start(type, Action.once())));
-+        createBase(name)
-+                .withArguments(new LiteralArgument("once"))
-+                .executes(manipulation(name, ap -> ap.start(type, Action.once())));
-+        createBase(name)
-+                .withArguments(new LiteralArgument("continuous"))
-+                .executes(manipulation(name, ap -> ap.start(type, Action.continuous())));
++        registerManipulateCommand(name, ap -> ap.start(type, Action.once()));
++        registerManipulateCommand(name, ap -> ap.start(type, Action.once()), "once");
++        registerManipulateCommand(name, ap -> ap.start(type, Action.continuous()), "continuous");
 +        // noinspection DataFlowIssue
 +        createBase(name)
 +                .withArguments(
@@ -4190,31 +4291,22 @@ index 0000000000000000000000000000000000000000..cd871ccde792c708cb182470d1f3f6b0
 +                        new IntegerArgument("ticks", 1)
 +                ).executes((CommandExecutor) (sender, args) ->
 +                        manipulate(new Context(sender, args), name,
-+                                ap -> ap.start(type, Action.interval((Integer) args.get("ticks")))));
++                                ap -> ap.start(type, Action.interval((Integer) args.get("ticks"))))
++                ).register("carpet");
 +    }
 +
 +    private static void registerDropCommand(String name, boolean dropAll) {
-+        createBase(name)
-+                .withArguments(new LiteralArgument("all"))
-+                .executes(manipulation(name, ap -> ap.drop(-2, dropAll)));
-+        createBase(name)
-+                .withArguments(new LiteralArgument("mainhand"))
-+                .executes(manipulation(name, ap -> ap.drop(-1, dropAll)));
-+        createBase(name)
-+                .withArguments(new LiteralArgument("offhand"))
-+                .executes(manipulation(name, ap -> ap.drop(40, dropAll)));
++        registerManipulateCommand(name, ap -> ap.drop(-2, dropAll), "all");
++        registerManipulateCommand(name, ap -> ap.drop(-1, dropAll), "mainhand");
++        registerManipulateCommand(name, ap -> ap.drop(40, dropAll), "offhand");
 +        // noinspection DataFlowIssue
 +        createBase(name)
 +                .withArguments(new IntegerArgument("slot", 0, 40))
 +                .executes((CommandExecutor) (sender, args) ->
 +                        manipulate(new Context(sender, args), name,
-+                                ap -> ap.drop((Integer) args.get("slot"), dropAll)));
++                                ap -> ap.drop((Integer) args.get("slot"), dropAll))
++                ).register("carpet");
 +
-+    }
-+
-+    @Contract(pure = true)
-+    private static @NotNull CommandExecutor manipulation(String name, Consumer<EntityPlayerActionPack> action) {
-+        return (sender, args) -> manipulate(new Context(sender, args), name, action);
 +    }
 +
 +    private static void manipulate(Context context, String name, Consumer<EntityPlayerActionPack> action) {
