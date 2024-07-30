@@ -3900,10 +3900,10 @@ index 0000000000000000000000000000000000000000..12c8d360805a73156453056e1e269d83
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d8e1132527f20bc118a5d12b1d0076da1f9df5ec
+index 0000000000000000000000000000000000000000..0e7e4c5f7f0a6059b60f29fa3df1cc8efc4b4f26
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,499 @@
+@@ -0,0 +1,500 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -3969,6 +3969,7 @@ index 0000000000000000000000000000000000000000..d8e1132527f20bc118a5d12b1d0076da
 +        registerManipulateCommand("unsneak", ap -> ap.setSneaking(false));
 +        registerManipulateCommand("sprint", ap -> ap.setSprinting(true));
 +        registerManipulateCommand("unsprint", ap -> ap.setSprinting(false));
++        registerManipulateCommand("stop", EntityPlayerActionPack::stopAll);
 +        registerSubCommandLook();
 +        registerSubCommandTurn();
 +        registerSubCommandMove();
@@ -4260,7 +4261,7 @@ index 0000000000000000000000000000000000000000..d8e1132527f20bc118a5d12b1d0076da
 +    }
 +
 +    private static void registerSubCommandMove() {
-+        registerManipulateCommand("move", ap -> ap.setForward(0).setStrafing(0));
++        registerManipulateCommand("move", ap -> ap.setForward(0).setStrafing(0), "stop");
 +        registerManipulateCommand("move", ap -> ap.setForward(1), "forward");
 +        registerManipulateCommand("move", ap -> ap.setForward(-1), "backward");
 +        registerManipulateCommand("move", ap -> ap.setStrafing(-1), "right");
