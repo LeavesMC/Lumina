@@ -3776,10 +3776,10 @@ index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6cef8f66f5d2efdf1ca5b9184c9713838417adbd
+index 0000000000000000000000000000000000000000..56ddda265a080ef4abf2f6a7077d6c6fc9662252
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,124 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -3789,6 +3789,7 @@ index 0000000000000000000000000000000000000000..6cef8f66f5d2efdf1ca5b9184c971383
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
 +import org.leavesmc.lumina.carpet.command.CounterCommand;
++import org.leavesmc.lumina.carpet.command.DistanceCommand;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
 +import org.leavesmc.lumina.carpet.command.TrackCommand;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
@@ -3854,6 +3855,7 @@ index 0000000000000000000000000000000000000000..6cef8f66f5d2efdf1ca5b9184c971383
 +        PlayerCommand.register();
 +        TrackCommand.register();
 +        CounterCommand.register();
++        DistanceCommand.register();
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
@@ -4003,12 +4005,101 @@ index 0000000000000000000000000000000000000000..c939c99aa128d70d9a861178b5b69c1e
 +        }
 +    }};
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/DistanceCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/DistanceCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..536d8ecfc07fe0588de7dffadb6527c79747a820
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/DistanceCommand.java
+@@ -0,0 +1,83 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.LiteralArgument;
++import dev.jorel.commandapi.arguments.LocationArgument;
++import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
++import org.bukkit.entity.Entity;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.utils.DistanceCalculator;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.RED;
++
++public class DistanceCommand {
++    public static void register() {
++        createBase("from").executesEntity((sender, args) -> {
++            DistanceCalculator.setStart(sender, getVec(sender));
++        }).register("carpet");
++        createBase("from")
++                .withArguments(new LocationArgument("from"))
++                .executes((sender, args) -> {
++                    Location from = (Location) args.get("from");
++                    if (from == null) {
++                        sender.sendMessage(text("Require start location").color(RED));
++                        return;
++                    }
++                    DistanceCalculator.setStart(sender, getVec(from));
++                }).register("carpet");
++        createBase("from")
++                .withArguments(
++                        new LocationArgument("from"),
++                        new LiteralArgument("to")
++                ).withOptionalArguments(new LocationArgument("to"))
++                .executes((sender, args) -> {
++                    Location from = (Location) args.get("from");
++                    if (from == null) {
++                        sender.sendMessage(text("Require start location").color(RED));
++                        return;
++                    }
++                    Location to = (Location) args.get("to");
++                    if (to == null) {
++                        if (sender instanceof Entity entity) {
++                            to = entity.getLocation();
++                        } else {
++                            sender.sendMessage(text("Require end location").color(RED));
++                            return;
++                        }
++                    }
++                    DistanceCalculator.distance(sender, getVec(from), getVec(to));
++                }).register("carpet");
++        createBase("to").executesEntity((sender, args) -> {
++            DistanceCalculator.setEnd(sender, getVec(sender));
++        }).register("carpet");
++        createBase("to")
++                .withArguments(new LocationArgument("to"))
++                .executes((sender, args) -> {
++                    Location to = (Location) args.get("to");
++                    if (to == null) {
++                        sender.sendMessage(text("Require end location").color(RED));
++                        return;
++                    }
++                    DistanceCalculator.setEnd(sender, getVec(to));
++                }).register("carpet");
++    }
++
++    private static CommandAPICommand createBase(String nodeName) {
++        return new CommandAPICommand("distance")
++                .withPermission("carpet.command.distance")
++                .withArguments(new LiteralArgument(nodeName));
++    }
++
++    @Contract("_ -> new")
++    private static @NotNull Vec3 getVec(@NotNull Entity entity) {
++        return getVec(entity.getLocation());
++    }
++
++    @Contract("_ -> new")
++    private static @NotNull Vec3 getVec(@NotNull Location location) {
++        return new Vec3(location.getX(), location.getY(), location.getZ());
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9bac5bde7d2
+index 0000000000000000000000000000000000000000..5d4ba1bfee0fbf5cdaa6bbad5680c26699fa3b73
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,489 @@
+@@ -0,0 +1,478 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -4047,8 +4138,6 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +
 +import static net.kyori.adventure.text.Component.*;
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
-+import static net.kyori.adventure.text.format.Style.*;
-+import static net.kyori.adventure.text.format.TextDecoration.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.ActionType.*;
 +
@@ -4076,7 +4165,7 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +        registerSubCommandTurn();
 +        registerSubCommandMove();
 +        createBase("shadow")
-+                .executes((CommandExecutor) (sender, args) -> {
++                .executes((sender, args) -> {
 +                    if (!canManipulate(sender, args, "shadow")) return;
 +
 +                    ServerPlayer player = getOnlineServerPlayer(sender, args);
@@ -4205,7 +4294,7 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +            facing = (Rotation) args.getOrDefault("direction", facing);
 +            world = (World) args.getOrDefault("dimension", world);
 +            if (pos == null) {
-+                sender.sendMessage(text("Need position to spawn player in console").color(RED).style(style(BOLD)));
++                sender.sendMessage(text("Need position to spawn player in console").color(RED));
 +                return;
 +            }
 +            GameMode nullableGameMode = (GameMode) args.get("gamemode");
@@ -4225,17 +4314,17 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +                return;
 +            }
 +            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
-+                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED).style(style(BOLD)));
++                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED));
 +                return;
 +            }
 +
 +            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
-+                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED).style(style(BOLD)));
++                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED));
 +                return;
 +            }
 +            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
 +            if (!success) {
-+                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED).style(style(BOLD)));
++                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED));
 +            }
 +        }
 +
@@ -4248,11 +4337,6 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +            PlayerList manager = server.getPlayerList();
 +
 +            if (manager.getPlayerByName(playerName) != null) {
-+                sender.sendMessage(text()
-+                        .append(text("Player ").color(RED))
-+                        .append(text(playerName).color(RED).style(style(BOLD)))
-+                        .append(text(" is already logged on").color(RED))
-+                        .build());
 +                sender.sendMessage(text("Player " + playerName + " is already logged on").color(RED));
 +                return false;
 +            }
@@ -4266,11 +4350,7 @@ index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9ba
 +                }
 +            }
 +            if (manager.getBans().isBanned(profile)) {
-+                sender.sendMessage(text()
-+                        .append(text("Player").color(RED))
-+                        .append(text(playerName).color(RED).style(style(BOLD)))
-+                        .append(text("is banned on this server").color(RED))
-+                        .build());
++                sender.sendMessage(text("Player" + playerName + "is banned on this server").color(RED));
 +                return false;
 +            }
 +            if (manager.isUsingWhitelist() && manager.isWhiteListed(profile) && !sender.isOp()) {
@@ -7716,29 +7796,40 @@ index 0000000000000000000000000000000000000000..1affe86d3db96ccf54f2f74741ef82e0
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java b/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c38c4d459eb10876cc0e9a8d9d0c4be52ba1240c
+index 0000000000000000000000000000000000000000..fd15a409c0488dce5eb23d625c4b3ac212c75c78
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,97 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
 +import java.util.ArrayList;
 +import java.util.HashMap;
 +import java.util.List;
 +
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextDecoration;
 +import net.minecraft.commands.CommandSourceStack;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.util.Mth;
 +import net.minecraft.world.phys.Vec3;
++import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.utils.ComponentUtils;
++
++import static net.kyori.adventure.text.Component.*;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static net.kyori.adventure.text.format.Style.style;
++import static net.kyori.adventure.text.format.TextDecoration.*;
 +
 +public class DistanceCalculator {
 +    public static final HashMap<String, Vec3> START_POINT_STORAGE = new HashMap<>();
 +
-+    public static boolean hasStartingPoint(CommandSourceStack source) {
-+        return START_POINT_STORAGE.containsKey(source.getTextName());
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
++    public static boolean hasStartingPoint(@NotNull CommandSender sender) {
++        return START_POINT_STORAGE.containsKey(sender.getName());
 +    }
 +
-+    public static List<Component> findDistanceBetweenTwoPoints(Vec3 pos1, Vec3 pos2) {
++    public static @NotNull List<Component> findDistanceBetweenTwoPoints(@NotNull Vec3 pos1, @NotNull Vec3 pos2) {
 +        double dx = Mth.abs((float) pos1.x - (float) pos2.x);
 +        double dy = Mth.abs((float) pos1.y - (float) pos2.y);
 +        double dz = Mth.abs((float) pos1.z - (float) pos2.z);
@@ -7755,26 +7846,55 @@ index 0000000000000000000000000000000000000000..c38c4d459eb10876cc0e9a8d9d0c4be5
 +        return res;
 +    }
 +
++    public static void distance(CommandSender sender, Vec3 pos1, Vec3 pos2) {
++        for (Component message : findDistanceBetweenTwoPoints(pos1, pos2)) {
++            sender.sendMessage(ComponentUtils.toAdventure(message));
++        }
++    }
++
++    public static int setStart(@NotNull CommandSender sender, Vec3 pos) {
++        START_POINT_STORAGE.put(sender.getName(), pos);
++        sender.sendMessage(ComponentUtils.toAdventure(
++                Messenger.c("gi Initial point set to: ", Messenger.tp("g", pos))));
++        return 1;
++    }
++
++    public static void setEnd(CommandSender sender, Vec3 pos) {
++        if (!hasStartingPoint(sender)) {
++            START_POINT_STORAGE.put(sender.getName(), pos);
++            sender.sendMessage(text("There was no initial point for " + sender.getName()));
++            sender.sendMessage(ComponentUtils.toAdventure(
++                    Messenger.c("gi Initial point set to: ", Messenger.tp("g", pos))));
++            return;
++        }
++        for (Component message : findDistanceBetweenTwoPoints(START_POINT_STORAGE.get(sender.getName()), pos)) {
++            sender.sendMessage(ComponentUtils.toAdventure(message));
++        }
++    }
++
++    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
++    public static boolean hasStartingPoint(@NotNull CommandSourceStack source) {
++        return START_POINT_STORAGE.containsKey(source.getTextName());
++    }
++
 +    public static int distance(CommandSourceStack source, Vec3 pos1, Vec3 pos2) {
 +        Messenger.send(source, findDistanceBetweenTwoPoints(pos1, pos2));
 +        return 1;
 +    }
 +
-+    public static int setStart(CommandSourceStack source, Vec3 pos) {
++    public static void setStart(@NotNull CommandSourceStack source, Vec3 pos) {
 +        START_POINT_STORAGE.put(source.getTextName(), pos);
 +        Messenger.m(source, "gi Initial point set to: ", Messenger.tp("g", pos));
-+        return 1;
 +    }
 +
-+    public static int setEnd(CommandSourceStack source, Vec3 pos) {
++    public static void setEnd(CommandSourceStack source, Vec3 pos) {
 +        if (!hasStartingPoint(source)) {
 +            START_POINT_STORAGE.put(source.getTextName(), pos);
 +            Messenger.m(source, "gi There was no initial point for " + source.getTextName());
 +            Messenger.m(source, "gi Initial point set to: ", Messenger.tp("g", pos));
-+            return 0;
++            return;
 +        }
 +        Messenger.send(source, findDistanceBetweenTwoPoints(START_POINT_STORAGE.get(source.getTextName()), pos));
-+        return 1;
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/EvictingQueue.java b/src/main/java/org/leavesmc/lumina/carpet/utils/EvictingQueue.java
