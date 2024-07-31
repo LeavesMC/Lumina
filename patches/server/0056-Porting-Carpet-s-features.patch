@@ -3776,10 +3776,10 @@ index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b6b8226647a278b23a36036dd8dbbce4b659c468
+index 0000000000000000000000000000000000000000..6cef8f66f5d2efdf1ca5b9184c9713838417adbd
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,122 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -3788,6 +3788,7 @@ index 0000000000000000000000000000000000000000..b6b8226647a278b23a36036dd8dbbce4
 +import net.minecraft.server.level.ServerPlayer;
 +import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
++import org.leavesmc.lumina.carpet.command.CounterCommand;
 +import org.leavesmc.lumina.carpet.command.PlayerCommand;
 +import org.leavesmc.lumina.carpet.command.TrackCommand;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
@@ -3852,6 +3853,7 @@ index 0000000000000000000000000000000000000000..b6b8226647a278b23a36036dd8dbbce4
 +        }
 +        PlayerCommand.register();
 +        TrackCommand.register();
++        CounterCommand.register();
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
@@ -3900,25 +3902,113 @@ index 0000000000000000000000000000000000000000..b6b8226647a278b23a36036dd8dbbce4
 +    //                 This behaviour will not work in later Carpet versions and the manager won't be registered!""".formatted(ext.getClass().getName()));
 +    // } // TODO
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/Context.java b/src/main/java/org/leavesmc/lumina/carpet/command/Context.java
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..73173055e3a98ec0bd069634f86e1a31b6d7051e
+index 0000000000000000000000000000000000000000..c939c99aa128d70d9a861178b5b69c1e07c8cd42
 --- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/command/Context.java
-@@ -0,0 +1,7 @@
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
+@@ -0,0 +1,95 @@
 +package org.leavesmc.lumina.carpet.command;
 +
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
++import dev.jorel.commandapi.executors.CommandExecutor;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.item.DyeColor;
 +import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.helpers.HopperCounter;
++import org.leavesmc.lumina.utils.ComponentUtils;
 +
-+record Context(CommandSender sender, CommandArguments args) {
++import java.util.HashMap;
++import java.util.Map;
++
++import static net.kyori.adventure.text.Component.*;
++
++public class CounterCommand {
++    public static void register() {
++        createBase()
++                .executes((CommandExecutor) (sender, args) -> listAllCounters(sender, false))
++                .register("carpet");
++        createBase()
++                .withArguments(new LiteralArgument("reset"))
++                .executes((CommandExecutor) (sender, args) -> resetCounters(sender))
++                .register("carpet");
++        createBaseWithColorArgument()
++                .executes((CommandExecutor) (sender, args) -> displayCounter(sender, args, false))
++                .register("carpet");
++        createBaseWithColorArgument()
++                .withArguments(new LiteralArgument("reset"))
++                .executes((CommandExecutor) (sender, args) -> resetCounter(sender, (DyeColor) args.get("color")))
++                .register("carpet");
++        createBaseWithColorArgument()
++                .withArguments(new LiteralArgument("realtime"))
++                .executes((CommandExecutor) (sender, args) -> displayCounter(sender, args, true))
++                .register("carpet");
++    }
++
++    private static CommandAPICommand createBase() {
++        return new CommandAPICommand("counter")
++                .withPermission("carpet.command.counter");
++    }
++
++    private static CommandAPICommand createBaseWithColorArgument() {
++        return createBase()
++                .withArguments(dyeColorArgument("color"));
++    }
++
++    private static void displayCounter(CommandSender sender, @NotNull CommandArguments args, boolean realtime) {
++        HopperCounter counter = HopperCounter.getCounter((DyeColor) args.get("color"));
++
++        for (net.minecraft.network.chat.Component message : counter.format(MinecraftServer.getServer(), realtime, false)) {
++            sender.sendMessage(ComponentUtils.toAdventure(message));
++        }
++    }
++
++    @SuppressWarnings("SameParameterValue")
++    private static void listAllCounters(CommandSender sender, boolean realtime) {
++        MinecraftServer server = MinecraftServer.getServer();
++        for (net.minecraft.network.chat.Component message : HopperCounter.formatAll(MinecraftServer.getServer(), realtime)) {
++            sender.sendMessage(ComponentUtils.toAdventure(message));
++        }
++    }
++
++    private static void resetCounters(@NotNull CommandSender sender) {
++        HopperCounter.resetAll(MinecraftServer.getServer(), false);
++        sender.sendMessage(text("Reset all counters"));
++    }
++
++    private static void resetCounter(@NotNull CommandSender sender, DyeColor color) {
++        HopperCounter.getCounter(color).reset(MinecraftServer.getServer());
++        sender.sendMessage(text("Reset " + color + " counter"));
++    }
++
++    @SuppressWarnings("SameParameterValue")
++    private static @NotNull Argument<DyeColor> dyeColorArgument(String nodeName) {
++        return new CustomArgument<>(new StringArgument(nodeName), info -> {
++            DyeColor color = DYE_COLORS.getOrDefault(info.currentInput(), null);
++            if (color == null) {
++                throw CustomArgument.CustomArgumentException.fromMessageBuilder(
++                        new CustomArgument.MessageBuilder("Unsupported color: ").appendArgInput());
++            } else {
++                return color;
++            }
++        }).replaceSuggestions(ArgumentSuggestions.strings(DYE_COLORS.keySet()));
++    }
++
++    private static final Map<String, DyeColor> DYE_COLORS = new HashMap<>() {{
++        for (DyeColor dyeColor : DyeColor.values()) {
++            put(dyeColor.getName(), dyeColor);
++        }
++    }};
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a43c6bef53
+index 0000000000000000000000000000000000000000..cfbadf290769df9025e1417020bce9bac5bde7d2
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,482 @@
+@@ -0,0 +1,489 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -3966,7 +4056,6 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +    public static void register() {
 +        SubCommandSpawn.register();
 +        SubCommandKill.register();
-+        SubCommandShadow.register();
 +        registerActionCommand("use", USE);
 +        registerActionCommand("jump", JUMP);
 +        registerActionCommand("attack", ATTACK);
@@ -3986,11 +4075,30 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        registerSubCommandLook();
 +        registerSubCommandTurn();
 +        registerSubCommandMove();
-+        //noinspection DataFlowIssue
++        createBase("shadow")
++                .executes((CommandExecutor) (sender, args) -> {
++                    if (!canManipulate(sender, args, "shadow")) return;
++
++                    ServerPlayer player = getOnlineServerPlayer(sender, args);
++                    if (player == null) {
++                        return;
++                    }
++                    if (player instanceof EntityPlayerMPFake) {
++                        sender.sendMessage(text("Cannot shadow fake players").color(RED));
++                        return;
++                    }
++                    if (MinecraftServer.getServer().isSingleplayerOwner(player.getGameProfile())) {
++                        sender.sendMessage(text("Cannot shadow single-player server owner").color(RED));
++                        return;
++                    }
++
++                    EntityPlayerMPFake.createShadow(player.server, player);
++                }).register("carpet");
++        // noinspection DataFlowIssue
 +        createBase("hotbar")
 +                .withArguments(new IntegerArgument("slot", 0, 8))
 +                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), "hotbar",
++                        manipulate(sender, args, "hotbar",
 +                                ap -> ap.setSlot((Integer) args.get("slot"))))
 +                .register("carpet");
 +        registerPermissions();
@@ -4077,8 +4185,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        }
 +
 +        private static void spawn(CommandSender sender, CommandArguments args) {
-+            Context context = new Context(sender, args);
-+            if (!canSpawn(context)) {
++            if (!canSpawn(sender, args)) {
 +                return;
 +            }
 +            Location pos = null;
@@ -4113,7 +4220,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +                // Force override flying to false for survival-like players, or they will fly too
 +                flying = false;
 +            }
-+            String playerName = getPlayerName(context);
++            String playerName = getPlayerName(sender, args);
 +            if (playerName == null) {
 +                return;
 +            }
@@ -4132,12 +4239,11 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +            }
 +        }
 +
-+        private static boolean canSpawn(Context context) {
-+            String playerName = getPlayerName(context);
++        private static boolean canSpawn(CommandSender sender, CommandArguments args) {
++            String playerName = getPlayerName(sender, args);
 +            if (playerName == null) {
 +                return false;
 +            }
-+            CommandSender sender = context.sender();
 +            MinecraftServer server = MinecraftServer.getServer();
 +            PlayerList manager = server.getPlayerList();
 +
@@ -4183,11 +4289,10 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        }
 +
 +        private static void kill(CommandSender sender, CommandArguments args) {
-+            Context context = new Context(sender, args);
-+            if (!canKill(context)) {
++            if (!canKill(sender, args)) {
 +                return;
 +            }
-+            Player player = getOnlinePlayer(context);
++            Player player = getOnlinePlayer(sender, args);
 +            if (player == null) {
 +                return;
 +            }
@@ -4195,23 +4300,16 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +            sender.sendMessage(text("Player " + player.getName() + " has been killed").color(GREEN));
 +        }
 +
-+        private static boolean canKill(Context context) {
-+            ServerPlayer player = getOnlineServerPlayer(context);
-+            CommandSender sender = context.sender();
++        private static boolean canKill(CommandSender sender, CommandArguments args) {
++            ServerPlayer player = getOnlineServerPlayer(sender, args);
 +            if (player == null) {
 +                sender.sendMessage(text("No such player").color(RED));
 +            }
 +            if (player instanceof EntityPlayerMPFake) {
-+                return canManipulate(context, "kill");
++                return canManipulate(sender, args, "kill");
 +            }
 +            sender.sendMessage(text("Only fake players can be killed by this command").color(RED));
 +            return false;
-+        }
-+    }
-+
-+    private static class SubCommandShadow {
-+        public static void register() {
-+            // TODO
 +        }
 +    }
 +
@@ -4227,7 +4325,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +                        new LiteralArgument("direction"),
 +                        new RotationArgument("direction")
 +                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), "look",
++                        manipulate(sender, args, "look",
 +                                ap -> {
 +                                    Rotation rotation = (Rotation) args.get("direction");
 +                                    if (rotation == null) {
@@ -4242,7 +4340,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +                        new LiteralArgument("at"),
 +                        new LocationArgument("position")
 +                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), "look",
++                        manipulate(sender, args, "look",
 +                                ap -> {
 +                                    Location location = (Location) args.get("position");
 +                                    if (location == null) {
@@ -4261,7 +4359,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        createBase("turn")
 +                .withArguments(new RotationArgument("rotation"))
 +                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), "turn",
++                        manipulate(sender, args, "turn",
 +                                ap -> {
 +                                    Rotation rotation = (Rotation) args.get("rotation");
 +                                    if (rotation == null) {
@@ -4285,13 +4383,13 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action, String literal) {
 +        createBase(name)
 +                .withArguments(new MultiLiteralArgument("_literals", literal))
-+                .executes((CommandExecutor) (sender, args2) -> manipulate(new Context(sender, args2), name, action))
++                .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
 +                .register("carpet");
 +    }
 +
 +    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action) {
 +        createBase(name)
-+                .executes((CommandExecutor) (sender, args2) -> manipulate(new Context(sender, args2), name, action))
++                .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
 +                .register("carpet");
 +    }
 +
@@ -4305,7 +4403,7 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +                        new LiteralArgument("interval"),
 +                        new IntegerArgument("ticks", 1)
 +                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), name,
++                        manipulate(sender, args, name,
 +                                ap -> ap.start(type, Action.interval((Integer) args.get("ticks"))))
 +                ).register("carpet");
 +    }
@@ -4318,18 +4416,18 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        createBase(name)
 +                .withArguments(new IntegerArgument("slot", 0, 40))
 +                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(new Context(sender, args), name,
++                        manipulate(sender, args, name,
 +                                ap -> ap.drop((Integer) args.get("slot"), dropAll))
 +                ).register("carpet");
 +
 +    }
 +
-+    private static void manipulate(Context context, String name, Consumer<EntityPlayerActionPack> action) {
-+        if (!canManipulate(context, name)) {
++    private static void manipulate(CommandSender sender, CommandArguments args, String name, Consumer<EntityPlayerActionPack> action) {
++        if (!canManipulate(sender, args, name)) {
 +            return;
 +        }
 +        // noinspection DataFlowIssue
-+        action.accept(getOnlineServerPlayer(context).getActionPack());
++        action.accept(getOnlineServerPlayer(sender, args).getActionPack());
 +    }
 +
 +    private static CommandAPICommand createBase(String literal) {
@@ -4347,11 +4445,10 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +                ).withPermission(createPlayerCommandPermission(literal));
 +    }
 +
-+    private static boolean canManipulate(@NotNull Context context, String name) {
-+        CommandSender sender = context.sender();
++    private static boolean canManipulate(@NotNull CommandSender sender, CommandArguments args, String name) {
 +        String permission = createPlayerCommandPermission(name);
 +        if (sender.hasPermission(permission)) {
-+            Player player = getOnlinePlayer(context);
++            Player player = getOnlinePlayer(sender, args);
 +            if (player == null) {
 +                return false;
 +            }
@@ -4368,28 +4465,28 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +        return false;
 +    }
 +
-+    private static @Nullable Player getOnlinePlayer(Context context) {
-+        String playerName = getPlayerName(context);
++    private static @Nullable Player getOnlinePlayer(CommandSender sender, CommandArguments args) {
++        String playerName = getPlayerName(sender, args);
 +        if (playerName == null) {
-+            context.sender().sendMessage(text("No such player").color(RED));
++            sender.sendMessage(text("No such player").color(RED));
 +            return null;
 +        }
 +        return Bukkit.getPlayer(playerName);
 +    }
 +
-+    private static @Nullable ServerPlayer getOnlineServerPlayer(Context context) {
-+        String playerName = getPlayerName(context);
++    private static @Nullable ServerPlayer getOnlineServerPlayer(CommandSender sender, CommandArguments args) {
++        String playerName = getPlayerName(sender, args);
 +        if (playerName == null) {
-+            context.sender().sendMessage(text("No such player").color(RED));
++            sender.sendMessage(text("No such player").color(RED));
 +            return null;
 +        }
 +        return MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
 +    }
 +
-+    private static @Nullable String getPlayerName(@NotNull Context context) {
-+        String playerName = (String) context.args().get("player");
++    private static @Nullable String getPlayerName(CommandSender sender, @NotNull CommandArguments args) {
++        String playerName = (String) args.get("player");
 +        if (playerName == null) {
-+            context.sender().sendMessage(text("Require player name").color(RED));
++            sender.sendMessage(text("Require player name").color(RED));
 +            return null;
 +        }
 +        return playerName;
@@ -4403,10 +4500,10 @@ index 0000000000000000000000000000000000000000..d614b3448808fa128288739ecd4c88a4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a13405ddfb628cc3b12ed66a29e302366841f04d
+index 0000000000000000000000000000000000000000..1b51bc516dd87294ac7c281b38ddfabbb78866ca
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,76 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4429,7 +4526,6 @@ index 0000000000000000000000000000000000000000..a13405ddfb628cc3b12ed66a29e30236
 +public class TrackCommand {
 +    public static void register() {
 +        createBase()
-+                .withPermission("carpet.command.track")
 +                .withArguments(new LiteralArgument("clear"))
 +                .executes((sender, args) -> {
 +                    System.out.println(args.get("type"));
@@ -4437,7 +4533,6 @@ index 0000000000000000000000000000000000000000..a13405ddfb628cc3b12ed66a29e30236
 +                    return 1;
 +                }).register("carpet");
 +        createBase()
-+                .withPermission("carpet.command.track")
 +                .withArguments(new StringArgument("aspect").replaceSuggestions(
 +                        ArgumentSuggestions.strings(info ->
 +                                ASPECTS.get((EntityType<?>) info.previousArgs().get("type")).toArray(new String[0])))
@@ -4463,9 +4558,10 @@ index 0000000000000000000000000000000000000000..a13405ddfb628cc3b12ed66a29e30236
 +                .withArguments(trackTypeArgument("type"));
 +    }
 +
++    @SuppressWarnings("SameParameterValue")
 +    public static Argument<EntityType<? extends Entity>> trackTypeArgument(String nodeName) {
 +        return new CustomArgument<EntityType<? extends Entity>, String>(new StringArgument(nodeName), info -> {
-+            EntityType<? extends Entity> type = ENTITY_TYPES.get(info.currentInput());
++            EntityType<? extends Entity> type = ENTITY_TYPES.getOrDefault(info.currentInput(), null);
 +            if (type == null) {
 +                throw CustomArgument.CustomArgumentException.fromMessageBuilder(
 +                        new CustomArgument.MessageBuilder("Unsupported entity type: ").appendArgInput());
@@ -9078,6 +9174,26 @@ index 0000000000000000000000000000000000000000..339894f1f49867a098ecba3efc0b9e4a
 +    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos) {
 +        BlockState state = worldIn.getBlockState(pos);
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/ComponentUtils.java b/src/main/java/org/leavesmc/lumina/utils/ComponentUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..028e817aa724f643f730d4edb91f5e6e7e5f0363
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/ComponentUtils.java
+@@ -0,0 +1,14 @@
++package org.leavesmc.lumina.utils;
++
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
++import net.minecraft.server.MinecraftServer;
++import org.jetbrains.annotations.NotNull;
++
++public class ComponentUtils {
++    public static @NotNull Component toAdventure(net.minecraft.network.chat.Component from) {
++        return GsonComponentSerializer.gson().deserialize(
++                net.minecraft.network.chat.Component.Serializer
++                        .toJson(from, MinecraftServer.getServer().registryAccess()));
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
