@@ -3025,6 +3025,24 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5b
  
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 843f24b0de5b9e80db420541699ddaf04dd56aa3..a5816f40bde921372dfdb2d6c7949dbdae884b02 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -647,6 +647,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+ 
+     @Override
+     public void kickPlayer(String message) {
++        // Lumina start - Porting Carpet's features - fakeplayer
++        if (this.getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake fp) {
++            // TODO fakeplayer kick event
++            fp.kill(Component.literal(message));
++            return;
++        }
++        // Lumina end - Porting Carpet's features - fakeplayer
+         //org.spigotmc.AsyncCatcher.catchOp("player kick"); // Spigot // Folia - thread-safe now, as it will simply delay the kick
+         if (this.getHandle().connection == null) return;
+ 
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..25a56039f950d8dae0494233daac802141ad09f2
@@ -6843,10 +6861,10 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d610f0e79265ecc1109bcfe1ca46920d64d79b26
+index 0000000000000000000000000000000000000000..0fe5ebd0dc2ef2aed9309f6404a999ad853668ce
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,225 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import com.mojang.authlib.GameProfile;
@@ -6987,6 +7005,7 @@ index 0000000000000000000000000000000000000000..d610f0e79265ecc1109bcfe1ca46920d
 +
 +    @Override
 +    public void kill() {
++        // TODO fakeplayer kill event
 +        kill(Messenger.s("Killed"));
 +    }
 +
@@ -7036,6 +7055,7 @@ index 0000000000000000000000000000000000000000..d610f0e79265ecc1109bcfe1ca46920d
 +        super.die(cause);
 +        setHealth(20);
 +        this.foodData = new FoodData();
++        // TODO fakeplayer kill event
 +        kill(this.getCombatTracker().getDeathMessage());
 +    }
 +
@@ -7112,10 +7132,10 @@ index 0000000000000000000000000000000000000000..7df2dd9009f227f9cd8f87849475f7d1
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..83c53a2021a34da59fc58354a212cab118a7d30a
+index 0000000000000000000000000000000000000000..e27520371570ef22fb9387a6974eeb78ec076136
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,47 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import net.minecraft.network.Connection;
@@ -7144,9 +7164,7 @@ index 0000000000000000000000000000000000000000..83c53a2021a34da59fc58354a212cab1
 +    @SuppressWarnings("deprecation")
 +    @Override
 +    public void disconnect(@NotNull Component message) {
-+        if (message.getContents() instanceof TranslatableContents text && (text.getKey().equals("multiplayer.disconnect.idling") || text.getKey().equals("multiplayer.disconnect.duplicate_login"))) {
-+            ((EntityPlayerMPFake) player).kill(message);
-+        }
++        ((EntityPlayerMPFake) player).kill(message);
 +    }
 +
 +    @Override
