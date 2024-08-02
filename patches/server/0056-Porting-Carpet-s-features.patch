@@ -4149,7 +4149,7 @@ index 0000000000000000000000000000000000000000..536d8ecfc07fe0588de7dffadb6527c7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5d4ba1bfee0fbf5cdaa6bbad5680c26699fa3b73
+index 0000000000000000000000000000000000000000..79d729b502cd915aecdb9135d67c6d86a7e2a82f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 @@ -0,0 +1,478 @@
@@ -4332,7 +4332,7 @@ index 0000000000000000000000000000000000000000..5d4ba1bfee0fbf5cdaa6bbad5680c266
 +            }
 +            Location pos = null;
 +            Rotation facing = new Rotation(0, 0);
-+            World world = Bukkit.getWorld(new NamespacedKey("minecraft", "overworld"));
++            World world = Bukkit.getWorlds().getFirst();
 +            GameType mode = GameType.CREATIVE;
 +            boolean flying = false;
 +            if (sender instanceof Player player) {
@@ -6896,7 +6896,7 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0fe5ebd0dc2ef2aed9309f6404a999ad853668ce
+index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f284096383
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 @@ -0,0 +1,225 @@
@@ -7089,7 +7089,7 @@ index 0000000000000000000000000000000000000000..0fe5ebd0dc2ef2aed9309f6404a999ad
 +        shakeOff();
 +        super.die(cause);
 +        setHealth(20);
-+        this.foodData = new FoodData();
++        this.foodData = new FoodData(this);
 +        // TODO fakeplayer kill event
 +        kill(this.getCombatTracker().getDeathMessage());
 +    }
