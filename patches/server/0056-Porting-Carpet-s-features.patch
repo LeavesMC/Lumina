@@ -34,6 +34,19 @@ SOFTWARE.
 
 plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376f812669c 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -35,6 +35,8 @@ class PaperEventManager {
+ 
+     // SimplePluginManager
+     public void callEvent(@NotNull Event event) {
++        if (event instanceof org.bukkit.event.player.PlayerEvent playerEvent && ((org.bukkit.craftbukkit.entity.CraftPlayer)playerEvent.getPlayer()).getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) return; // Lumina - skip fake player events
++        if (event instanceof org.bukkit.event.entity.EntityEvent entityEvent && ((org.bukkit.craftbukkit.entity.CraftEntity)entityEvent.getEntity()).getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) return; // Lumina - skip fake player events
+         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
 diff --git a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..a41a8dae6c59f158f847f3cd232d0f69a1d904bb 100644
 --- a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
@@ -556,9 +569,18 @@ index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..058bac417990c465d7c590b27dac771e
                  // CraftBukkit start - Call click event
                  InventoryView inventory = this.player.inventoryMenu.getBukkitView();
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..3c26596039897e672d2091bf27b290139049573e 100644
+index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..149f608aad5e317beef2ded9270d11f3fd303328 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -135,7 +135,7 @@ public abstract class PlayerList {
+     private static final int SEND_PLAYER_INFO_INTERVAL = 600;
+     private static final ThreadLocal<SimpleDateFormat> BAN_DATE_FORMAT = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z")); // Folia - region threading - SDF is not thread-safe
+     private final MinecraftServer server;
+-    public final List<ServerPlayer> players = new java.util.concurrent.CopyOnWriteArrayList(); // CraftBukkit - ArrayList -> CopyOnWriteArrayList: Iterator safety
++    public final org.leavesmc.lumina.utils.DividedPlayerList players = new org.leavesmc.lumina.utils.DividedPlayerList(); // CraftBukkit - ArrayList -> CopyOnWriteArrayList: Iterator safety // Lumina - DividedPlayerList
+     private final Map<UUID, ServerPlayer> playersByUUID = new java.util.concurrent.ConcurrentHashMap<>(); // Folia - region threading - change to CHM - Note: we do NOT expect concurrency PER KEY!
+     private final UserBanList bans;
+     private final IpBanList ipBans;
 @@ -375,7 +375,11 @@ public abstract class PlayerList {
          LevelData worlddata = worldserver1.getLevelData();
  
@@ -3025,6 +3047,19 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5b
  
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index b586912ec67ea6708e0df260adc7c949e87a2075..85594db23a44cf2d84797888d1e839bb91d5790e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -395,7 +395,7 @@ public final class CraftServer implements Server {
+     public CraftServer(DedicatedServer console, PlayerList playerList) {
+         this.console = console;
+         this.playerList = (DedicatedPlayerList) playerList;
+-        this.playerView = Collections.unmodifiableList(Lists.transform(playerList.players, new Function<ServerPlayer, CraftPlayer>() {
++        this.playerView = Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.DividedPlayerList.PlayerType.REAL), new Function<ServerPlayer, CraftPlayer>() {
+             @Override
+             public CraftPlayer apply(ServerPlayer player) {
+                 return player.getBukkitEntity();
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 index 843f24b0de5b9e80db420541699ddaf04dd56aa3..a5816f40bde921372dfdb2d6c7949dbdae884b02 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
@@ -9332,6 +9367,102 @@ index 0000000000000000000000000000000000000000..028e817aa724f643f730d4edb91f5e6e
 +        return GsonComponentSerializer.gson().deserialize(
 +                net.minecraft.network.chat.Component.Serializer
 +                        .toJson(from, MinecraftServer.getServer().registryAccess()));
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..14ecf18a5bb99d12066b7b8ca29cd17795e7b921
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+@@ -0,0 +1,90 @@
++package org.leavesmc.lumina.utils;
++
++import net.minecraft.server.level.ServerPlayer;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
++
++import java.util.Collection;
++import java.util.HashMap;
++import java.util.Map;
++import java.util.concurrent.CopyOnWriteArrayList;
++
++import static org.leavesmc.lumina.utils.DividedPlayerList.PlayerType.*;
++
++public class DividedPlayerList extends CopyOnWriteArrayList<ServerPlayer> {
++    public final Map<PlayerType, CopyOnWriteArrayList<ServerPlayer>> divided = new HashMap<>() {{
++        put(REAL, new CopyOnWriteArrayList<>());
++        put(FAKE, new CopyOnWriteArrayList<>());
++        put(GHOST, new CopyOnWriteArrayList<>());
++    }};
++
++    @Override
++    public boolean removeAll(@NotNull Collection<?> c) {
++        c.forEach(o -> divided.get(getType((ServerPlayer) o)).remove(o));
++        return super.removeAll(c);
++    }
++
++    @Override
++    public boolean remove(Object o) {
++        divided.get(getType((ServerPlayer) o)).remove(o);
++        return super.remove(o);
++    }
++
++    @Override
++    public ServerPlayer remove(int index) {
++        ServerPlayer player = super.remove(index);
++        divided.get(getType(player)).remove(player);
++        return player;
++    }
++
++    @Override
++    public int addAllAbsent(@NotNull Collection<? extends ServerPlayer> c) {
++        c.forEach(serverPlayer -> divided.get(getType(serverPlayer)).add(serverPlayer));
++        return super.addAllAbsent(c);
++    }
++
++    @Override
++    public boolean addIfAbsent(ServerPlayer serverPlayer) {
++        divided.get(getType(serverPlayer)).add(serverPlayer);
++        return super.addIfAbsent(serverPlayer);
++    }
++
++    @Override
++    public void add(int index, ServerPlayer serverPlayer) {
++        divided.get(getType(serverPlayer)).add(serverPlayer);
++        super.add(index, serverPlayer);
++    }
++
++    @Override
++    public boolean add(ServerPlayer serverPlayer) {
++        divided.get(getType(serverPlayer)).add(serverPlayer);
++        return super.add(serverPlayer);
++    }
++
++    @Override
++    public boolean addAll(@NotNull Collection<? extends ServerPlayer> c) {
++        c.forEach(serverPlayer -> divided.get(getType(serverPlayer)).add(serverPlayer));
++        return super.addAll(c);
++    }
++
++    @Override
++    public boolean addAll(int index, @NotNull Collection<? extends ServerPlayer> c) {
++        c.forEach(serverPlayer -> divided.get(getType(serverPlayer)).add(serverPlayer));
++        return super.addAll(index, c);
++    }
++
++    public PlayerType getType(ServerPlayer player) {
++        // TODO Ghost player check
++        if (player instanceof EntityPlayerMPFake) {
++            return FAKE;
++        } else {
++            return REAL;
++        }
++    }
++
++    public enum PlayerType {
++        REAL,
++        FAKE,
++        GHOST
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
