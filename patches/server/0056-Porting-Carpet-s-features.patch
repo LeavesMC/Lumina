@@ -7128,10 +7128,10 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7df2dd9009f227f9cd8f87849475f7d1c83d4519
+index 0000000000000000000000000000000000000000..43827d78b698f69b97682ca36f9d5a2ce9512839
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,33 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import io.netty.channel.embedded.EmbeddedChannel;
@@ -7162,6 +7162,7 @@ index 0000000000000000000000000000000000000000..7df2dd9009f227f9cd8f87849475f7d1
 +
 +    @Override
 +    public <T extends PacketListener> void setupInboundProtocol(ProtocolInfo<T> protocolInfo, T packetListener) {
++        super.packetListener = packetListener;
 +    }
 +}
 \ No newline at end of file
