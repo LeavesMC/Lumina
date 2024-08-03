@@ -3459,10 +3459,10 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8723ab226
+index 0000000000000000000000000000000000000000..c898ebdf20b01e0a4655b39f922ed4fdaea6d181
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,486 @@
+@@ -0,0 +1,481 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -3619,11 +3619,6 @@ index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8
 +            Enables /perimeterinfo command
 +            that scans the area around the block for potential spawnable spots""")
 +    public boolean commandPerimeterInfo = true;
-+
-+    @Comment("""
-+            Enables /draw commands
-+            allows for drawing simple shapes or other shapes which are sorta difficult to do normally""")
-+    public boolean commandDraw = true;
 +
 +    @Comment("Enables /player command to control/spawn players")
 +    public boolean commandPlayer = true;
@@ -3952,10 +3947,10 @@ index 0000000000000000000000000000000000000000..ba438cf89db5eebbc3d74aa96224a8a8
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3939746d01fd96d2b97138fb4e58b2dc97a0e06
+index 0000000000000000000000000000000000000000..86a2a6c45ef6805a0e641aca197dcc4603f7a2da
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,141 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -4025,11 +4020,30 @@ index 0000000000000000000000000000000000000000..e3939746d01fd96d2b97138fb4e58b2d
 +        if (CarpetConfig.configModule == null) {
 +            return;
 +        }
-+        PlayerCommand.register();
-+        TrackCommand.register();
-+        CounterCommand.register();
-+        DistanceCommand.register();
-+        PerimeterInfoCommand.register();
++        if (CarpetConfig.configModule.commandPlayer) {
++            PlayerCommand.register();
++        }
++        if (CarpetConfig.configModule.commandTrackAI) {
++            TrackCommand.register();
++        }
++        if (CarpetConfig.configModule.commandDistance) {
++            DistanceCommand.register();
++        }
++        if (CarpetConfig.configModule.commandPerimeterInfo) {
++            PerimeterInfoCommand.register();
++        }
++        if (CarpetConfig.configModule.commandInfo) {
++            // TODO
++        }
++        if (CarpetConfig.configModule.commandLog) {
++            // TODO
++        }
++        if (CarpetConfig.configModule.commandSpawn) {
++            // TODO
++        }
++        if (CarpetConfig.configModule.hopperCounters) {
++            CounterCommand.register();
++        }
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {

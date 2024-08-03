@@ -43,6 +43,10 @@ The paper has been optimized
 
 The paper has been optimized
 
+### commandDraw
+
+I think you should use WorldEdit
+
 ### commandTick
 
 The built-in ones should be enough, right

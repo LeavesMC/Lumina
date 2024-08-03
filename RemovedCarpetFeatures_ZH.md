@@ -43,6 +43,10 @@ Paper 已经优化了
 
 Paper 已经优化了
 
+### commandDraw
+
+我觉得你应该用 WorldEdit
+
 ### commandTick
 
 内置的应该够了吧（x
