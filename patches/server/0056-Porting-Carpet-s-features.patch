@@ -462,7 +462,7 @@ index 2fec6e3594b5946077102ca4abded9c2fc301f89..49a0e23b0b91d28fb0f0ad82f0135927
                  if (iteminteractionresult.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, blockposition, itemstack1);
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index bbb856fb9b4082d752a6761bb5196fffa48fbd6c..3f9785e1af4c96a1ae3de8ff80a7bd366473e0f6 100644
+index bbb856fb9b4082d752a6761bb5196fffa48fbd6c..14365d6359797aaae87acf97374b508aed5e3c9c 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -119,6 +119,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -486,6 +486,51 @@ index bbb856fb9b4082d752a6761bb5196fffa48fbd6c..3f9785e1af4c96a1ae3de8ff80a7bd36
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
          // Purpur start
+@@ -152,10 +159,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ 
+             this.latency = (this.latency * 3 + i) / 4;
+             this.keepAlivePending = false;
+-        } else if (!this.isSingleplayerOwner()) {
++        } else if (!this.isSingleplayerOwner() && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
+             // Paper start - This needs to be handled on the main thread for plugins
+             // Folia - region threading - do not schedule to main anymore, there is no main
+-                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
++                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause // Lumina - fakeplayer no timeout
+             // Folia - region threading - do not schedule to main anymore, there is no main
+             // Paper end - This needs to be handled on the main thread for plugins
+         }
+@@ -282,11 +289,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         long elapsedTime = currentTime - this.keepAliveTime;
+ 
+         // Purpur start
+-        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.alternativeKeepAlive) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.alternativeKeepAlive && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
+             if (elapsedTime >= 1000L) { // 1 second
+                 if (this.keepAlivePending && !this.processedDisconnect && keepAlives.size() * 1000L >= KEEPALIVE_LIMIT) {
+                     LOGGER.warn("{} was kicked due to keepalive timeout!", this.player.getScoreboardName());
+-                    this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT);
++                    this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Lumina - fakeplayer no timeout
+                 } else if (this.checkIfClosed(currentTime)) {
+                     this.keepAlivePending = true;
+                     this.keepAliveTime = currentTime; // hijack this field for 1 second intervals
+@@ -296,7 +303,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             }
+         } else {
+ 
+-        if (!this.isSingleplayerOwner() && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets
++        if (!this.isSingleplayerOwner() && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets // Lumina - fakeplayer no timeout
+             if (this.keepAlivePending && !this.processedDisconnect && elapsedTime >= KEEPALIVE_LIMIT) { // Paper - check keepalive limit, don't fire if already disconnected
+                 this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
+             } else if (this.checkIfClosed(currentTime)) { // Paper
+@@ -314,7 +321,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+ 
+     private boolean checkIfClosed(long time) {
+         if (this.closed) {
+-            if (time - this.closedListenerTime >= 15000L) {
++            if (time - this.closedListenerTime >= 15000L && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - fakeplayer no timeout
+                 this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
+             }
+ 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..058bac417990c465d7c590b27dac771e01ca4ceb 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
@@ -4225,10 +4270,10 @@ index 0000000000000000000000000000000000000000..536d8ecfc07fe0588de7dffadb6527c7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bcd4909e5d7409ba06f4479ce3770243699b05f1
+index 0000000000000000000000000000000000000000..9ddb50fde0c9ebed9fc7fc81b390e874d3007419
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,96 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4255,6 +4300,7 @@ index 0000000000000000000000000000000000000000..bcd4909e5d7409ba06f4479ce3770243
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.entity.Entity;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.utils.Messenger;
 +import org.leavesmc.lumina.carpet.utils.PerimeterDiagnostics;
 +import org.leavesmc.lumina.utils.ComponentUtils;
@@ -4281,11 +4327,11 @@ index 0000000000000000000000000000000000000000..bcd4909e5d7409ba06f4479ce3770243
 +                }
 +            }
 +            location.setWorld(world);
-+            perimeterDiagnose(
-+                    sender,
-+                    args.getOrDefaultUnchecked("center", location),
-+                    (String) args.get("mob")
-+            );
++            location = args.getOrDefaultUnchecked("center", location);
++            Location finalLocation = location;
++            Bukkit.getRegionScheduler().execute(CarpetServer.PLUGIN, location, () -> {
++                perimeterDiagnose(sender, finalLocation, (String) args.get("mob"));
++            });
 +        }).register("carpet");
 +    }
 +
