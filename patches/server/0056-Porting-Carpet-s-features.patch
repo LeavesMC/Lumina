@@ -93,9 +93,18 @@ index ab289a6ca85459e03acb2089c6b9e931caa9c873..6445e07c597a7f67864783268770b749
          float i = Mth.cos(f);
          float j = Mth.sin(g);
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index d5e8dd947cb29343074df8074e791357c72e7f7b..950e0fdea581a37a48620a55e352a94828b06152 100644
+index d5e8dd947cb29343074df8074e791357c72e7f7b..1bfb318630bb66c373b55719e0246658eb484323 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
+@@ -104,7 +104,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+     @Nullable
+     private volatile PacketListener disconnectListener;
+     @Nullable
+-    private volatile PacketListener packetListener;
++    protected volatile PacketListener packetListener; // Lumina - Porting Carpet's features - fakeplayer
+     @Nullable
+     private Component disconnectedReason;
+     private boolean encrypted;
 @@ -156,6 +156,11 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
          this.setReadOnly();
          this.stopReadingPackets = true;
@@ -3048,18 +3057,87 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5b
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b586912ec67ea6708e0df260adc7c949e87a2075..85594db23a44cf2d84797888d1e839bb91d5790e 100644
+index b586912ec67ea6708e0df260adc7c949e87a2075..59daeab40d7404e86034f4614cffc75797ef54a2 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -395,7 +395,7 @@ public final class CraftServer implements Server {
+@@ -22,19 +22,7 @@ import java.io.FileNotFoundException;
+ import java.io.IOException;
+ import java.io.InputStreamReader;
+ import java.net.InetAddress;
+-import java.util.ArrayList;
+-import java.util.Collections;
+-import java.util.Date;
+-import java.util.HashSet;
+-import java.util.Iterator;
+-import java.util.LinkedHashMap;
+-import java.util.LinkedHashSet;
+-import java.util.List;
+-import java.util.Locale;
+-import java.util.Map;
+-import java.util.Optional;
+-import java.util.Set;
+-import java.util.UUID;
++import java.util.*;
+ import java.util.function.Consumer;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
+@@ -254,6 +242,7 @@ import org.bukkit.scoreboard.Criteria;
+ import org.bukkit.structure.StructureManager;
+ import org.bukkit.util.StringUtil;
+ import org.bukkit.util.permissions.DefaultPermissions;
++import org.jetbrains.annotations.NotNull;
+ import org.yaml.snakeyaml.LoaderOptions;
+ import org.yaml.snakeyaml.Yaml;
+ import org.yaml.snakeyaml.constructor.SafeConstructor;
+@@ -300,7 +289,7 @@ public final class CraftServer implements Server {
+     private CraftIconCache icon;
+     private boolean overrideAllCommandBlockCommands = false;
+     public boolean ignoreVanillaPermissions = false;
+-    private final List<CraftPlayer> playerView;
++    private final Map<org.leavesmc.lumina.utils.PlayerType, List<CraftPlayer>> playerView = new HashMap<>(); // Lumina - player type
+     public int reloadCount;
+     public Set<String> activeCompatibilities = Collections.emptySet();
+     private final io.papermc.paper.datapack.PaperDatapackManager datapackManager; // Paper
+@@ -395,12 +384,20 @@ public final class CraftServer implements Server {
      public CraftServer(DedicatedServer console, PlayerList playerList) {
          this.console = console;
          this.playerList = (DedicatedPlayerList) playerList;
 -        this.playerView = Collections.unmodifiableList(Lists.transform(playerList.players, new Function<ServerPlayer, CraftPlayer>() {
-+        this.playerView = Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.DividedPlayerList.PlayerType.REAL), new Function<ServerPlayer, CraftPlayer>() {
++        // Lumina start - player type
++        this.playerView.put(org.leavesmc.lumina.utils.PlayerType.REAL, Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.PlayerType.REAL), new Function<ServerPlayer, CraftPlayer>() {
              @Override
              public CraftPlayer apply(ServerPlayer player) {
                  return player.getBukkitEntity();
+             }
+-        }));
++        })));
++        this.playerView.put(org.leavesmc.lumina.utils.PlayerType.FAKE, Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.PlayerType.FAKE), new Function<ServerPlayer, CraftPlayer>() {
++            @Override
++            public CraftPlayer apply(ServerPlayer player) {
++                return player.getBukkitEntity();
++            }
++        })));
++        // Lumina end - player type
+         this.serverVersion = io.papermc.paper.ServerBuildInfo.buildInfo().asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_SIMPLE); // Paper - improve version
+         this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
+         this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
+@@ -660,8 +657,15 @@ public final class CraftServer implements Server {
+ 
+     @Override
+     public List<CraftPlayer> getOnlinePlayers() {
+-        return this.playerView;
++        return this.playerView.get(org.leavesmc.lumina.utils.PlayerType.REAL);
++    }
++
++    // Lumina start - player type
++    @Override
++    public Collection<? extends Player> getOnlinePlayers(@NotNull org.leavesmc.lumina.utils.PlayerType playerType) {
++        return this.playerView.get(playerType);
+     }
++    // Lumina end - player type
+ 
+     @Override
+     @Deprecated
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 index 843f24b0de5b9e80db420541699ddaf04dd56aa3..a5816f40bde921372dfdb2d6c7949dbdae884b02 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
@@ -4903,10 +4981,10 @@ index 0000000000000000000000000000000000000000..d0eb90b1f501d9d702d9d08e09ba7c0e
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef61466667b
+index 0000000000000000000000000000000000000000..667fbdaee5ee4de49a54b536fdb92b7d43c7d16b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
-@@ -0,0 +1,543 @@
+@@ -0,0 +1,555 @@
 +package org.leavesmc.lumina.carpet.helpers;
 +
 +import java.util.EnumMap;
@@ -4914,6 +4992,7 @@ index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef6
 +import java.util.List;
 +import java.util.Map;
 +
++import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
 +import net.minecraft.commands.arguments.EntityAnchorArgument;
 +import net.minecraft.core.BlockPos;
@@ -5072,7 +5151,7 @@ index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef6
 +        } else {
 +            entities = player.level().getEntities(player, player.getBoundingBox().inflate(3.0D, 1.0D, 3.0D));
 +        }
-+        if (entities.size() == 0)
++        if (entities.isEmpty())
 +            return this;
 +        Entity closest = null;
 +        double distance = Double.POSITIVE_INFINITY;
@@ -5372,6 +5451,17 @@ index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef6
 +        void stop(ServerPlayer player, Action action) {
 +            inactiveTick(player, action);
 +        }
++
++        public static ActionType fromAPI(org.leavesmc.lumina.entity.FakePlayer.@NotNull ActionType type) {
++            return switch (type) {
++                case USE -> USE;
++                case ATTACK -> ATTACK;
++                case JUMP -> JUMP;
++                case DROP_ITEM -> DROP_ITEM;
++                case DROP_STACK -> DROP_STACK;
++                case SWAP_HANDS -> SWAP_HANDS;
++            };
++        }
 +    }
 +
 +    public static class Action {
@@ -5383,7 +5473,7 @@ index 0000000000000000000000000000000000000000..78bc4d132897569238d12fe5b3a7bef6
 +        private int next;
 +        private final boolean isContinuous;
 +
-+        private Action(int limit, int interval, int offset, boolean continuous) {
++        public Action(int limit, int interval, int offset, boolean continuous) {
 +            this.limit = limit;
 +            this.interval = interval;
 +            this.offset = offset;
@@ -6896,10 +6986,10 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f284096383
+index 0000000000000000000000000000000000000000..4c031fe51c961e61b04504e8744b5a46e7ef1961
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,228 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import com.mojang.authlib.GameProfile;
@@ -6937,13 +7027,16 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
 +import org.leavesmc.lumina.carpet.CarpetServer;
++import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
 +import org.leavesmc.lumina.carpet.utils.Messenger;
++import org.leavesmc.lumina.entity.FakePlayer;
 +
 +import java.util.Optional;
 +import java.util.concurrent.CompletableFuture;
 +import java.util.function.Consumer;
 +
-+import static net.minecraft.world.level.block.entity.SkullBlockEntity.fetchGameProfile;
++import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
++import static org.leavesmc.lumina.entity.FakePlayer.*;
 +
 +@SuppressWarnings("EntityConstructor")
 +public class EntityPlayerMPFake extends ServerPlayer {
@@ -6956,7 +7049,7 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 +        // prolly half of that crap is not necessary, but it works
 +        GameProfileCache.setUsesAuthentication(false);
 +        GameProfile gameprofile;
-+        try { //noinspection DataFlowIssue
++        try { // noinspection DataFlowIssue
 +            gameprofile = server.getProfileCache().get(username).orElse(null); // findByName  .orElse(null)
 +        } finally {
 +            GameProfileCache.setUsesAuthentication(server.isDedicatedServer() && server.usesAuthentication());
@@ -6980,7 +7073,7 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 +            server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), instance, new CommonListenerCookie(finalGameProfile, 0, instance.clientInformation(), false), Optional.empty(), username, new Location(world, pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch));
 +            instance.setHealth(20.0F);
 +            instance.unsetRemoved();
-+            //noinspection DataFlowIssue
++            // noinspection DataFlowIssue
 +            instance.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
 +            instance.gameMode.changeGameModeForPlayer(gamemode);
 +            server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)), worldIn.dimension());// instance.dimension);
@@ -6999,20 +7092,20 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 +    }
 +
 +    public static @NotNull EntityPlayerMPFake createShadow(MinecraftServer server, @NotNull ServerPlayer player) {
-+        //noinspection DataFlowIssue
++        // noinspection DataFlowIssue
 +        player.getServer().getPlayerList().remove(player);
 +        player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"), PlayerKickEvent.Cause.DUPLICATE_LOGIN);
 +        ServerLevel worldIn = player.serverLevel();
 +        GameProfile gameprofile = player.getGameProfile();
 +        EntityPlayerMPFake playerShadow = new EntityPlayerMPFake(server, worldIn, gameprofile, player.clientInformation(), true);
-+        //noinspection DataFlowIssue
++        // noinspection DataFlowIssue
 +        playerShadow.setChatSession(player.getChatSession());
 +        server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), playerShadow, new CommonListenerCookie(gameprofile, 0, player.clientInformation(), true), Optional.empty(), player.getScoreboardName(), ((org.bukkit.entity.Player) player).getLocation());
 +        playerShadow.setHealth(player.getHealth());
 +        playerShadow.gameMode.changeGameModeForPlayer(player.gameMode.getGameModeForPlayer());
 +        playerShadow.getActionPack().copyFrom(player.getActionPack());
 +        // this might create problems if a player logs back in...
-+        //noinspection DataFlowIssue
++        // noinspection DataFlowIssue
 +        playerShadow.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
 +        playerShadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, player.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION));
 +        server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(playerShadow, (byte) (player.yHeadRot * 256 / 360)), playerShadow.level().dimension());
@@ -7063,7 +7156,7 @@ index 0000000000000000000000000000000000000000..b05a98eb117461ae5994153e709004f2
 +    public void tick() {
 +        if (this.tickCount % 10 == 0) {
 +            this.connection.resetPosition();
-+            //noinspection resource
++            // noinspection resource
 +            this.serverLevel().getChunkSource().move(this);
 +        }
 +        try {
@@ -9350,6 +9443,32 @@ index 0000000000000000000000000000000000000000..339894f1f49867a098ecba3efc0b9e4a
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java b/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce4baf41da1c97fd6e1a2c372db0b5607733e921
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java
+@@ -0,0 +1,20 @@
++package org.leavesmc.lumina.craft.entity;
++
++import net.minecraft.server.level.ServerPlayer;
++import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.jetbrains.annotations.ApiStatus;
++import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
++import org.leavesmc.lumina.entity.FakePlayer;
++
++@ApiStatus.Internal
++public class CraftFakePlayer extends CraftPlayer implements FakePlayer {
++    public CraftFakePlayer(CraftServer server, ServerPlayer entity) {
++        super(server, entity);
++    }
++
++    @Override
++    public void startAction(ActionType actionType, int limit, int interval, boolean continuous) {
++        getHandle().getActionPack().start(EntityPlayerActionPack.ActionType.fromAPI(actionType), new EntityPlayerActionPack.Action(limit, interval, 0, continuous));
++    }
++}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ComponentUtils.java b/src/main/java/org/leavesmc/lumina/utils/ComponentUtils.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..028e817aa724f643f730d4edb91f5e6e7e5f0363
@@ -9372,10 +9491,10 @@ index 0000000000000000000000000000000000000000..028e817aa724f643f730d4edb91f5e6e
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..14ecf18a5bb99d12066b7b8ca29cd17795e7b921
+index 0000000000000000000000000000000000000000..9c320400105d4433d83e1d06fc9d19dcf42284f8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,84 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.server.level.ServerPlayer;
@@ -9387,7 +9506,7 @@ index 0000000000000000000000000000000000000000..14ecf18a5bb99d12066b7b8ca29cd177
 +import java.util.Map;
 +import java.util.concurrent.CopyOnWriteArrayList;
 +
-+import static org.leavesmc.lumina.utils.DividedPlayerList.PlayerType.*;
++import static org.leavesmc.lumina.utils.PlayerType.*;
 +
 +public class DividedPlayerList extends CopyOnWriteArrayList<ServerPlayer> {
 +    public final Map<PlayerType, CopyOnWriteArrayList<ServerPlayer>> divided = new HashMap<>() {{
@@ -9458,12 +9577,6 @@ index 0000000000000000000000000000000000000000..14ecf18a5bb99d12066b7b8ca29cd177
 +        } else {
 +            return REAL;
 +        }
-+    }
-+
-+    public enum PlayerType {
-+        REAL,
-+        FAKE,
-+        GHOST
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
