@@ -49,8 +49,7 @@ I think you should use WorldEdit
 
 ### commandTick
 
-The built-in ones should be enough, right
-I am not very familiar with this command. Could someone who is familiar with it please help to supplement it
+Not implemented yet
 
 ### maxEntityCollisions
 

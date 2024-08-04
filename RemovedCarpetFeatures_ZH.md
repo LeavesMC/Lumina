@@ -49,9 +49,7 @@ Paper 已经优化了
 
 ### commandTick
 
-内置的应该够了吧（x
-
-我不是很了解这个命令，麻烦有了解的人帮忙补充一下
+尚未完成
 
 ### maxEntityCollisions
 
