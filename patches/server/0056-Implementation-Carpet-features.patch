@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MC_XiaoHei <xiaohei.xor7@outlook.com>
 Date: Fri, 26 Jul 2024 01:09:46 +0800
-Subject: [PATCH] Porting Carpet's features
+Subject: [PATCH] Implementation Carpet features
 
 This patch is Powered by:
 * fabric-carpet(https://github.com/gnembon/fabric-carpet)
@@ -3947,7 +3947,7 @@ index 0000000000000000000000000000000000000000..c898ebdf20b01e0a4655b39f922ed4fd
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a9206eb9e55819330e319daac219fc809d46725f
+index 0000000000000000000000000000000000000000..a7e4b712ead395aa3afe72484c333a8835efb878
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 @@ -0,0 +1,141 @@
@@ -4039,7 +4039,7 @@ index 0000000000000000000000000000000000000000..a9206eb9e55819330e319daac219fc80
 +            // TODO
 +        }
 +        if (CarpetConfig.configModule.commandSpawn) {
-+            // TODO
++            SpawnCommand.register();
 +        }
 +        if (CarpetConfig.configModule.hopperCounters) {
 +            CounterCommand.register();
@@ -4284,15 +4284,14 @@ index 0000000000000000000000000000000000000000..536d8ecfc07fe0588de7dffadb6527c7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/InfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/InfoCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e848b8ac9
+index 0000000000000000000000000000000000000000..df59f4c3280ed0f4ef33ad24ca9dee8a556d190c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/InfoCommand.java
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,81 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
-+import net.minecraft.core.BlockPos;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.server.level.ServerLevel;
 +import org.bukkit.Bukkit;
@@ -4300,10 +4299,10 @@ index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e
 +import org.bukkit.World;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.entity.Entity;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.utils.BlockInfo;
++import org.leavesmc.lumina.utils.LocationUtils;
 +import org.leavesmc.lumina.utils.ComponentUtils;
 +
 +import java.util.List;
@@ -4312,6 +4311,7 @@ index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e
 +
 +import static net.kyori.adventure.text.Component.text;
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static org.leavesmc.lumina.utils.LocationUtils.getSenderWorldOrDefault;
 +
 +public class InfoCommand {
 +    public static void register() {
@@ -4325,7 +4325,7 @@ index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e
 +                ).executes((sender, args) -> {
 +                    infoBlock(sender, (Location) args.get("block"), (String) args.get("regexp"));
 +                })
-+                .register();
++                .register("carpet");
 +    }
 +
 +    private static void printBlock(List<Component> messages, @NotNull CommandSender sender, String grep) {
@@ -4347,10 +4347,7 @@ index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e
 +    }
 +
 +    private static void infoBlock(@NotNull CommandSender sender, Location pos, String grep) {
-+        World world = Bukkit.getWorlds().getFirst();
-+        if (sender instanceof Entity entity) {
-+            world = entity.getWorld();
-+        }
++        World world = getSenderWorldOrDefault(sender);
 +        if (!sender.hasPermission("carpet.command.info.unloaded")) {
 +            //check id pos is loaded
 +            if (!world.isChunkGenerated(pos.blockX(), pos.blockZ())) {
@@ -4367,17 +4364,17 @@ index 0000000000000000000000000000000000000000..8e3b98f9f5e8f4b25e4f2ce6bdcee75e
 +        ServerLevel finalLevel = ((CraftWorld) world).getHandle();
 +        Bukkit.getRegionScheduler().run(CarpetServer.PLUGIN, pos,
 +                task -> printBlock(
-+                        BlockInfo.blockInfo(new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()), finalLevel),
++                        BlockInfo.blockInfo(LocationUtils.toBlockPos(pos), finalLevel),
 +                        sender,
 +                        grep));
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50c31f2568
+index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f6422b87c091
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,79 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4391,10 +4388,8 @@ index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50
 +import net.minecraft.world.entity.Mob;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
-+import org.bukkit.World;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.entity.Entity;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.utils.Messenger;
@@ -4405,6 +4400,7 @@ index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
 +import static net.kyori.adventure.text.format.Style.*;
 +import static net.kyori.adventure.text.format.TextDecoration.*;
++import static org.leavesmc.lumina.utils.LocationUtils.*;
 +
 +public class PerimeterInfoCommand {
 +    public static void register() {
@@ -4412,23 +4408,14 @@ index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50
 +                new LocationArgument("center", LocationType.BLOCK_POSITION),
 +                new EntityTypeArgument("mob")
 +        ).executes((sender, args) -> {
-+            World world = Bukkit.getWorlds().getFirst();
-+            Location location = (Location) args.get("center");
++            Location location = getLocationWithDefaultWorld(sender, args, "center");
 +            if (location == null) {
-+                if (sender instanceof Entity entity) {
-+                    location = entity.getLocation();
-+                } else {
-+                    sender.sendMessage(text("Must specify a location when run in console.").color(RED));
-+                    return;
-+                }
++                return;
 +            }
-+            location.setWorld(world);
-+            location = args.getOrDefaultUnchecked("center", location);
-+            Location finalLocation = location;
 +            Bukkit.getRegionScheduler().run(
 +                    CarpetServer.PLUGIN,
 +                    location,
-+                    task -> perimeterDiagnose(sender, finalLocation, (String) args.get("mob")));
++                    task -> perimeterDiagnose(sender, location, (String) args.get("mob")));
 +        }).register("carpet");
 +    }
 +
@@ -4438,15 +4425,15 @@ index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50
 +    }
 +
 +    private static void perimeterDiagnose(CommandSender sender, @NotNull Location pos, String mobId) {
-+        CompoundTag nbttagcompound = new CompoundTag();
++        CompoundTag nbtTagCompound = new CompoundTag();
 +        Mob entityliving = null;
 +        ServerLevel level = ((CraftWorld) pos.getWorld()).getHandle();
-+        BlockPos blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
++        BlockPos blockPos = toBlockPos(pos);
 +        if (mobId != null) {
-+            nbttagcompound.putString("id", mobId);
-+            net.minecraft.world.entity.Entity baseEntity = EntityType.loadEntityRecursive(nbttagcompound, level, (entity_1x) -> {
-+                entity_1x.moveTo(new BlockPos(blockPos.getX(), level.getMinBuildHeight() - 10, blockPos.getZ()), entity_1x.getYRot(), entity_1x.getXRot());
-+                return !level.addWithUUID(entity_1x) ? null : entity_1x;
++            nbtTagCompound.putString("id", mobId);
++            net.minecraft.world.entity.Entity baseEntity = EntityType.loadEntityRecursive(nbtTagCompound, level, (entity1x) -> {
++                entity1x.moveTo(new BlockPos(blockPos.getX(), level.getMinBuildHeight() - 10, blockPos.getZ()), entity1x.getYRot(), entity1x.getXRot());
++                return !level.addWithUUID(entity1x) ? null : entity1x;
 +            });
 +            if (!(baseEntity instanceof Mob)) {
 +                sender.sendMessage(text("/perimeterinfo requires a mob entity to test against.").color(RED));
@@ -4463,13 +4450,13 @@ index 0000000000000000000000000000000000000000..3f1de459e4d00aa215fd6df326c81b50
 +        if (entityliving != null) {
 +            sender.sendMessage(text().append(text(entityliving.getDisplayName() + ": ", WHITE)).append(text(res.specific).style(style(BOLD))).build());
 +            res.samples.forEach(bp -> sender.sendMessage(ComponentUtils.toAdventure(Messenger.c("w   ", Messenger.tp("c", bp)))));
-+            entityliving.discard(); // dicard // remove();
++            entityliving.discard(); // discard // remove();
 +        }
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..79d729b502cd915aecdb9135d67c6d86a7e2a82f
+index 0000000000000000000000000000000000000000..0bd46d420d71a30c43d8bda741b30dea93c74f59
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 @@ -0,0 +1,478 @@
@@ -4513,6 +4500,7 @@ index 0000000000000000000000000000000000000000..79d729b502cd915aecdb9135d67c6d86
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
 +import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.ActionType.*;
++import static org.leavesmc.lumina.utils.LocationUtils.getLocationWithDefaultWorld;
 +
 +public class PlayerCommand {
 +    public static void register() {
@@ -4795,9 +4783,8 @@ index 0000000000000000000000000000000000000000..79d729b502cd915aecdb9135d67c6d86
 +                ).executes((CommandExecutor) (sender, args) ->
 +                        manipulate(sender, args, "look",
 +                                ap -> {
-+                                    Location location = (Location) args.get("position");
-+                                    if (location == null) {
-+                                        sender.sendMessage(text("Invalid location").color(RED));
++                                    Location location = getLocationWithDefaultWorld(sender, args, "position");
++                                    if(location == null) {
 +                                        return;
 +                                    }
 +                                    ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
@@ -4951,6 +4938,93 @@ index 0000000000000000000000000000000000000000..79d729b502cd915aecdb9135d67c6d86
 +    }
 +
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca1875d18c48aea38869618ac8fe7d72905f7cfe
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java
+@@ -0,0 +1,80 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.LiteralArgument;
++import dev.jorel.commandapi.arguments.LocationArgument;
++import dev.jorel.commandapi.arguments.LocationType;
++import net.minecraft.network.chat.Component;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.world.level.levelgen.structure.BoundingBox;
++import org.bukkit.Location;
++import org.bukkit.command.CommandSender;
++import org.leavesmc.lumina.carpet.utils.Messenger;
++import org.leavesmc.lumina.carpet.utils.SpawnReporter;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static net.kyori.adventure.text.format.Style.*;
++import static net.kyori.adventure.text.format.TextDecoration.*;
++import static org.leavesmc.lumina.utils.ComponentUtils.toAdventure;
++import static org.leavesmc.lumina.utils.LocationUtils.*;
++
++public class SpawnCommand {
++    public static void register() {
++        createBase("list")
++                .withArguments(new LocationArgument("pos", LocationType.BLOCK_POSITION))
++                .executes((sender, args) -> {
++                    listSpawns(sender, ((Location) args.get("pos")));
++                })
++                .register("carpet");
++        createBase("tracking")
++                .withArguments(new LiteralArgument("start"))
++                .withOptionalArguments(
++                        new LocationArgument("from", LocationType.BLOCK_POSITION)
++                                .combineWith(new LocationArgument("to", LocationType.BLOCK_POSITION))
++                ).executes((sender, args) -> {
++                    if (SpawnReporter.trackingSpawns()) {
++                        sender.sendMessage(text("Spawning tracking already started.").color(RED));
++                        return;
++                    }
++                    Location from = (Location) args.get("from");
++                    Location to = (Location) args.get("to");
++                    if (from == null && to == null) {
++                        SpawnReporter.startTracking(MinecraftServer.getServer(), null);
++                        sender.sendMessage(text("Spawning tracking started.").color(GRAY).style(style(ITALIC)));
++                        return;
++                    }
++                    if (from == null || to == null) {
++                        sender.sendMessage(text("Please specify the area to track an area or call `/spawn tracking start` to track all area)").color(RED));
++                        return;
++                    }
++                    SpawnReporter.startTracking(
++                            MinecraftServer.getServer(),
++                            BoundingBox.fromCorners(toBlockPos(from), toBlockPos(to)));
++                    sender.sendMessage(text("Spawning tracking started.").color(GRAY).style(style(ITALIC)));
++                })
++                .register("carpet");
++        createBase("tracking")
++                .withArguments(new LiteralArgument("stop"))
++                .executes(((sender, args) -> {
++                    for (Component component : SpawnReporter.makeTrackingReport(getLevel(getSenderWorldOrDefault(sender)))) {
++                        sender.sendMessage(toAdventure(component));
++                    }
++                    SpawnReporter.stopTracking(MinecraftServer.getServer());
++                    sender.sendMessage(text("Spawning tracking stopped.").color(GRAY).style(style(ITALIC)));
++                }))
++                .register("carpet");
++    }
++
++    private static CommandAPICommand createBase(String literal) {
++        return new CommandAPICommand("spawn")
++                .withPermission("carpet.command.spawn")
++                .withArguments(new LiteralArgument(literal));
++    }
++
++    private static void listSpawns(CommandSender sender, Location pos) {
++        for (Component component : SpawnReporter.report(toBlockPos(pos), getLevel(pos))) {
++            sender.sendMessage(toAdventure(component));
++        }
++    }
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/TrackCommand.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..3ae1870a9e6b19cfc750b93feb189c1854e35565
@@ -9817,6 +9891,73 @@ index 0000000000000000000000000000000000000000..9c320400105d4433d83e1d06fc9d19dc
 +        } else {
 +            return REAL;
 +        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java b/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..148d834f15700cfd9e04220722a957156157e82c
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java
+@@ -0,0 +1,61 @@
++package org.leavesmc.lumina.utils;
++
++import dev.jorel.commandapi.executors.CommandArguments;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.World;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.entity.Entity;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.RED;
++
++public class LocationUtils {
++    @Contract("_ -> new")
++    public static @NotNull BlockPos toBlockPos(@NotNull Location location) {
++        return new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
++    }
++
++    public static @NotNull Location toLocation(@NotNull BlockPos blockPos, World world) {
++        return new Location(world, blockPos.getX(), blockPos.getY(), blockPos.getZ());
++    }
++
++    public static ServerLevel getLevel(@NotNull Location location) {
++        return getLevel(location.getWorld());
++    }
++
++    public static ServerLevel getLevel(@NotNull World world) {
++        return ((CraftWorld) world).getHandle();
++    }
++
++    public static ServerLevel getLevel(@NotNull Entity entity) {
++        return getLevel(entity.getWorld());
++    }
++
++    public static @Nullable Location getLocationWithDefaultWorld(@NotNull CommandSender sender, @NotNull CommandArguments args, String key) {
++        Location location = (Location) args.get(key);
++        if (location == null) {
++            sender.sendMessage(text("Must specify " + key + " location.").color(RED));
++            return null;
++        }
++        World world = getSenderWorldOrDefault(sender);
++        if (location.getWorld() == null) {
++            location.setWorld(world);
++        }
++        return location;
++    }
++
++    public static World getSenderWorldOrDefault(@NotNull CommandSender sender) {
++        World world = Bukkit.getWorlds().getFirst();
++        if (sender instanceof Entity entity) {
++            world = entity.getWorld();
++        }
++        return world;
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java b/src/main/java/org/leavesmc/lumina/utils/PermissionUtils.java
