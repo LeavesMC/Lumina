@@ -51,6 +51,10 @@ I think you should use WorldEdit
 
 Not implemented yet
 
+### commandSpawn
+
+Not implemented yet
+
 ### maxEntityCollisions
 
 Please use `max identity collisions` in` paper-world-defaults.yml`

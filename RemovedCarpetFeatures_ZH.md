@@ -51,6 +51,10 @@ Paper 已经优化了
 
 尚未完成
 
+### commandSpawn
+
+尚未完成
+
 ### maxEntityCollisions
 
 请使用 `paper-world-defaults.yml` 中的 `max-entity-collisions`

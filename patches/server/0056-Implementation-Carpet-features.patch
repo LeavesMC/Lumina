@@ -4961,10 +4961,10 @@ index 0000000000000000000000000000000000000000..6d784f4e5069b6210670f8dc5cdd6908
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ca1875d18c48aea38869618ac8fe7d72905f7cfe
+index 0000000000000000000000000000000000000000..f43eadcff973f176275d87610b2fed1262a820f6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,82 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4994,6 +4994,7 @@ index 0000000000000000000000000000000000000000..ca1875d18c48aea38869618ac8fe7d72
 +                    listSpawns(sender, ((Location) args.get("pos")));
 +                })
 +                .register("carpet");
++        if(true) return; // TODO: Implement this
 +        createBase("tracking")
 +                .withArguments(new LiteralArgument("start"))
 +                .withOptionalArguments(
@@ -5040,6 +5041,7 @@ index 0000000000000000000000000000000000000000..ca1875d18c48aea38869618ac8fe7d72
 +    }
 +
 +    private static void listSpawns(CommandSender sender, Location pos) {
++
 +        for (Component component : SpawnReporter.report(toBlockPos(pos), getLevel(pos))) {
 +            sender.sendMessage(toAdventure(component));
 +        }
