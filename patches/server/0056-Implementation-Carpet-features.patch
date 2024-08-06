@@ -3459,10 +3459,10 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c898ebdf20b01e0a4655b39f922ed4fdaea6d181
+index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f917673be
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
-@@ -0,0 +1,481 @@
+@@ -0,0 +1,493 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import net.minecraft.core.registries.Registries;
@@ -3628,6 +3628,18 @@ index 0000000000000000000000000000000000000000..c898ebdf20b01e0a4655b39f922ed4fd
 +
 +    @Comment("Allows listing fake players on the multiplayer screen")
 +    public boolean allowListingFakePlayers = false;
++
++    @Comment("""
++            Add a markerName prefix for fake players spawned with /player command
++            Which can prevent summoning fake player with illegal names and make player list look nicer
++            Set it to #none to stop adding a prefix""")
++    public String fakePlayerNamePrefix = "#none";
++
++    @Comment("""
++            Add a markerName suffix for fake players spawned with /player command
++            Which can prevent summoning fake player with illegal names and make player list look nicer
++            Set it to #none to stop adding a suffix""")
++    public String fakePlayerNameSuffix = "#none";
 +
 +    @Comment("Allows to track mobs AI via /track command")
 +    public boolean commandTrackAI = true;
@@ -4456,10 +4468,10 @@ index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f642
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0bd46d420d71a30c43d8bda741b30dea93c74f59
+index 0000000000000000000000000000000000000000..6d784f4e5069b6210670f8dc5cdd69085fb95036
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,478 @@
+@@ -0,0 +1,487 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -4488,6 +4500,7 @@ index 0000000000000000000000000000000000000000..0bd46d420d71a30c43d8bda741b30dea
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
++import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
 +import org.leavesmc.lumina.utils.PermissionUtils;
@@ -4784,7 +4797,7 @@ index 0000000000000000000000000000000000000000..0bd46d420d71a30c43d8bda741b30dea
 +                        manipulate(sender, args, "look",
 +                                ap -> {
 +                                    Location location = getLocationWithDefaultWorld(sender, args, "position");
-+                                    if(location == null) {
++                                    if (location == null) {
 +                                        return;
 +                                    }
 +                                    ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
@@ -4929,7 +4942,15 @@ index 0000000000000000000000000000000000000000..0bd46d420d71a30c43d8bda741b30dea
 +            sender.sendMessage(text("Require player name").color(RED));
 +            return null;
 +        }
-+        return playerName;
++        String prefix = CarpetConfig.configModule.fakePlayerNamePrefix;
++        String suffix = CarpetConfig.configModule.fakePlayerNameSuffix;
++        if ("#none".equals(prefix)) {
++            prefix = "";
++        }
++        if ("#none".equals(suffix)) {
++            suffix = "";
++        }
++        return prefix + playerName + suffix;
 +    }
 +
 +    @Contract(pure = true)
