@@ -3959,7 +3959,7 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a7e4b712ead395aa3afe72484c333a8835efb878
+index 0000000000000000000000000000000000000000..5951ca60109a7d26601745cf08e4c4ed8c97d2db
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 @@ -0,0 +1,141 @@
@@ -4048,7 +4048,7 @@ index 0000000000000000000000000000000000000000..a7e4b712ead395aa3afe72484c333a88
 +            InfoCommand.register();
 +        }
 +        if (CarpetConfig.configModule.commandLog) {
-+            // TODO
++            LogCommand.register();
 +        }
 +        if (CarpetConfig.configModule.commandSpawn) {
 +            SpawnCommand.register();
@@ -4379,6 +4379,100 @@ index 0000000000000000000000000000000000000000..df59f4c3280ed0f4ef33ad24ca9dee8a
 +                        BlockInfo.blockInfo(LocationUtils.toBlockPos(pos), finalLevel),
 +                        sender,
 +                        grep));
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a309978c885dc9
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
+@@ -0,0 +1,88 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.EntitySelectorArgument;
++import dev.jorel.commandapi.arguments.LiteralArgument;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.entity.Player;
++import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++
++import static net.kyori.adventure.text.Component.*;
++import static net.kyori.adventure.text.format.NamedTextColor.*;
++import static net.kyori.adventure.text.format.Style.*;
++import static net.kyori.adventure.text.format.TextDecoration.*;
++
++public class LogCommand {
++    public static void register() {
++        createBase()
++                .withArguments(new LiteralArgument("clear"))
++                .withOptionalArguments(new EntitySelectorArgument.OnePlayer("target"))
++                .executes((sender, args) -> {
++                    Player target = (Player) args.get("target");
++                    if (sender instanceof Player player) {
++                        target = player;
++                    }
++                    if (target == null) {
++                        sender.sendMessage(text("Must specified a player when run this in console").color(RED));
++                    }
++                    unsubFromAll(sender, target);
++                })
++                .register("carpet");
++    }
++
++    private static CommandAPICommand createBase() {
++        return new CommandAPICommand("log")
++                .withPermission("carpet.command.log");
++    }
++
++    private static void unsubFromAll(CommandSender sender, Player target) {
++        net.minecraft.world.entity.player.Player player = ((CraftPlayer) target).getHandle();
++        for (String logName : LoggerRegistry.getLoggerNames()) {
++            LoggerRegistry.unsubscribePlayer(target.getName(), logName);
++        }
++        sender.sendMessage(text("Unsubscribed from all logs").color(GRAY).style(style(ITALIC)));
++    }
++
++    private static int unsubFromLogger(CommandSender sender, Player target, String logName) {
++        if (LoggerRegistry.getLogger(logName) == null) {
++            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
++            return 0;
++        }
++        LoggerRegistry.unsubscribePlayer(target.getName(), logName);
++        sender.sendMessage(text("Unsubscribed from " + logName).color(GRAY).style(style(ITALIC)));
++        return 1;
++    }
++
++    private static int toggleSubscription(CommandSender sender, Player target, String logName) {
++        if (LoggerRegistry.getLogger(logName) == null) {
++            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
++            return 0;
++        }
++        boolean subscribed = LoggerRegistry.togglePlayerSubscription(target.getName(), logName);
++        if (subscribed) {
++            sender.sendMessage(text(target.getName() + " subscribed to " + logName + ".").color(GRAY));
++        } else {
++            sender.sendMessage(text(target.getName() + " unsubscribed from " + logName + ".").color(GRAY));
++        }
++        return 1;
++    }
++
++    private static int subscribePlayer(CommandSender sender, Player target, String logName, String option) {
++        if (LoggerRegistry.getLogger(logName) == null) {
++            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
++            return 0;
++        }
++        if (!LoggerRegistry.getLogger(logName).isOptionValid(option)) {
++            sender.sendMessage(text("Invalid option: " + option).color(RED));
++            return 0;
++        }
++        LoggerRegistry.subscribePlayer(target.getName(), logName, option);
++        if (option != null) {
++            sender.sendMessage(text("Subscribed to " + logName + "(" + option + ")").color(GRAY).style(style(ITALIC)));
++        } else {
++            sender.sendMessage(text("Subscribed to " + logName).color(GRAY).style(style(ITALIC)));
++        }
++        return 1;
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java

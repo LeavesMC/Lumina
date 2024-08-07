@@ -70,7 +70,7 @@ index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373a
 \ No newline at end of file
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3228efcb0d85c0c43cd4e52fe0b877414a5ebe5
+index 0000000000000000000000000000000000000000..2e625f0345d79a8c8fe709b083f43460badc82bc
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 @@ -0,0 +1,1081 @@
@@ -297,7 +297,7 @@ index 0000000000000000000000000000000000000000..e3228efcb0d85c0c43cd4e52fe0b8774
 +        // For some reason, MethodHandles fails for this field, but Field works okay
 +        // entitySelectorUsesSelector = EntitySelector::usesSelector;
 +        Field usesSelector = null;
-+        for (Field field : EntitySelector.class.getFields()) {
++        for (Field field : EntitySelector.class.getDeclaredFields()) {
 +            if (field.getType().equals(boolean.class) && Modifier.isPublic(field.getModifiers())) {
 +                usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
 +            }
@@ -306,7 +306,7 @@ index 0000000000000000000000000000000000000000..e3228efcb0d85c0c43cd4e52fe0b8774
 +        // itemInput = SafeVarHandle.ofOrNull(ItemInput.class, "c", "tag", CompoundTag.class);
 +        // For some reason, MethodHandles fails for this field, but Field works okay
 +        Field dispatcher = null;
-+        for (Field field : ServerFunctionLibrary.class.getFields()) {
++        for (Field field : ServerFunctionLibrary.class.getDeclaredFields()) {
 +            if (CommandDispatcher.class.isAssignableFrom(field.getType())) {
 +                Type genericType = field.getGenericType();
 +                if (genericType instanceof ParameterizedType) {
@@ -1771,18 +1771,17 @@ index 9af388a8e56806ab44f8c3ef4f97086ce38ef3b4..7956046156b8e382fb377ebbc63fe873
              if (missingDependencies.isEmpty()) {
                  validatedProviders.add(provider);
 diff --git a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
-index d78ad5eccd18d89050a486a0c40090a09683bd16..8302e4bedc03795c4cda526466fa4dc279b2dd21 100644
+index d78ad5eccd18d89050a486a0c40090a09683bd16..17351285d16956d22eca0d5dce336699b485e42f 100644
 --- a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
 +++ b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
-@@ -53,7 +53,7 @@ public class EntitySelector {
+@@ -53,6 +53,7 @@ public class EntitySelector {
      @Nullable
      private final UUID entityUUID;
      private final EntityTypeTest<Entity, ?> type;
--    private final boolean usesSelector;
-+    public final boolean usesSelector; // Lumina - Command API
++    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
+     private final boolean usesSelector;
  
      public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
-         this.maxResults = count;
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 index cc40d3e69a3635ca7895876159f2821091c14a9a..f16e1ee682415cf1b49aeba2fb3f879b07be3226 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
@@ -1825,3 +1824,20 @@ index 0000000000000000000000000000000000000000..8afd999c0e4453df6b3b0c52cd652175
 +    }
 +}
 \ No newline at end of file
+diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4deb7ca3c09a03faf0ddf2b49d0a0581a9682c75
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
+@@ -0,0 +1,11 @@
++package org.leavesmc.lumina.utils;
++
++import java.lang.annotation.ElementType;
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++import java.lang.annotation.Target;
++
++@Retention(RetentionPolicy.RUNTIME)
++@Target(ElementType.FIELD)
++public @interface ReflectTargetField {
++}
