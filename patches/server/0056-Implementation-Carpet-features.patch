@@ -2232,7 +2232,7 @@ index 4c4aa2a63be84ff614a3dc0db2864266755545a2..3585ae18a31d5f56c2e9f489fb20a9ed
      public MapCodec<CoralPlantBlock> codec() {
          return CoralPlantBlock.CODEC;
 diff --git a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
-index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..64eda8cbe36c04927749d96dae3eaa88a7e33a43 100644
+index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..c0ae9256dc98ea5d5208b3610b9c154e90bfff9d 100644
 --- a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
 @@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Player;
@@ -2254,7 +2254,7 @@ index 92cab51f6b3eeb07b574bd3ba82d736e8880acae..64eda8cbe36c04927749d96dae3eaa88
      @Override
      protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
 -        boolean flag1 = world.hasNeighborSignal(pos) || world.hasNeighborSignal(pos.above());
-+        boolean flag1 = world.hasNeighborSignal(pos) || org.leavesmc.lumina.carpet.helpers.QuasiConnectivity.hasQuasiSignal(world,pos.above()); // Lumina - Porting Carpet's features - quasi connectivity
++        boolean flag1 = world.hasNeighborSignal(pos) || org.leavesmc.lumina.carpet.helpers.QuasiConnectivity.hasQuasiSignal(world, pos); // Lumina - Porting Carpet's features - quasi connectivity
          boolean flag2 = (Boolean) state.getValue(DispenserBlock.TRIGGERED);
  
          if (flag1 && !flag2) {
