@@ -34,6 +34,29 @@ SOFTWARE.
 
 plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
+diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
+index 2e625f0345d79a8c8fe709b083f43460badc82bc..2d6b42e8057d6d934e85beebe436d351322685b5 100644
+--- a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
++++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
+@@ -190,6 +190,7 @@ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.ScoreHolder;
+ import org.bukkit.loot.LootTable;
+ import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.utils.ReflectTargetField;
+ 
+ // Mojang-Mapped reflection
+ 
+@@ -222,8 +223,8 @@ public class NMS_1_20_R4 extends NMS_Common {
+         // entitySelectorUsesSelector = EntitySelector::usesSelector;
+         Field usesSelector = null;
+         for (Field field : EntitySelector.class.getDeclaredFields()) {
+-            if (field.getType().equals(boolean.class) && Modifier.isPublic(field.getModifiers())) {
+-                usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
++            if(field.isAnnotationPresent(ReflectTargetField.class)) {
++                usesSelector = field;
+             }
+         }
+         entitySelectorUsesSelector = usesSelector;
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376f812669c 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
@@ -4383,19 +4406,26 @@ index 0000000000000000000000000000000000000000..df59f4c3280ed0f4ef33ad24ca9dee8a
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a309978c885dc9
+index 0000000000000000000000000000000000000000..b8cb8a5cc17db7e0e5f2ba381b1ccbf2b720cce6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,169 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.ArgumentSuggestions;
 +import dev.jorel.commandapi.arguments.EntitySelectorArgument;
 +import dev.jorel.commandapi.arguments.LiteralArgument;
++import dev.jorel.commandapi.arguments.StringArgument;
++import dev.jorel.commandapi.executors.CommandArguments;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
 +import org.leavesmc.lumina.carpet.logging.LoggerRegistry;
++
++import java.util.Arrays;
 +
 +import static net.kyori.adventure.text.Component.*;
 +import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -4408,21 +4438,71 @@ index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a30997
 +                .withArguments(new LiteralArgument("clear"))
 +                .withOptionalArguments(new EntitySelectorArgument.OnePlayer("target"))
 +                .executes((sender, args) -> {
-+                    Player target = (Player) args.get("target");
-+                    if (sender instanceof Player player) {
-+                        target = player;
-+                    }
++                    Player target = getTarget(sender, args);
 +                    if (target == null) {
-+                        sender.sendMessage(text("Must specified a player when run this in console").color(RED));
++                        return;
 +                    }
 +                    unsubFromAll(sender, target);
 +                })
 +                .register("carpet");
++        createBaseWithLogName()
++                .withOptionalArguments(new EntitySelectorArgument.OnePlayer("target"))
++                .executes((sender, args) -> {
++                    Player target = getTarget(sender, args);
++                    if (target == null) {
++                        return;
++                    }
++                    String logName = getLogName(sender, args);
++                    if (logName == null) {
++                        return;
++                    }
++                    toggleSubscription(sender, target, logName);
++                }).register("carpet");
++        createBaseWithLogName()
++                .withArguments(new StringArgument("option"))
++                .withOptionalArguments(new EntitySelectorArgument.OnePlayer("target"))
++                .executes((sender, args) -> {
++                    Player target = getTarget(sender, args);
++                    if (target == null) {
++                        return;
++                    }
++                    String logName = getLogName(sender, args);
++                    if (logName == null) {
++                        return;
++                    }
++                    String option = getOption(sender, args, logName);
++                    if (option == null) {
++                        return;
++                    }
++                    subscribePlayer(sender, target, logName, option);
++                }).register("carpet");
++        createBaseWithLogName()
++                .withArguments(new LiteralArgument("clear"))
++                .withOptionalArguments(new EntitySelectorArgument.OnePlayer("target"))
++                .executes((sender, args) -> {
++                    Player target = getTarget(sender, args);
++                    if (target == null) {
++                        return;
++                    }
++                    String logName = getLogName(sender, args);
++                    if (logName == null) {
++                        return;
++                    }
++                    unsubFromLogger(sender, target, logName);
++                }).register("carpet");
++
 +    }
 +
 +    private static CommandAPICommand createBase() {
 +        return new CommandAPICommand("log")
 +                .withPermission("carpet.command.log");
++    }
++
++    private static CommandAPICommand createBaseWithLogName() {
++        return createBase()
++                .withArguments(new StringArgument("logName")
++                        .replaceSuggestions(ArgumentSuggestions.stringCollection(
++                                info -> LoggerRegistry.getLoggerNames())));
 +    }
 +
 +    private static void unsubFromAll(CommandSender sender, Player target) {
@@ -4433,20 +4513,19 @@ index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a30997
 +        sender.sendMessage(text("Unsubscribed from all logs").color(GRAY).style(style(ITALIC)));
 +    }
 +
-+    private static int unsubFromLogger(CommandSender sender, Player target, String logName) {
++    private static void unsubFromLogger(CommandSender sender, Player target, String logName) {
 +        if (LoggerRegistry.getLogger(logName) == null) {
 +            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
-+            return 0;
++            return;
 +        }
 +        LoggerRegistry.unsubscribePlayer(target.getName(), logName);
 +        sender.sendMessage(text("Unsubscribed from " + logName).color(GRAY).style(style(ITALIC)));
-+        return 1;
 +    }
 +
-+    private static int toggleSubscription(CommandSender sender, Player target, String logName) {
++    private static void toggleSubscription(CommandSender sender, Player target, String logName) {
 +        if (LoggerRegistry.getLogger(logName) == null) {
 +            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
-+            return 0;
++            return;
 +        }
 +        boolean subscribed = LoggerRegistry.togglePlayerSubscription(target.getName(), logName);
 +        if (subscribed) {
@@ -4454,17 +4533,16 @@ index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a30997
 +        } else {
 +            sender.sendMessage(text(target.getName() + " unsubscribed from " + logName + ".").color(GRAY));
 +        }
-+        return 1;
 +    }
 +
-+    private static int subscribePlayer(CommandSender sender, Player target, String logName, String option) {
++    private static void subscribePlayer(CommandSender sender, Player target, String logName, String option) {
 +        if (LoggerRegistry.getLogger(logName) == null) {
 +            sender.sendMessage(text("Unknown logger: " + logName).color(RED));
-+            return 0;
++            return;
 +        }
 +        if (!LoggerRegistry.getLogger(logName).isOptionValid(option)) {
 +            sender.sendMessage(text("Invalid option: " + option).color(RED));
-+            return 0;
++            return;
 +        }
 +        LoggerRegistry.subscribePlayer(target.getName(), logName, option);
 +        if (option != null) {
@@ -4472,7 +4550,33 @@ index 0000000000000000000000000000000000000000..0937d1e18e39ceb3a22477cb33a30997
 +        } else {
 +            sender.sendMessage(text("Subscribed to " + logName).color(GRAY).style(style(ITALIC)));
 +        }
-+        return 1;
++    }
++
++    private static @Nullable Player getTarget(CommandSender sender, @NotNull CommandArguments args) {
++        Player target = (Player) args.get("target");
++        if (sender instanceof Player player) {
++            target = player;
++        }
++        if (target == null) {
++            sender.sendMessage(text("Must specified a player when run this in console").color(RED));
++        }
++        return target;
++    }
++
++    private static @Nullable String getLogName(CommandSender sender, @NotNull CommandArguments args) {
++        String logName = (String) args.get("logName");
++        if (logName == null || !LoggerRegistry.getLoggerNames().contains(logName)) {
++            sender.sendMessage(text("No such logger: " + logName).color(RED));
++        }
++        return logName;
++    }
++
++    private static @Nullable String getOption(CommandSender sender, @NotNull CommandArguments args, @NotNull String logName) {
++        String option = (String) args.get("option");
++        if (option == null || !Arrays.asList(LoggerRegistry.getLogger(logName).getOptions()).contains(option)) {
++            sender.sendMessage(text("No such option: " + option).color(RED));
++        }
++        return option;
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
