@@ -6670,10 +6670,10 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a28f9b7e7a595103a89b5d08041abebdab9df6a7
+index 0000000000000000000000000000000000000000..319510035b5d8d81f2f863db9bd0b71694835a92
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,146 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
 +import io.papermc.paper.threadedregions.*;
@@ -6756,8 +6756,9 @@ index 0000000000000000000000000000000000000000..a28f9b7e7a595103a89b5d08041abebd
 +                final TickData.TickReportData tickReport = currentData.getRegionSchedulingHandle().getTickReport5s(System.nanoTime());
 +
 +                final TickData.SegmentedAverage tpsData = tickReport.tpsData();
++                final TickData.SegmentedAverage msptData = tickReport.timePerTickData();
 +
-+                final double mspt = tpsData.segmentAll().average() / 1.0E6;
++                final double mspt = msptData.segmentAll().average() / 1.0E6;
 +                final double tps = tpsData.segmentAll().average();
 +                String color = Messenger.heatmap_color(mspt, ((long) ((double) TimeUtil.NANOSECONDS_PER_SECOND / tps) / (float) TimeUtil.NANOSECONDS_PER_MILLISECOND));
 +                tpsMsg = Messenger.c(
