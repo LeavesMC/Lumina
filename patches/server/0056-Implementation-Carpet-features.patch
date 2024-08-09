@@ -35,7 +35,7 @@ SOFTWARE.
 plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
-index 2e625f0345d79a8c8fe709b083f43460badc82bc..2d6b42e8057d6d934e85beebe436d351322685b5 100644
+index 2e625f0345d79a8c8fe709b083f43460badc82bc..0061738b5185419976d1d7564b4d9d8cde865912 100644
 --- a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 +++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 @@ -190,6 +190,7 @@ import net.minecraft.world.phys.Vec3;
@@ -46,17 +46,42 @@ index 2e625f0345d79a8c8fe709b083f43460badc82bc..2d6b42e8057d6d934e85beebe436d351
  
  // Mojang-Mapped reflection
  
-@@ -222,8 +223,8 @@ public class NMS_1_20_R4 extends NMS_Common {
+@@ -222,7 +223,7 @@ public class NMS_1_20_R4 extends NMS_Common {
          // entitySelectorUsesSelector = EntitySelector::usesSelector;
          Field usesSelector = null;
          for (Field field : EntitySelector.class.getDeclaredFields()) {
 -            if (field.getType().equals(boolean.class) && Modifier.isPublic(field.getModifiers())) {
--                usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
-+            if(field.isAnnotationPresent(ReflectTargetField.class)) {
-+                usesSelector = field;
++            if (field.isAnnotationPresent(ReflectTargetField.class)) {
+                 usesSelector = CommandAPIHandler.getField(EntitySelector.class, field.getName(), "");
              }
          }
-         entitySelectorUsesSelector = usesSelector;
+@@ -231,14 +232,8 @@ public class NMS_1_20_R4 extends NMS_Common {
+         // For some reason, MethodHandles fails for this field, but Field works okay
+         Field dispatcher = null;
+         for (Field field : ServerFunctionLibrary.class.getDeclaredFields()) {
+-            if (CommandDispatcher.class.isAssignableFrom(field.getType())) {
+-                Type genericType = field.getGenericType();
+-                if (genericType instanceof ParameterizedType) {
+-                    Type[] actualTypeArguments = ((ParameterizedType) genericType).getActualTypeArguments();
+-                    if (actualTypeArguments.length == 1 && actualTypeArguments[0].equals(CommandSourceStack.class)) {
+-                        dispatcher = CommandAPIHandler.getField(ServerFunctionLibrary.class, field.getName(), "");
+-                    }
+-                }
++            if (field.isAnnotationPresent(ReflectTargetField.class)) {
++                dispatcher = CommandAPIHandler.getField(ServerFunctionLibrary.class, field.getName(), "");
+             }
+         }
+         serverFunctionLibraryDispatcher = dispatcher;
+@@ -778,7 +773,8 @@ public class NMS_1_20_R4 extends NMS_Common {
+     @Override
+     public Object getPotionEffect(CommandContext<CommandSourceStack> cmdCtx, String key, ArgumentSubType subType) throws CommandSyntaxException {
+         return switch (subType) {
+-            case POTION_EFFECT_POTION_EFFECT -> CraftPotionEffectType.minecraftToBukkit(ResourceArgument.getMobEffect(cmdCtx, key).value());
++            case POTION_EFFECT_POTION_EFFECT ->
++                    CraftPotionEffectType.minecraftToBukkit(ResourceArgument.getMobEffect(cmdCtx, key).value());
+             case POTION_EFFECT_NAMESPACEDKEY -> fromResourceLocation(ResourceLocationArgument.getId(cmdCtx, key));
+             default -> throw new IllegalArgumentException("Unexpected value: " + subType);
+         };
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376f812669c 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
@@ -185,6 +210,18 @@ index 8056ddc2164789ac8efab4f5bf2069c4768f7657..06e8fd7d5fda88ff4b4ba1112e8457b2
          // Folia start - region threading
          // halt scheduler
          // don't wait, we may be on a scheduler thread
+diff --git a/src/main/java/net/minecraft/server/ServerFunctionLibrary.java b/src/main/java/net/minecraft/server/ServerFunctionLibrary.java
+index bae0d208b31aa0a6977c30f2f8484ab3c316bc71..e877cc4981b522cfb988c30e2029f11d0e05b3b5 100644
+--- a/src/main/java/net/minecraft/server/ServerFunctionLibrary.java
++++ b/src/main/java/net/minecraft/server/ServerFunctionLibrary.java
+@@ -38,6 +38,7 @@ public class ServerFunctionLibrary implements PreparableReloadListener {
+     private final TagLoader<CommandFunction<CommandSourceStack>> tagsLoader = new TagLoader<>(this::getFunction, "tags/functions");
+     private volatile Map<ResourceLocation, Collection<CommandFunction<CommandSourceStack>>> tags = Map.of();
+     private final int functionCompilationLevel;
++    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
+     private final CommandDispatcher<CommandSourceStack> dispatcher;
+ 
+     public Optional<CommandFunction<CommandSourceStack>> getFunction(ResourceLocation id) {
 diff --git a/src/main/java/net/minecraft/server/commands/CloneCommands.java b/src/main/java/net/minecraft/server/commands/CloneCommands.java
 index 3c62d73f51a65a274f17e6a58f56cb841dbe8dc3..1496151fafc8dfd13663ad9500f1b865696a9a8d 100644
 --- a/src/main/java/net/minecraft/server/commands/CloneCommands.java
@@ -3982,7 +4019,7 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5951ca60109a7d26601745cf08e4c4ed8c97d2db
+index 0000000000000000000000000000000000000000..7852c17b2ebb32f7005a044f9553212847a2ecaa
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 @@ -0,0 +1,141 @@
@@ -4043,7 +4080,7 @@ index 0000000000000000000000000000000000000000..5951ca60109a7d26601745cf08e4c4ed
 +    }
 +
 +    public static void tick(MinecraftServer server) {
-+        HUDController.update_hud(server, null);
++        HUDController.update_hud(server);
 +
 +        // //in case something happens
 +        // CarpetSettings.impendingFillSkipUpdates.set(false); // I REALLY DON'T KNOW WHAT'S THIS
@@ -6633,14 +6670,16 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7bcf53cc224422de8d68aa53f607e5f2a7de9188
+index 0000000000000000000000000000000000000000..a28f9b7e7a595103a89b5d08041abebdab9df6a7
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,145 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
-+import io.papermc.paper.threadedregions.RegionizedServer;
++import io.papermc.paper.threadedregions.*;
 +import org.bukkit.Bukkit;
++import org.bukkit.entity.Entity;
++import org.bukkit.entity.Player;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
 +import org.leavesmc.lumina.carpet.logging.logHelpers.PacketCounter;
@@ -6663,6 +6702,8 @@ index 0000000000000000000000000000000000000000..7bcf53cc224422de8d68aa53f607e5f2
 +import java.util.Map;
 +import java.util.Set;
 +import java.util.function.Consumer;
++
++import static org.leavesmc.lumina.carpet.logging.LoggerRegistry.playerSubscriptions;
 +
 +public class HUDController {
 +    private static final List<Consumer<MinecraftServer>> HUDListeners = new ArrayList<>();
@@ -6703,64 +6744,62 @@ index 0000000000000000000000000000000000000000..7bcf53cc224422de8d68aa53f607e5f2
 +    }
 +
 +
-+    public static void update_hud(MinecraftServer server, List<ServerPlayer> force) {
-+
-+        if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 != 0 && force == null)
-+            return;
-+
++    public static void update_hud(MinecraftServer server) {
 +        player_huds.clear();
++        server.getPlayerList().getPlayers().forEach(p -> p.getBukkitEntity().taskScheduler.schedule(e -> {
++            ServerPlayer player = (ServerPlayer) e;
++            String playerName = player.getScoreboardName();
++            final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentRegion = TickRegionScheduler.getCurrentRegion();
++            final TickRegions.TickRegionData currentData = currentRegion.getData();
++            Component tpsMsg = Messenger.c("r error getting tps & mspt");
++            if (currentData != null) {
++                final TickData.TickReportData tickReport = currentData.getRegionSchedulingHandle().getTickReport5s(System.nanoTime());
 +
-+        server.getPlayerList().getPlayers().forEach(p -> {
-+            Component scarpetFOoter = scarpet_footers.get(p.getScoreboardName());
-+            if (scarpetFOoter != null) HUDController.addMessage(p, scarpetFOoter);
-+        });
++                final TickData.SegmentedAverage tpsData = tickReport.tpsData();
 +
-+        if (LoggerRegistry.__tps)
-+            LoggerRegistry.getLogger("tps").log(() -> send_tps_display(server));
++                final double mspt = tpsData.segmentAll().average() / 1.0E6;
++                final double tps = tpsData.segmentAll().average();
++                String color = Messenger.heatmap_color(mspt, ((long) ((double) TimeUtil.NANOSECONDS_PER_SECOND / tps) / (float) TimeUtil.NANOSECONDS_PER_MILLISECOND));
++                tpsMsg = Messenger.c(
++                        "g TPS: ", String.format(Locale.US, "%s %.1f", color, tps),
++                        "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, mspt));
++            }
++            if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 == 0) {
++                Component scarpetFOoter = scarpet_footers.get(player.getScoreboardName());
++                if (scarpetFOoter != null) HUDController.addMessage(player, scarpetFOoter);
++                if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey("tps")) {
++                    HUDController.addMessage(player, tpsMsg);
++                }
++                if (LoggerRegistry.__mobcaps) {
++                    LoggerRegistry.getLogger("mobcaps").log((option, pl) -> {
++                        ResourceKey<Level> dim = switch (option) {
++                            case "overworld" -> Level.OVERWORLD;
++                            case "nether" -> Level.NETHER;
++                            case "end" -> Level.END;
++                            default -> pl.level().dimension();
++                        };
++                        return new Component[]{SpawnReporter.printMobcapsForDimension(server.getLevel(dim), false).get(0)};
++                    });
++                }
 +
-+        if (LoggerRegistry.__mobcaps)
-+            LoggerRegistry.getLogger("mobcaps").log((option, player) -> {
-+                ResourceKey<Level> dim = switch (option) {
-+                    case "overworld" -> Level.OVERWORLD;
-+                    case "nether" -> Level.NETHER;
-+                    case "end" -> Level.END;
-+                    default -> player.level().dimension();
-+                };
-+                return new Component[]{SpawnReporter.printMobcapsForDimension(server.getLevel(dim), false).get(0)};
-+            });
++                if (LoggerRegistry.__counter) {
++                    LoggerRegistry.getLogger("counter").log((option) -> send_counter_info(server, option));
++                }
 +
-+        if (LoggerRegistry.__counter)
-+            LoggerRegistry.getLogger("counter").log((option) -> send_counter_info(server, option));
++                if (LoggerRegistry.__packets) {
++                    LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
++                }
 +
-+        if (LoggerRegistry.__packets)
-+            LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
++                // extensions have time to pitch in.
++                HUDListeners.forEach(l -> l.accept(server));
 +
-+        // extensions have time to pitch in.
-+        HUDListeners.forEach(l -> l.accept(server));
-+
-+        Set<ServerPlayer> targets = new HashSet<>(player_huds.keySet());
-+        if (force != null) targets.addAll(force);
-+        for (ServerPlayer player : targets) {
-+            ClientboundTabListPacket packet = new ClientboundTabListPacket(
-+                    scarpet_headers.getOrDefault(player.getScoreboardName(), Component.literal("")),
-+                    Messenger.c(player_huds.getOrDefault(player, List.of()).toArray(new Object[0]))
-+            );
-+            player.connection.send(packet);
-+        }
-+    }
-+
-+    private static Component[] send_tps_display(MinecraftServer server) {
-+        double MSPT = ((double) server.getAverageTickTimeNanos()) / TimeUtil.NANOSECONDS_PER_MILLISECOND;
-+        ServerTickRateManager trm = server.tickRateManager();
-+
-+        double TPS = 1000.0D / Math.max(trm.isSprinting() ? 0.0 : trm.millisecondsPerTick(), MSPT);
-+        if (trm.isFrozen()) {
-+            TPS = 0;
-+        }
-+        String color = Messenger.heatmap_color(MSPT, trm.millisecondsPerTick());
-+        return new Component[]{Messenger.c(
-+                "g TPS: ", String.format(Locale.US, "%s %.1f", color, TPS),
-+                "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, MSPT))};
++                ClientboundTabListPacket packet = new ClientboundTabListPacket(
++                        scarpet_headers.getOrDefault(player.getScoreboardName(), Component.literal("")),
++                        Messenger.c(player_huds.getOrDefault(player, List.of()).toArray(new Object[0]))
++                );
++                player.connection.send(packet);
++            }
++        }, null, 1));
 +    }
 +
 +    private static Component[] send_counter_info(MinecraftServer server, String colors) {
@@ -7065,7 +7104,7 @@ index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d3474
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f03b4d372f5f7f01b9e132e117cb4c9a442a11e9
+index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63bd67a807
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
 @@ -0,0 +1,156 @@
@@ -7087,7 +7126,7 @@ index 0000000000000000000000000000000000000000..f03b4d372f5f7f01b9e132e117cb4c9a
 +    // Map from logger names to loggers.
 +    private static final Map<String, Logger> loggerRegistry = new HashMap<>();
 +    // Map from player names to the set of names of the logs that player is subscribed to.
-+    private static final Map<String, Map<String, String>> playerSubscriptions = new HashMap<>();
++    protected static final Map<String, Map<String, String>> playerSubscriptions = new HashMap<>();
 +    //statics to quickly asses if its worth even to call each one
 +    public static boolean __tnt;
 +    public static boolean __projectiles;
