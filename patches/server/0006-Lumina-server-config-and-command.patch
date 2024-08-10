@@ -5,7 +5,7 @@ Subject: [PATCH] Lumina server config and command
 
 
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff895ffd9e 100644
+index a96e3bfc7f937debf285755652dc17acef3ea977..4a1a542cadde702253a9fccefc31fc7457df266c 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -222,6 +222,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -255,103 +255,9 @@ index 0000000000000000000000000000000000000000..5f7f258f8ddcde9f050691371662e18c
 +        Field field, Object parent,
 +        Validator<?> validator) {
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..fe47b35a337211d503ba7993ac9d5e38a1372d37
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
-@@ -0,0 +1,88 @@
-+package org.leavesmc.lumina.config;
-+
-+import org.bukkit.Bukkit;
-+import org.bukkit.plugin.Plugin;
-+import org.bukkit.plugin.java.JavaPlugin;
-+import org.jetbrains.annotations.Contract;
-+import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.config.annotations.Suggestion;
-+import org.leavesmc.lumina.config.annotations.Validate;
-+
-+import java.lang.annotation.Annotation;
-+import java.lang.reflect.Field;
-+import java.lang.reflect.InvocationTargetException;
-+import java.util.Arrays;
-+import java.util.HashSet;
-+import java.util.Map;
-+import java.util.Set;
-+import java.util.concurrent.CompletableFuture;
-+
-+public class ConfigUtils {
-+    static final Set<Class<?>> CONFIG_FIELD_TYPES = new HashSet<>(Arrays.asList(
-+            String.class,
-+            boolean.class,
-+            int.class,
-+            long.class,
-+            double.class));
-+    static final Plugin INTERNAL_PLUGIN = new JavaPlugin("LuminaConfigSystem") {};
-+
-+    @Contract("_ -> new")
-+    public static @NotNull CompletableFuture<Void> runAsync(Runnable runnable) {
-+        return CompletableFuture.runAsync(runnable, task -> Bukkit.getGlobalRegionScheduler().run(ConfigUtils.INTERNAL_PLUGIN, scheduled -> task.run()));
-+    }
-+
-+    public static void generateNodeInfos(Map<String, ConfigNodeInfo> nodeInfoMap, @NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
-+        for (Field field : clazz.getFields()) {
-+            String fieldName = field.getName();
-+            Class<?> fieldType = field.getType();
-+            String key = parentKey == null ? toHyphen(fieldName) : parentKey + "." + toHyphen(fieldName);
-+            boolean haveSuggestions = false;
-+            String[] suggestions = null;
-+            Validator<?> validator = new Validator<>();
-+            for (Annotation annotation : field.getAnnotations()) {
-+                if (annotation instanceof Suggestion value) {
-+                    haveSuggestions = true;
-+                    suggestions = value.value();
-+                } else if (annotation instanceof Validate value) {
-+                    try {
-+                        validator = value.value().getDeclaredConstructor().newInstance();
-+                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
-+                        throw new RuntimeException(e);
-+                    }
-+                }
-+            }
-+            if (!haveSuggestions) {
-+                if ("boolean".equals(fieldType.getSimpleName())) {
-+                    suggestions = new String[]{"true", "false"};
-+                    haveSuggestions = true;
-+                } else if (ConfigUtils.CONFIG_FIELD_TYPES.contains(fieldType)) {
-+                    suggestions = new String[]{field.get(parent).toString()};
-+                    haveSuggestions = true;
-+                } else if (fieldType.isEnum()) {
-+                    suggestions = Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new);
-+                    haveSuggestions = true;
-+                }
-+            }
-+            if (haveSuggestions) {
-+                nodeInfoMap.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
-+            } else {
-+                generateNodeInfos(nodeInfoMap, fieldType, key, field.get(parent));
-+            }
-+        }
-+    }
-+
-+    private static @NotNull String toHyphen(String input) {
-+        if (input == null || input.isEmpty()) {
-+            return "";
-+        }
-+        StringBuilder sb = new StringBuilder();
-+        for (int i = 0; i < input.length(); i++) {
-+            char ch = input.charAt(i);
-+            if (Character.isUpperCase(ch) && i > 0) {
-+                sb.append('-');
-+            }
-+            sb.append(Character.toLowerCase(ch));
-+        }
-+        return sb.toString();
-+    }
-+}
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..48734da792646a8e690a4c8aba114e0b9cdf896e
+index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf1893adfa
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 @@ -0,0 +1,91 @@
@@ -360,6 +266,7 @@ index 0000000000000000000000000000000000000000..48734da792646a8e690a4c8aba114e0b
 +import io.papermc.paper.threadedregions.RegionizedServer;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
@@ -369,7 +276,6 @@ index 0000000000000000000000000000000000000000..48734da792646a8e690a4c8aba114e0b
 +
 +import java.nio.file.Files;
 +import java.nio.file.Path;
-+import java.nio.file.Paths;
 +import java.util.*;
 +import java.util.concurrent.CompletableFuture;
 +
@@ -900,5 +806,101 @@ index 0000000000000000000000000000000000000000..119b50c12f08c548e7a56dd983805324
 +        OPS,
 +        OPS_AND_SELF,
 +        EVERYONE
++    }
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb1160ccf5e4
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
+@@ -0,0 +1,90 @@
++package org.leavesmc.lumina.utils;
++
++import org.bukkit.Bukkit;
++import org.bukkit.plugin.Plugin;
++import org.bukkit.plugin.java.InternalJavaPluginFactory;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.config.ConfigNodeInfo;
++import org.leavesmc.lumina.config.Validator;
++import org.leavesmc.lumina.config.annotations.Suggestion;
++import org.leavesmc.lumina.config.annotations.Validate;
++
++import java.lang.annotation.Annotation;
++import java.lang.reflect.Field;
++import java.lang.reflect.InvocationTargetException;
++import java.util.Arrays;
++import java.util.HashSet;
++import java.util.Map;
++import java.util.Set;
++import java.util.concurrent.CompletableFuture;
++
++public class ConfigUtils {
++    static final Set<Class<?>> CONFIG_FIELD_TYPES = new HashSet<>(Arrays.asList(
++            String.class,
++            boolean.class,
++            int.class,
++            long.class,
++            double.class));
++    static final Plugin INTERNAL_PLUGIN = InternalJavaPluginFactory.create("LuminaConfigSystem");
++
++    @Contract("_ -> new")
++    public static @NotNull CompletableFuture<Void> runAsync(Runnable runnable) {
++        return CompletableFuture.runAsync(runnable, task -> Bukkit.getGlobalRegionScheduler().run(ConfigUtils.INTERNAL_PLUGIN, scheduled -> task.run()));
++    }
++
++    public static void generateNodeInfos(Map<String, ConfigNodeInfo> nodeInfoMap, @NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
++        for (Field field : clazz.getFields()) {
++            String fieldName = field.getName();
++            Class<?> fieldType = field.getType();
++            String key = parentKey == null ? toHyphen(fieldName) : parentKey + "." + toHyphen(fieldName);
++            boolean haveSuggestions = false;
++            String[] suggestions = null;
++            Validator<?> validator = new Validator<>();
++            for (Annotation annotation : field.getAnnotations()) {
++                if (annotation instanceof Suggestion value) {
++                    haveSuggestions = true;
++                    suggestions = value.value();
++                } else if (annotation instanceof Validate value) {
++                    try {
++                        validator = value.value().getDeclaredConstructor().newInstance();
++                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
++                        throw new RuntimeException(e);
++                    }
++                }
++            }
++            if (!haveSuggestions) {
++                if ("boolean".equals(fieldType.getSimpleName())) {
++                    suggestions = new String[]{"true", "false"};
++                    haveSuggestions = true;
++                } else if (ConfigUtils.CONFIG_FIELD_TYPES.contains(fieldType)) {
++                    suggestions = new String[]{field.get(parent).toString()};
++                    haveSuggestions = true;
++                } else if (fieldType.isEnum()) {
++                    suggestions = Arrays.stream(fieldType.getEnumConstants()).map(Object::toString).toArray(String[]::new);
++                    haveSuggestions = true;
++                }
++            }
++            if (haveSuggestions) {
++                nodeInfoMap.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
++            } else {
++                generateNodeInfos(nodeInfoMap, fieldType, key, field.get(parent));
++            }
++        }
++    }
++
++    private static @NotNull String toHyphen(String input) {
++        if (input == null || input.isEmpty()) {
++            return "";
++        }
++        StringBuilder sb = new StringBuilder();
++        for (int i = 0; i < input.length(); i++) {
++            char ch = input.charAt(i);
++            if (Character.isUpperCase(ch) && i > 0) {
++                sb.append('-');
++            }
++            sb.append(Character.toLowerCase(ch));
++        }
++        return sb.toString();
 +    }
 +}

@@ -335,7 +335,7 @@ index af9b3ea74379d52f2ff08cb81e87a0a61062097a..e972df9e5d83eb6cf7a66e0e29086e5c
                          worldserver.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND);
                      }
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 25aadc085d6af9f6c619bd2f5347180989514441..bed1a0366daa4467ce54b3e67ffd804503cbabee 100644
+index 0edfd864d7517aea82da24253c51f18d1fa1bd92..f521e0bf33dd21fa840315fd0268612cd1be6b8f 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -344,7 +344,7 @@ index 25aadc085d6af9f6c619bd2f5347180989514441..bed1a0366daa4467ce54b3e67ffd8045
  
 +        org.leavesmc.lumina.carpet.CarpetServer.onGameStarted(); // Lumina - Porting Carpet's features
          // Lumina start - enable CommandAPI
-         commandAPIPlugin = org.bukkit.plugin.java.CommandAPIPluginFactory.create();
+         commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
          dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
 index dfdb85c14c4afce7879acf9093d54f7480c0a08c..92c3f9bdc6e97614ea664bee46616fb73587a7d4 100644
@@ -3430,10 +3430,10 @@ index 0000000000000000000000000000000000000000..d3aa030299ec3fa8170b7fc39b5f23e7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02a12ae9be
+index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd951d2dfce2
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,81 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -3441,9 +3441,7 @@ index 0000000000000000000000000000000000000000..f5bf7371e4d16726b1f275a9bd0fdb02
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
-+import org.leavesmc.lumina.config.ConfigUtils;
-+import org.leavesmc.lumina.config.LuminaConfig;
-+import org.leavesmc.lumina.config.LuminaConfigModule;
++import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
@@ -4019,18 +4017,18 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7852c17b2ebb32f7005a044f9553212847a2ecaa
+index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4eda4c0ae
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,142 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
 +import net.kyori.adventure.text.Component;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerPlayer;
-+import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
 +import org.bukkit.plugin.Plugin;
++import org.bukkit.plugin.java.InternalJavaPluginFactory;
 +import org.leavesmc.lumina.carpet.command.*;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
 +import org.leavesmc.lumina.carpet.logging.HUDController;
@@ -4039,10 +4037,11 @@ index 0000000000000000000000000000000000000000..7852c17b2ebb32f7005a044f95532128
 +import org.leavesmc.lumina.carpet.utils.MobAI;
 +import org.leavesmc.lumina.carpet.utils.SpawnReporter;
 +import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
 +
 +public class CarpetServer {
-+    public static Plugin PLUGIN = new MinecraftInternalPlugin();
-+    public static final Logger LOGGER = LogUtils.getLogger();
++    public static Plugin PLUGIN = InternalJavaPluginFactory.create("Carpet");
++    public static final Logger LOGGER = LoggerFactory.getLogger("Carpet");
 +    // public static final List<CarpetExtension> extensions = new ArrayList<>(); // TODO
 +
 +    // public static void manageExtension(CarpetExtension extension) {

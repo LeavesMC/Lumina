@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Sun, 11 Aug 2024 07:37:16 +0800
+Subject: [PATCH] Internal JavaPlugin
+
+
+diff --git a/src/main/java/org/bukkit/plugin/java/InternalJavaPluginFactory.java b/src/main/java/org/bukkit/plugin/java/InternalJavaPluginFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..53bb3a983f4d81d0ab6a3ecf6416e5d7d11e474a
+--- /dev/null
++++ b/src/main/java/org/bukkit/plugin/java/InternalJavaPluginFactory.java
+@@ -0,0 +1,12 @@
++package org.bukkit.plugin.java;
++
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++
++public class InternalJavaPluginFactory {
++    @Contract("_ -> new")
++    public static @NotNull JavaPlugin create(String name) {
++        return new JavaPlugin(name) {
++        };
++    }
++}
+\ No newline at end of file

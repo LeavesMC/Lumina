@@ -1061,7 +1061,7 @@ index 355c8408da189a4805e206db0932c41f940930f0..0afc3d90f7531b8e216f30f0989d04c3
          this.profiler.popPush("send chunks");
          iterator = this.playerList.getPlayers().iterator();
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index f16e1ee682415cf1b49aeba2fb3f879b07be3226..f01863e33b7407c14e8bcd2a44e63bed01afe838 100644
+index 43cb38e765a4650df6f8840de0481e2bf9ac3550..a96e3bfc7f937debf285755652dc17acef3ea977 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -63,7 +63,6 @@ import org.apache.logging.log4j.Level;
