@@ -1812,7 +1812,7 @@ index cc40d3e69a3635ca7895876159f2821091c14a9a..f16e1ee682415cf1b49aeba2fb3f879b
          this.server.loadPlugins();
 diff --git a/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java b/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8afd999c0e4453df6b3b0c52cd6521758cd786b0
+index 0000000000000000000000000000000000000000..6b01831f249081e591bfcede7ff56e8f6554cf1e
 --- /dev/null
 +++ b/src/main/java/org/bukkit/plugin/java/CommandAPIPluginFactory.java
 @@ -0,0 +1,7 @@
@@ -1820,7 +1820,7 @@ index 0000000000000000000000000000000000000000..8afd999c0e4453df6b3b0c52cd652175
 +
 +public class CommandAPIPluginFactory {
 +    public static JavaPlugin create() {
-+        return new JavaPlugin(null) {};
++        return new JavaPlugin("CommandAPI") {};
 +    }
 +}
 \ No newline at end of file

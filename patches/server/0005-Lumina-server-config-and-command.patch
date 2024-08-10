@@ -24,28 +24,6 @@ index f01863e33b7407c14e8bcd2a44e63bed01afe838..a37c35fd271ac815bd67a40ceaca95ff
          // CraftBukkit start
          // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
          this.server.loadPlugins();
-diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
-index 66bdac50130f523f9dc4379b103b7a469f9ca36b..fef188c644ea1974cc5cd4b7044b6f9502965273 100644
---- a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
-+++ b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
-@@ -24,10 +24,16 @@ public class MinecraftInternalPlugin extends PluginBase {
-     private final String pluginName;
-     private PluginDescriptionFile pdf;
- 
-+    // Lumina start
-     public MinecraftInternalPlugin() {
--        this.pluginName = "Minecraft";
-+        this("MinecraftInternalPlugin");
-+    }
-+
-+    public MinecraftInternalPlugin(String pluginName) {
-+        this.pluginName = pluginName;
-         pdf = new PluginDescriptionFile(pluginName, "1.0", "nms");
-     }
-+    // Lumina end
- 
-     public void setEnabled(boolean enabled) {
-         this.enabled = enabled;
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..dca3a12178dc25433251d854d19cfdeb3d5f6cfa
@@ -279,14 +257,15 @@ index 0000000000000000000000000000000000000000..5f7f258f8ddcde9f050691371662e18c
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fb991c96f88429099a42b43a9de2cf1825f2d89b
+index 0000000000000000000000000000000000000000..fe47b35a337211d503ba7993ac9d5e38a1372d37
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/ConfigUtils.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,88 @@
 +package org.leavesmc.lumina.config;
 +
 +import org.bukkit.Bukkit;
-+import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
++import org.bukkit.plugin.Plugin;
++import org.bukkit.plugin.java.JavaPlugin;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.config.annotations.Suggestion;
@@ -308,7 +287,7 @@ index 0000000000000000000000000000000000000000..fb991c96f88429099a42b43a9de2cf18
 +            int.class,
 +            long.class,
 +            double.class));
-+    static final MinecraftInternalPlugin INTERNAL_PLUGIN = new MinecraftInternalPlugin("LuminaConfigSystem");
++    static final Plugin INTERNAL_PLUGIN = new JavaPlugin("LuminaConfigSystem") {};
 +
 +    @Contract("_ -> new")
 +    public static @NotNull CompletableFuture<Void> runAsync(Runnable runnable) {

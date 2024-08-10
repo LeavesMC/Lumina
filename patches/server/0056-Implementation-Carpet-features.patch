@@ -6670,10 +6670,10 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..319510035b5d8d81f2f863db9bd0b71694835a92
+index 0000000000000000000000000000000000000000..ed0868bf1c8d976b738735ca4ebb4af4903e3b0e
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,154 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
 +import io.papermc.paper.threadedregions.*;
@@ -6745,62 +6745,70 @@ index 0000000000000000000000000000000000000000..319510035b5d8d81f2f863db9bd0b716
 +
 +
 +    public static void update_hud(MinecraftServer server) {
++        if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 != 0) {
++            return;
++        }
 +        player_huds.clear();
-+        server.getPlayerList().getPlayers().forEach(p -> p.getBukkitEntity().taskScheduler.schedule(e -> {
-+            ServerPlayer player = (ServerPlayer) e;
-+            String playerName = player.getScoreboardName();
-+            final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentRegion = TickRegionScheduler.getCurrentRegion();
-+            final TickRegions.TickRegionData currentData = currentRegion.getData();
-+            Component tpsMsg = Messenger.c("r error getting tps & mspt");
-+            if (currentData != null) {
-+                final TickData.TickReportData tickReport = currentData.getRegionSchedulingHandle().getTickReport5s(System.nanoTime());
++        if (LoggerRegistry.__mobcaps) {
++            LoggerRegistry.getLogger("mobcaps").log((option, pl) -> {
++                ResourceKey<Level> dim = switch (option) {
++                    case "overworld" -> Level.OVERWORLD;
++                    case "nether" -> Level.NETHER;
++                    case "end" -> Level.END;
++                    default -> pl.level().dimension();
++                };
++                return new Component[]{SpawnReporter.printMobcapsForDimension(server.getLevel(dim), false).get(0)};
++            });
++        }
 +
-+                final TickData.SegmentedAverage tpsData = tickReport.tpsData();
-+                final TickData.SegmentedAverage msptData = tickReport.timePerTickData();
++        if (LoggerRegistry.__counter) {
++            LoggerRegistry.getLogger("counter").log((option) -> send_counter_info(server, option));
++        }
 +
-+                final double mspt = msptData.segmentAll().average() / 1.0E6;
-+                final double tps = tpsData.segmentAll().average();
-+                String color = Messenger.heatmap_color(mspt, ((long) ((double) TimeUtil.NANOSECONDS_PER_SECOND / tps) / (float) TimeUtil.NANOSECONDS_PER_MILLISECOND));
-+                tpsMsg = Messenger.c(
-+                        "g TPS: ", String.format(Locale.US, "%s %.1f", color, tps),
-+                        "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, mspt));
-+            }
-+            if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 == 0) {
++        if (LoggerRegistry.__packets) {
++            LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
++        }
++        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
++            System.out.println("Updating HUD for ");
++            p.getBukkitEntity().getScheduler().run(CarpetServer.PLUGIN, e -> {
++                final ServerPlayer player = (ServerPlayer) e;
++                System.out.println("Updating HUD for " + player.getScoreboardName());
++                String playerName = player.getScoreboardName();
++                if (LoggerRegistry.__tps) {
++                    final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentRegion = TickRegionScheduler.getCurrentRegion();
++                    final TickRegions.TickRegionData currentData = currentRegion.getData();
++                    Component tpsMsg = Messenger.c("r error getting tps & mspt");
++                    if (currentData != null) {
++                        final TickData.TickReportData tickReport = currentData.getRegionSchedulingHandle().getTickReport5s(System.nanoTime());
++
++                        final TickData.SegmentedAverage tpsData = tickReport.tpsData();
++                        final TickData.SegmentedAverage msptData = tickReport.timePerTickData();
++
++                        final double mspt = msptData.segmentAll().average() / 1.0E6;
++                        final double tps = tpsData.segmentAll().average();
++                        String color = Messenger.heatmap_color(mspt, ((long) ((double) TimeUtil.NANOSECONDS_PER_SECOND / tps) / (float) TimeUtil.NANOSECONDS_PER_MILLISECOND));
++                        tpsMsg = Messenger.c(
++                                "g TPS: ", String.format(Locale.US, "%s %.1f", color, tps),
++                                "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, mspt));
++                    }
++                    if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey("tps")) {
++                        HUDController.addMessage(player, tpsMsg);
++                    }
++                }
 +                Component scarpetFOoter = scarpet_footers.get(player.getScoreboardName());
 +                if (scarpetFOoter != null) HUDController.addMessage(player, scarpetFOoter);
-+                if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey("tps")) {
-+                    HUDController.addMessage(player, tpsMsg);
-+                }
-+                if (LoggerRegistry.__mobcaps) {
-+                    LoggerRegistry.getLogger("mobcaps").log((option, pl) -> {
-+                        ResourceKey<Level> dim = switch (option) {
-+                            case "overworld" -> Level.OVERWORLD;
-+                            case "nether" -> Level.NETHER;
-+                            case "end" -> Level.END;
-+                            default -> pl.level().dimension();
-+                        };
-+                        return new Component[]{SpawnReporter.printMobcapsForDimension(server.getLevel(dim), false).get(0)};
-+                    });
-+                }
 +
-+                if (LoggerRegistry.__counter) {
-+                    LoggerRegistry.getLogger("counter").log((option) -> send_counter_info(server, option));
-+                }
-+
-+                if (LoggerRegistry.__packets) {
-+                    LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
-+                }
-+
-+                // extensions have time to pitch in.
-+                HUDListeners.forEach(l -> l.accept(server));
-+
++                // Bukkit.getGlobalRegionScheduler().execute(CarpetServer.PLUGIN, () -> {
 +                ClientboundTabListPacket packet = new ClientboundTabListPacket(
 +                        scarpet_headers.getOrDefault(player.getScoreboardName(), Component.literal("")),
 +                        Messenger.c(player_huds.getOrDefault(player, List.of()).toArray(new Object[0]))
 +                );
 +                player.connection.send(packet);
-+            }
-+        }, null, 1));
++                // });
++                // extensions have time to pitch in.
++                // HUDListeners.forEach(l -> l.accept(server)); // TODO
++            }, null);
++        }
 +    }
 +
 +    private static Component[] send_counter_info(MinecraftServer server, String colors) {
