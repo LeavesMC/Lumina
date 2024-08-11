@@ -39,13 +39,6 @@ The goal of this roadmap is to give a big picture. Our key objectives are listed
                 <li><a>ByteBuf API</a></li>
             </list>
         </td>
-    <tr>
-        <td><strong>Library ecosystem</strong></td>
-        <td>
-            <list>
-                <li><a>Provide initial series of <code>leavesx-scheduler</code> releases</a></li>
-            </list>
-         </td>
     </tr>
 </table>
 

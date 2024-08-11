@@ -39,14 +39,6 @@
             </list>
         </td>
     </tr>
-    <tr>
-        <td><strong>库生态系统</strong></td>
-        <td>
-            <list>
-                <li><a>提供初步可供使用的 <code>leavesx-scheduler</code></a></li>
-            </list>
-         </td>
-    </tr>
 </table>
 
 > * 此路线图并非团队正在处理的所有事项的详尽列表，仅列出了最重要的项目。
