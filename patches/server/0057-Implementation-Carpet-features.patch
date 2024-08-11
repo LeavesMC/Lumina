@@ -4702,10 +4702,10 @@ index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f642
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6d784f4e5069b6210670f8dc5cdd69085fb95036
+index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a5f46a475
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,487 @@
+@@ -0,0 +1,488 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
@@ -4905,6 +4905,7 @@ index 0000000000000000000000000000000000000000..6d784f4e5069b6210670f8dc5cdd6908
 +                sender.sendMessage(text("Need position to spawn player in console").color(RED));
 +                return;
 +            }
++            pos.setWorld(world);
 +            GameMode nullableGameMode = (GameMode) args.get("gamemode");
 +            if (nullableGameMode != null) {
 +                mode = GameType.byId(nullableGameMode.getValue());
