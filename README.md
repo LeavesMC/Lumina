@@ -1,4 +1,4 @@
-Lumina 
+Lumina - 流明
 ===========
 
 [![Dev Build](https://github.com/LeavesMC/Lumina/actions/workflows/dev-build.yml/badge.svg)](https://github.com/LeavesMC/Lumina/actions/workflows/dev-build.yml)
@@ -12,6 +12,8 @@ Lumina
 **The project is currently unstable**
 
 We are collecting vanilla properties broken by Folia, if you find something, please raise it in an issue, thanks.
+
+**You can check our [RoadMap](./RoadMap.md) to see what we are working on**
 
 **In order to make the default more consistent with Vanilla behavior, we have changed the default values of some Paper and Spigot configuration items, see [Modify List](./DefaultModifiedConfigList.md) for details**
 
