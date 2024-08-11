@@ -182,7 +182,7 @@ index d5e8dd947cb29343074df8074e791357c72e7f7b..1bfb318630bb66c373b55719e0246658
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, callbacks, flush);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 8056ddc2164789ac8efab4f5bf2069c4768f7657..06e8fd7d5fda88ff4b4ba1112e8457b2c94727f7 100644
+index 418f2d2483bb1d79ef7da25539b42c5c73cd93b6..f5f41843c4e39eae001d31851d1946874166d0a0 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -449,6 +449,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -6669,10 +6669,10 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ed0868bf1c8d976b738735ca4ebb4af4903e3b0e
+index 0000000000000000000000000000000000000000..91afc27c8edf64089a0a187f960dced748d98e6f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,151 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
 +import io.papermc.paper.threadedregions.*;
@@ -6767,11 +6767,8 @@ index 0000000000000000000000000000000000000000..ed0868bf1c8d976b738735ca4ebb4af4
 +        if (LoggerRegistry.__packets) {
 +            LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
 +        }
-+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-+            System.out.println("Updating HUD for ");
-+            p.getBukkitEntity().getScheduler().run(CarpetServer.PLUGIN, e -> {
-+                final ServerPlayer player = (ServerPlayer) e;
-+                System.out.println("Updating HUD for " + player.getScoreboardName());
++        for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
++            player.getBukkitEntity().getScheduler().run(CarpetServer.PLUGIN, task -> {
 +                String playerName = player.getScoreboardName();
 +                if (LoggerRegistry.__tps) {
 +                    final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentRegion = TickRegionScheduler.getCurrentRegion();

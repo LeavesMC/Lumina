@@ -6,6 +6,19 @@ Subject: [PATCH] Leaves Protocol core
 This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves)
 License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
 
+diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
+index d306f911757a4d556c82c0070d4837db87afc497..671616b35efe03bfa97b5f52abccdd47da06ef75 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
++++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
+@@ -29,6 +29,8 @@ public class FoliaGlobalRegionScheduler implements GlobalRegionScheduler {
+             }
+         }
+ 
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); // Leaves - protocol
++
+         if (run == null) {
+             return;
+         }
 diff --git a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 index 0211311b3b63bcdea7ebf7bcb24629674c771402..c05a72f4928ee2cec28a61ed06a9079d52634900 100644
 --- a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
@@ -35,19 +48,6 @@ index 0211311b3b63bcdea7ebf7bcb24629674c771402..c05a72f4928ee2cec28a61ed06a9079d
              }
          };
      }
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 418f2d2483bb1d79ef7da25539b42c5c73cd93b6..8056ddc2164789ac8efab4f5bf2069c4768f7657 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1881,6 +1881,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
- 
-         this.profiler.popPush("server gui refresh");
- 
-+        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); // Leaves - protocol
-+
-         if (region == null) for (int i = 0; i < this.tickables.size(); ++i) {  // Folia - region threading - TODO WTF is this?
-             ((Runnable) this.tickables.get(i)).run();
-         }
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 index 5224c4ca63d47cdf0adefc0254e15bf5a0fba2fc..bbb856fb9b4082d752a6761bb5196fffa48fbd6c 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
