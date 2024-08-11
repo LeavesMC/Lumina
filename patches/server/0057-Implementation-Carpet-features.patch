@@ -7566,15 +7566,20 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4c031fe51c961e61b04504e8744b5a46e7ef1961
+index 0000000000000000000000000000000000000000..1c047b201adb0955c6b7d184bd589383cb1b5f92
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,234 @@
 +package org.leavesmc.lumina.carpet.patches;
 +
 +import com.mojang.authlib.GameProfile;
++import io.papermc.paper.threadedregions.RegionizedWorldData;
++import io.papermc.paper.threadedregions.ThreadedRegionizer;
++import io.papermc.paper.threadedregions.TickRegionScheduler;
++import io.papermc.paper.threadedregions.TickRegions;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.UUIDUtil;
++import net.minecraft.network.Connection;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.network.chat.contents.TranslatableContents;
 +import net.minecraft.network.protocol.PacketFlow;
@@ -7649,6 +7654,7 @@ index 0000000000000000000000000000000000000000..4c031fe51c961e61b04504e8744b5a46
 +        ServerLevel worldIn = ((CraftWorld) world).getHandle().getLevel();
 +        Bukkit.getRegionScheduler().run(CarpetServer.PLUGIN, pos, task -> {
 +            EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, finalGameProfile, ClientInformation.createDefault(), false);
++            instance.isRealPlayer = true;
 +            instance.fixStartingPosition = () -> instance.moveTo(pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch);
 +            server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), instance, new CommonListenerCookie(finalGameProfile, 0, instance.clientInformation(), false), Optional.empty(), username, new Location(world, pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch));
 +            instance.setHealth(20.0F);
