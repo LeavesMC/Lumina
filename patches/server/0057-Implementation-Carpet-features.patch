@@ -34,6 +34,178 @@ SOFTWARE.
 
 plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
+diff --git a/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java b/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..003a869e730000c498e0546e9ce692af4323b819
+--- /dev/null
++++ b/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java
+@@ -0,0 +1,166 @@
++/*******************************************************************************
++ * Copyright 2018, 2020 Jorel Ali (Skepter) - MIT License
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy of
++ * this software and associated documentation files (the "Software"), to deal in
++ * the Software without restriction, including without limitation the rights to
++ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
++ * the Software, and to permit persons to whom the Software is furnished to do so,
++ * subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in all
++ * copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
++ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
++ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
++ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *******************************************************************************/
++package dev.jorel.commandapi.exceptions;
++
++import java.io.PrintStream;
++import java.io.PrintWriter;
++
++import com.mojang.brigadier.Message;
++import com.mojang.brigadier.exceptions.CommandExceptionType;
++import com.mojang.brigadier.exceptions.CommandSyntaxException;
++
++/**
++ * A wrapper for the CommandSyntaxException so other developers don't have to
++ * import Mojang's brigadier
++ */
++public class WrapperCommandSyntaxException extends RuntimeException { // Lumina - Exception -> RuntimeException
++
++    /**
++     * The Brigadier CommandSyntaxException that this class wraps
++     */
++    private final CommandSyntaxException exception;
++
++    /**
++     * Creates a WrapperCommandSyntaxException
++     *
++     * @param exception the exception to wrap
++     */
++    public WrapperCommandSyntaxException(CommandSyntaxException exception) {
++        this.exception = exception;
++    }
++
++    /**
++     * Returns the wrapped CommandSyntaxException
++     *
++     * @return the wrapped CommandSyntaxException
++     */
++    public CommandSyntaxException getException() {
++        return this.exception;
++    }
++
++    // Overrides. Because this exception is effectively a CommandSyntaxException, we
++    // pass all Exception-related methods to this.exception
++
++    /**
++     * Returns the message together with the position it occurred on and some
++     * context.
++     *
++     * @return the message together with the position it occurred on and some
++     *         context
++     */
++    @Override
++    public String getMessage() {
++        return this.exception.getMessage();
++    }
++
++    @Override
++    public synchronized Throwable getCause() {
++        return this.exception.getCause();
++    }
++
++    @Override
++    public StackTraceElement[] getStackTrace() {
++        return this.exception.getStackTrace();
++    }
++
++    @Override
++    public synchronized Throwable initCause(Throwable cause) {
++        return this.exception.initCause(cause);
++    }
++
++    @Override
++    public String getLocalizedMessage() {
++        return this.exception.getLocalizedMessage();
++    }
++
++    @Override
++    public void printStackTrace() {
++        this.exception.printStackTrace();
++    }
++
++    @Override
++    public void printStackTrace(PrintStream s) {
++        this.exception.printStackTrace(s);
++    }
++
++    @Override
++    public void printStackTrace(PrintWriter s) {
++        this.exception.printStackTrace(s);
++    }
++
++    @Override
++    public void setStackTrace(StackTraceElement[] stackTrace) {
++        this.exception.setStackTrace(stackTrace);
++    }
++
++    // CommandSyntaxException implemented methods
++
++    /**
++     * Returns the raw message, not including positional information
++     *
++     * @return the raw message without any formatting or positional information
++     */
++    public Message getRawMessage() {
++        return this.exception.getRawMessage();
++    }
++
++    /**
++     * Returns some contextual information about where the error occurred.
++     * <p>
++     * This is done by returning a few characters
++     * ({@value CommandSyntaxException#CONTEXT_AMOUNT}) of the faulty
++     * {@link #getInput()} and a pointer to where the exception happened.
++     *
++     * @return some contextual information about where the error occurred or null if
++     *         {@link #getInput()} or {@link #getCursor()} are null/0.
++     */
++    public String getContext() {
++        return this.exception.getContext();
++    }
++
++    /**
++     * Returns the type of the exception.
++     *
++     * @return the type of the exception
++     */
++    public CommandExceptionType getType() {
++        return this.exception.getType();
++    }
++
++    /**
++     * Returns the input that caused the CommandSyntaxException.
++     *
++     * @return the input that caused the CommandSyntaxException or null if not set
++     */
++    public String getInput() {
++        return this.exception.getInput();
++    }
++
++    /**
++     * Returns the cursor position.
++     *
++     * @return the cursor position or -1 if not set
++     */
++    public int getCursor() {
++        return this.exception.getCursor();
++    }
++
++}
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 index 2e625f0345d79a8c8fe709b083f43460badc82bc..0061738b5185419976d1d7564b4d9d8cde865912 100644
 --- a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
@@ -4165,10 +4337,10 @@ index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c939c99aa128d70d9a861178b5b69c1e07c8cd42
+index 0000000000000000000000000000000000000000..a1e20094942abb3879ddd7a726ddb5bca3b22ddb
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,94 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4229,7 +4401,6 @@ index 0000000000000000000000000000000000000000..c939c99aa128d70d9a861178b5b69c1e
 +
 +    @SuppressWarnings("SameParameterValue")
 +    private static void listAllCounters(CommandSender sender, boolean realtime) {
-+        MinecraftServer server = MinecraftServer.getServer();
 +        for (net.minecraft.network.chat.Component message : HopperCounter.formatAll(MinecraftServer.getServer(), realtime)) {
 +            sender.sendMessage(ComponentUtils.toAdventure(message));
 +        }
@@ -4442,10 +4613,10 @@ index 0000000000000000000000000000000000000000..df59f4c3280ed0f4ef33ad24ca9dee8a
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b8cb8a5cc17db7e0e5f2ba381b1ccbf2b720cce6
+index 0000000000000000000000000000000000000000..0d26589b452d76147f4ad61927823fa5be7f28c8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/LogCommand.java
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,167 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4455,7 +4626,6 @@ index 0000000000000000000000000000000000000000..b8cb8a5cc17db7e0e5f2ba381b1ccbf2
 +import dev.jorel.commandapi.arguments.StringArgument;
 +import dev.jorel.commandapi.executors.CommandArguments;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
@@ -4542,7 +4712,6 @@ index 0000000000000000000000000000000000000000..b8cb8a5cc17db7e0e5f2ba381b1ccbf2
 +    }
 +
 +    private static void unsubFromAll(CommandSender sender, Player target) {
-+        net.minecraft.world.entity.player.Player player = ((CraftPlayer) target).getHandle();
 +        for (String logName : LoggerRegistry.getLoggerNames()) {
 +            LoggerRegistry.unsubscribePlayer(target.getName(), logName);
 +        }
@@ -4617,10 +4786,10 @@ index 0000000000000000000000000000000000000000..b8cb8a5cc17db7e0e5f2ba381b1ccbf2
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f6422b87c091
+index 0000000000000000000000000000000000000000..f673832378af9529a2eb6fe18c25cda7398a5f61
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PerimeterInfoCommand.java
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,78 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
@@ -4655,9 +4824,6 @@ index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f642
 +                new EntityTypeArgument("mob")
 +        ).executes((sender, args) -> {
 +            Location location = getLocationWithDefaultWorld(sender, args, "center");
-+            if (location == null) {
-+                return;
-+            }
 +            Bukkit.getRegionScheduler().run(
 +                    CarpetServer.PLUGIN,
 +                    location,
@@ -4683,7 +4849,9 @@ index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f642
 +            });
 +            if (!(baseEntity instanceof Mob)) {
 +                sender.sendMessage(text("/perimeterinfo requires a mob entity to test against.").color(RED));
-+                if (baseEntity != null) baseEntity.discard();
++                if (baseEntity != null) {
++                    baseEntity.discard();
++                }
 +                return;
 +            }
 +            entityliving = (Mob) baseEntity;
@@ -4702,13 +4870,14 @@ index 0000000000000000000000000000000000000000..ed445c468541c6c7f9198cca3b64f642
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a5f46a475
+index 0000000000000000000000000000000000000000..9b947732094ffccad603ad1dcc066766e72ed12b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,466 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import com.mojang.authlib.GameProfile;
++import dev.jorel.commandapi.CommandAPIBukkit;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
 +import dev.jorel.commandapi.executors.CommandArguments;
@@ -4732,9 +4901,7 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +import org.bukkit.permissions.ServerOperator;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import org.jetbrains.annotations.Nullable;
 +import org.leavesmc.lumina.carpet.CarpetConfig;
-+import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
 +import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
 +import org.leavesmc.lumina.utils.PermissionUtils;
@@ -4774,12 +4941,11 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +        registerSubCommandMove();
 +        createBase("shadow")
 +                .executes((sender, args) -> {
-+                    if (!canManipulate(sender, args, "shadow")) return;
-+
-+                    ServerPlayer player = getOnlineServerPlayer(sender, args);
-+                    if (player == null) {
++                    if (!canManipulate(sender, args, "shadow")) {
 +                        return;
 +                    }
++
++                    ServerPlayer player = getOnlineServerPlayer(args);
 +                    if (player instanceof EntityPlayerMPFake) {
 +                        sender.sendMessage(text("Cannot shadow fake players").color(RED));
 +                        return;
@@ -4918,10 +5084,7 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +                // Force override flying to false for survival-like players, or they will fly too
 +                flying = false;
 +            }
-+            String playerName = getPlayerName(sender, args);
-+            if (playerName == null) {
-+                return;
-+            }
++            String playerName = getPlayerName(args);
 +            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
 +                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED));
 +                return;
@@ -4938,10 +5101,7 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +        }
 +
 +        private static boolean canSpawn(CommandSender sender, CommandArguments args) {
-+            String playerName = getPlayerName(sender, args);
-+            if (playerName == null) {
-+                return false;
-+            }
++            String playerName = getPlayerName(args);
 +            MinecraftServer server = MinecraftServer.getServer();
 +            PlayerList manager = server.getPlayerList();
 +
@@ -4981,19 +5141,13 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +            if (!canKill(sender, args)) {
 +                return;
 +            }
-+            Player player = getOnlinePlayer(sender, args);
-+            if (player == null) {
-+                return;
-+            }
++            Player player = getOnlinePlayer(args);
 +            ((CraftPlayer) player).getHandle().kill();
 +            sender.sendMessage(text("Player " + player.getName() + " has been killed").color(GREEN));
 +        }
 +
 +        private static boolean canKill(CommandSender sender, CommandArguments args) {
-+            ServerPlayer player = getOnlineServerPlayer(sender, args);
-+            if (player == null) {
-+                sender.sendMessage(text("No such player").color(RED));
-+            }
++            ServerPlayer player = getOnlineServerPlayer(args);
 +            if (player instanceof EntityPlayerMPFake) {
 +                return canManipulate(sender, args, "kill");
 +            }
@@ -5032,9 +5186,6 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +                        manipulate(sender, args, "look",
 +                                ap -> {
 +                                    Location location = getLocationWithDefaultWorld(sender, args, "position");
-+                                    if (location == null) {
-+                                        return;
-+                                    }
 +                                    ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
 +                                })
 +                ).register("carpet");
@@ -5114,8 +5265,7 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +        if (!canManipulate(sender, args, name)) {
 +            return;
 +        }
-+        // noinspection DataFlowIssue
-+        action.accept(getOnlineServerPlayer(sender, args).getActionPack());
++        action.accept(getOnlineServerPlayer(args).getActionPack());
 +    }
 +
 +    private static CommandAPICommand createBase(String literal) {
@@ -5136,10 +5286,7 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +    private static boolean canManipulate(@NotNull CommandSender sender, CommandArguments args, String name) {
 +        String permission = createPlayerCommandPermission(name);
 +        if (sender.hasPermission(permission)) {
-+            Player player = getOnlinePlayer(sender, args);
-+            if (player == null) {
-+                return false;
-+            }
++            Player player = getOnlinePlayer(args);
 +            if (sender == player || player instanceof EntityPlayerMPFake) {
 +                return true;
 +            }
@@ -5153,29 +5300,28 @@ index 0000000000000000000000000000000000000000..8cc6563cbc4eef92bc1c37f583ae041a
 +        return false;
 +    }
 +
-+    private static @Nullable Player getOnlinePlayer(CommandSender sender, CommandArguments args) {
-+        String playerName = getPlayerName(sender, args);
-+        if (playerName == null) {
-+            sender.sendMessage(text("No such player").color(RED));
-+            return null;
++    private static @NotNull Player getOnlinePlayer(CommandArguments args) {
++        String playerName = getPlayerName(args);
++        Player player = Bukkit.getPlayer(playerName);
++        if (player == null) {
++            throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
 +        }
-+        return Bukkit.getPlayer(playerName);
++        return player;
 +    }
 +
-+    private static @Nullable ServerPlayer getOnlineServerPlayer(CommandSender sender, CommandArguments args) {
-+        String playerName = getPlayerName(sender, args);
-+        if (playerName == null) {
-+            sender.sendMessage(text("No such player").color(RED));
-+            return null;
++    private static @NotNull ServerPlayer getOnlineServerPlayer(CommandArguments args) {
++        String playerName = getPlayerName(args);
++        ServerPlayer player = MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
++        if (player == null) {
++            throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
 +        }
-+        return MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
++        return player;
 +    }
 +
-+    private static @Nullable String getPlayerName(CommandSender sender, @NotNull CommandArguments args) {
++    private static @NotNull String getPlayerName(@NotNull CommandArguments args) {
 +        String playerName = (String) args.get("player");
 +        if (playerName == null) {
-+            sender.sendMessage(text("Require player name").color(RED));
-+            return null;
++            throw CommandAPIBukkit.failWithAdventureComponent(text("Require player name").color(RED));
 +        }
 +        String prefix = CarpetConfig.configModule.fakePlayerNamePrefix;
 +        String suffix = CarpetConfig.configModule.fakePlayerNameSuffix;
@@ -10167,12 +10313,14 @@ index 0000000000000000000000000000000000000000..9c320400105d4433d83e1d06fc9d19dc
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java b/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..148d834f15700cfd9e04220722a957156157e82c
+index 0000000000000000000000000000000000000000..a9d0f247f3834626767688c9298ad0b03557000e
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,62 @@
 +package org.leavesmc.lumina.utils;
 +
++import dev.jorel.commandapi.CommandAPIBukkit;
++import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 +import dev.jorel.commandapi.executors.CommandArguments;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.server.level.ServerLevel;
@@ -10211,11 +10359,10 @@ index 0000000000000000000000000000000000000000..148d834f15700cfd9e04220722a95715
 +        return getLevel(entity.getWorld());
 +    }
 +
-+    public static @Nullable Location getLocationWithDefaultWorld(@NotNull CommandSender sender, @NotNull CommandArguments args, String key) {
++    public static @NotNull Location getLocationWithDefaultWorld(@NotNull CommandSender sender, @NotNull CommandArguments args, String key) throws WrapperCommandSyntaxException {
 +        Location location = (Location) args.get(key);
 +        if (location == null) {
-+            sender.sendMessage(text("Must specify " + key + " location.").color(RED));
-+            return null;
++            throw CommandAPIBukkit.failWithAdventureComponent(text("Must specify " + key + " location.").color(RED));
 +        }
 +        World world = getSenderWorldOrDefault(sender);
 +        if (location.getWorld() == null) {
