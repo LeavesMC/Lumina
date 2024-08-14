@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Wed, 14 Aug 2024 21:51:45 +0800
+Subject: [PATCH] Rewrite Nether Portal logic
+
+
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..f54f015f88ac9405356e6366cd145dfcdf1dfa3b 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1021,6 +1021,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
+         io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // Folia - region threading
+         io.papermc.paper.threadedregions.RegionizedWorldData worldData = this.getCurrentWorldData(); // Folia - region threading
++        // Lumina start - Rewrite Nether Portal logic
++        BlockState oldState = this.getBlockState(pos);
++        if (oldState.getBukkitMaterial().equals(org.bukkit.Material.NETHER_PORTAL) || state.getBukkitMaterial().equals(org.bukkit.Material.NETHER_PORTAL)) System.out.println(pos + " " + oldState + " -> " + state);
++        // Lumina end - Rewrite Nether Portal logic
+         // CraftBukkit start - tree generation
+         if (worldData.captureTreeGeneration) { // Folia - region threading
+             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
