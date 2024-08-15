@@ -4,6 +4,18 @@ Date: Wed, 14 Aug 2024 21:51:45 +0800
 Subject: [PATCH] Rewrite Nether Portal logic
 
 
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index f521e0bf33dd21fa840315fd0268612cd1be6b8f..ab8630d6c56cfcbdb66f2045c234e9d219dd97b7 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -223,6 +223,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         // Paper end - initialize global and world-defaults configuration
+         org.leavesmc.lumina.config.LuminaConfig.setup(); //Lumina - load config file
++        org.leavesmc.lumina.utils.PortalPoiManager.INSTANCE.init(); // Lumina - initialize portal poi manager
+         // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
+         if (this.convertOldUsers()) {
+             this.getProfileCache().save(false); // Paper
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
 index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..8731cebf72febd84822284914bbf76075e6b4b0b 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
@@ -24,3 +36,21 @@ index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..8731cebf72febd84822284914bbf7607
          if (poiRecord == null) {
              LOGGER.error("POI data mismatch: never registered at {}", pos);
          } else {
+diff --git a/src/main/java/org/leavesmc/lumina/utils/PortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/PortalPoiManager.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f2f8fa494f8a39d1a824d2103ca5f713897d485d
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/utils/PortalPoiManager.java
+@@ -0,0 +1,12 @@
++package org.leavesmc.lumina.utils;
++
++public class PortalPoiManager {
++    private PortalPoiManager() {
++    }
++
++    public static final PortalPoiManager INSTANCE = new PortalPoiManager();
++
++    public void init() {
++
++    }
++}
