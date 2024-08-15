@@ -4,18 +4,23 @@ Date: Wed, 14 Aug 2024 21:51:45 +0800
 Subject: [PATCH] Rewrite Nether Portal logic
 
 
-diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..f54f015f88ac9405356e6366cd145dfcdf1dfa3b 100644
---- a/src/main/java/net/minecraft/world/level/Level.java
-+++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -1021,6 +1021,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
-     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
-         io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // Folia - region threading
-         io.papermc.paper.threadedregions.RegionizedWorldData worldData = this.getCurrentWorldData(); // Folia - region threading
-+        // Lumina start - Rewrite Nether Portal logic
-+        BlockState oldState = this.getBlockState(pos);
-+        if (oldState.getBukkitMaterial().equals(org.bukkit.Material.NETHER_PORTAL) || state.getBukkitMaterial().equals(org.bukkit.Material.NETHER_PORTAL)) System.out.println(pos + " " + oldState + " -> " + state);
-+        // Lumina end - Rewrite Nether Portal logic
-         // CraftBukkit start - tree generation
-         if (worldData.captureTreeGeneration) { // Folia - region threading
-             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
+index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..8731cebf72febd84822284914bbf76075e6b4b0b 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
+@@ -78,6 +78,7 @@ public class PoiSection {
+     private boolean add(PoiRecord poi) {
+         BlockPos blockPos = poi.getPos();
+         Holder<PoiType> holder = poi.getPoiType();
++        if (holder.is(PoiTypes.NETHER_PORTAL)) System.out.println("Adding nether portal at " + blockPos); // Lumina - rewrite nether portal logic
+         short s = SectionPos.sectionRelativePos(blockPos);
+         PoiRecord poiRecord = this.records.get(s);
+         if (poiRecord != null) {
+@@ -95,6 +96,7 @@ public class PoiSection {
+ 
+     public void remove(BlockPos pos) {
+         PoiRecord poiRecord = this.records.remove(SectionPos.sectionRelativePos(pos));
++        if (poiRecord.getPoiType().is(PoiTypes.NETHER_PORTAL)) System.out.println("Adding nether portal at " + pos); // Lumina - rewrite nether portal logic
+         if (poiRecord == null) {
+             LOGGER.error("POI data mismatch: never registered at {}", pos);
+         } else {
