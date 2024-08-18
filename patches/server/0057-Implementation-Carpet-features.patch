@@ -6816,10 +6816,10 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..91afc27c8edf64089a0a187f960dced748d98e6f
+index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b2bb7b9ac
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,161 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
 +import io.papermc.paper.threadedregions.*;
@@ -6868,6 +6868,8 @@ index 0000000000000000000000000000000000000000..91afc27c8edf64089a0a187f960dced7
 +    public static final Map<String, Component> scarpet_headers = new HashMap<>();
 +
 +    public static final Map<String, Component> scarpet_footers = new HashMap<>();
++
++    private static final Map<String, Boolean> shouldSendClear = new HashMap<>();
 +
 +    public static void resetScarpetHUDs() {
 +        scarpet_headers.clear();
@@ -6940,11 +6942,19 @@ index 0000000000000000000000000000000000000000..91afc27c8edf64089a0a187f960dced7
 +                }
 +                Component scarpetFOoter = scarpet_footers.get(player.getScoreboardName());
 +                if (scarpetFOoter != null) HUDController.addMessage(player, scarpetFOoter);
-+
++                List<Component> forSend = player_huds.getOrDefault(player, List.of());
++                if (forSend.isEmpty() && !shouldSendClear.getOrDefault(player.getScoreboardName(), false)) {
++                    return;
++                } else {
++                    shouldSendClear.put(player.getScoreboardName(), true);
++                }
++                if (forSend.isEmpty()) {
++                    shouldSendClear.put(player.getScoreboardName(), false);
++                }
 +                // Bukkit.getGlobalRegionScheduler().execute(CarpetServer.PLUGIN, () -> {
 +                ClientboundTabListPacket packet = new ClientboundTabListPacket(
 +                        scarpet_headers.getOrDefault(player.getScoreboardName(), Component.literal("")),
-+                        Messenger.c(player_huds.getOrDefault(player, List.of()).toArray(new Object[0]))
++                        Messenger.c(forSend.toArray(new Object[0]))
 +                );
 +                player.connection.send(packet);
 +                // });
