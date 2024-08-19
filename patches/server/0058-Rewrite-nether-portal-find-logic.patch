@@ -181,10 +181,10 @@ index 38c6403c780e276910cb0c30cb12b066249be81e..ce9f1e09b46a70e182e203399fb9f679
      // Folia end - region threading
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..99a551282b716ff2d7e5b3990f22fd584db6d638
+index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cbce90b1f3
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,120 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.core.BlockPos;
@@ -202,6 +202,8 @@ index 0000000000000000000000000000000000000000..99a551282b716ff2d7e5b3990f22fd58
 +    private final int maxFindSubChunkDistance;
 +    private final int maxFindDistance;
 +    private final ConcurrentMap<Vec3i, Set<Vec3i>> poiData = new ConcurrentHashMap<>();
++    private final Map<Integer, Integer> overworldMaxDistanceSqr = Map.of(); // TODO
++    private final Map<Integer, Integer> netherMaxDistanceSqr = Map.of(); // TODO
 +
 +    public LevelNetherPortalPoiManager(boolean isNether) {
 +        this.maxFindSubChunkDistance = isNether ? 1 : 8;
