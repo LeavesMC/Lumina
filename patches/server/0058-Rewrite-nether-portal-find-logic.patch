@@ -24,167 +24,12 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..6ff4d767c6bf4e0f9908069834dc97f4
          //this.updateSkyBrightness(); // Folia - region threading - delay until first tick
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
-diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 38c6403c780e276910cb0c30cb12b066249be81e..ce9f1e09b46a70e182e203399fb9f679f4bc4e18 100644
---- a/src/main/java/net/minecraft/world/entity/Entity.java
-+++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -4493,71 +4493,94 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-         final java.util.function.Consumer<Entity> tpComplete = type == PortalType.END && destination.getTypeKey() == LevelStem.END ?
-               e -> ServerLevel.makeObsidianPlatform(destination, null, ServerLevel.END_SPAWN_POINT) : teleportComplete;
-         // Kaiiju end
--
--        Vec3 initialPosition = this.position();
--        ChunkPos initialPositionChunk = new ChunkPos(
--            io.papermc.paper.util.CoordinateUtils.getChunkX(initialPosition),
--            io.papermc.paper.util.CoordinateUtils.getChunkZ(initialPosition)
--        );
--
--        // first, remove entity/passengers from world
--        EntityTreeNode passengerTree = this.detachPassengers();
--        List<EntityTreeNode> fullPassengerTree = passengerTree.getFullTree();
--        ServerLevel originWorld = (ServerLevel)this.level;
--
--        for (EntityTreeNode node : fullPassengerTree) {
--            node.root.preChangeDimension();
--            node.root.prePortalLogic(originWorld, destination, type);
--        }
--
--        for (EntityTreeNode node : fullPassengerTree) {
--            // we will update pos/rot/speed later
--            node.root = node.root.transformForAsyncTeleport(destination, null, null, null, null);
--            // set portal cooldown
--            node.root.setPortalCooldown();
--        }
--
--        // ensure the region is always ticking in case of a shutdown
--        // otherwise, the shutdown will not be able to complete the shutdown as it requires a ticking region
--        Long teleportHoldId = Long.valueOf(TELEPORT_HOLD_TICKET_GEN.getAndIncrement());
--        originWorld.chunkSource.addTicketAtLevel(
--            TicketType.TELEPORT_HOLD_TICKET, initialPositionChunk,
--            io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL,
--            teleportHoldId
--        );
--
--        ServerLevel.PendingTeleport beforeFindDestination = new ServerLevel.PendingTeleport(passengerTree, initialPosition);
--        originWorld.pushPendingTeleport(beforeFindDestination);
--
--        ca.spottedleaf.concurrentutil.completable.Completable<PortalInfo> portalInfoCompletable
--            = new ca.spottedleaf.concurrentutil.completable.Completable<>();
--
--        portalInfoCompletable.addWaiter((PortalInfo info, Throwable throwable) -> {
--            if (!originWorld.removePendingTeleport(beforeFindDestination)) {
--                // the shutdown thread has placed us back into the origin world at the original position
--                // we just have to abandon this teleport to prevent duplication
--                return;
-+        // Lumina start - rewrite nether portal find logic
-+        try {
-+            if(true) throw new org.leavesmc.lumina.utils.LevelNetherPortalPoiManager.UnloadedSubChunkException(); // WIP
-+            BlockPos pos = this.blockPosition;
-+            BlockPos to;
-+            if(destination.getTypeKey() == LevelStem.NETHER) {
-+                to = new BlockPos(net.minecraft.util.Mth.floor(pos.getX() / 8.0), pos.getY(), net.minecraft.util.Mth.floor(pos.getZ() / 8.0));
-+            } else {
-+                to = new BlockPos(net.minecraft.util.Mth.floor(pos.getX() * 8.0), pos.getY(), net.minecraft.util.Mth.floor(pos.getZ() * 8.0));
-+            }
-+            net.minecraft.core.Vec3i poi = destination.netherPortalPoiManager.findClosestPoi(to);
-+            if (poi == null) { // NOT FOUND
-+                if (this instanceof ServerPlayer){
-+                    throw new org.leavesmc.lumina.utils.LevelNetherPortalPoiManager.UnloadedSubChunkException();
-+                } else {
-+                    return false;
-+                }
-             }
--            originWorld.chunkSource.removeTicketAtLevel(
--                TicketType.TELEPORT_HOLD_TICKET, initialPositionChunk,
--                io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL,
--                teleportHoldId
-+            System.out.println("Found Cached POI: " + poi);
-+            this.teleportAsync(destination, new Vec3(poi.getX(), poi.getY(), poi.getZ()), yRot, xRot, Vec3.ZERO,
-+                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.NETHER_PORTAL,
-+                    TELEPORT_FLAG_TELEPORT_PASSENGERS | TELEPORT_FLAG_LOAD_CHUNK,
-+                    teleportComplete);
-+
-+        } catch (org.leavesmc.lumina.utils.LevelNetherPortalPoiManager.UnloadedSubChunkException ignored) {
-+            Vec3 initialPosition = this.position();
-+            ChunkPos initialPositionChunk = new ChunkPos(
-+                    io.papermc.paper.util.CoordinateUtils.getChunkX(initialPosition),
-+                    io.papermc.paper.util.CoordinateUtils.getChunkZ(initialPosition)
-             );
--            // adjust passenger tree to final pos
-+
-+            // first, remove entity/passengers from world
-+            EntityTreeNode passengerTree = this.detachPassengers();
-+            List<EntityTreeNode> fullPassengerTree = passengerTree.getFullTree();
-+            ServerLevel originWorld = (ServerLevel)this.level;
-+
-             for (EntityTreeNode node : fullPassengerTree) {
--                node.root.transform(info.pos, Float.valueOf(info.yRot), Float.valueOf(info.xRot), info.speed);
-+                node.root.preChangeDimension();
-+                node.root.prePortalLogic(originWorld, destination, type);
-             }
- 
--            // place
--            passengerTree.root.placeInAsync(
--                originWorld, destination, Entity.TELEPORT_FLAG_LOAD_CHUNK | (takePassengers ? Entity.TELEPORT_FLAG_TELEPORT_PASSENGERS : 0L),
--                passengerTree, tpComplete // Kaiiju - vanilla end teleportation
-+            for (EntityTreeNode node : fullPassengerTree) {
-+                // we will update pos/rot/speed later
-+                node.root = node.root.transformForAsyncTeleport(destination, null, null, null, null);
-+                // set portal cooldown
-+                node.root.setPortalCooldown();
-+            }
-+
-+            // ensure the region is always ticking in case of a shutdown
-+            // otherwise, the shutdown will not be able to complete the shutdown as it requires a ticking region
-+            Long teleportHoldId = Long.valueOf(TELEPORT_HOLD_TICKET_GEN.getAndIncrement());
-+            originWorld.chunkSource.addTicketAtLevel(
-+                    TicketType.TELEPORT_HOLD_TICKET, initialPositionChunk,
-+                    io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL,
-+                    teleportHoldId
-             );
--        });
- 
-+            ServerLevel.PendingTeleport beforeFindDestination = new ServerLevel.PendingTeleport(passengerTree, initialPosition);
-+            originWorld.pushPendingTeleport(beforeFindDestination);
-+            ca.spottedleaf.concurrentutil.completable.Completable<PortalInfo> portalInfoCompletable
-+                    = new ca.spottedleaf.concurrentutil.completable.Completable<>();
- 
--        passengerTree.root.findOrCreatePortalAsync(originWorld, destination, type, portalInfoCompletable);
-+            portalInfoCompletable.addWaiter((PortalInfo info, Throwable throwable) -> {
-+                if (!originWorld.removePendingTeleport(beforeFindDestination)) {
-+                    // the shutdown thread has placed us back into the origin world at the original position
-+                    // we just have to abandon this teleport to prevent duplication
-+                    return;
-+                }
-+                originWorld.chunkSource.removeTicketAtLevel(
-+                        TicketType.TELEPORT_HOLD_TICKET, initialPositionChunk,
-+                        io.papermc.paper.chunk.system.scheduling.ChunkHolderManager.MAX_TICKET_LEVEL,
-+                        teleportHoldId
-+                );
-+                // adjust passenger tree to final pos
-+                for (EntityTreeNode node : fullPassengerTree) {
-+                    node.root.transform(info.pos, Float.valueOf(info.yRot), Float.valueOf(info.xRot), info.speed);
-+                }
- 
-+                // place
-+                passengerTree.root.placeInAsync(
-+                        originWorld, destination, Entity.TELEPORT_FLAG_LOAD_CHUNK | (takePassengers ? Entity.TELEPORT_FLAG_TELEPORT_PASSENGERS : 0L),
-+                        passengerTree, tpComplete // Kaiiju - vanilla end teleportation
-+                );
-+            });
-+
-+            passengerTree.root.findOrCreatePortalAsync(originWorld, destination, type, portalInfoCompletable);
-+        }
-+        // Lumina end - rewrite nether portal find logic
-         return true;
-     }
-     // Folia end - region threading
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cbce90b1f3
+index 0000000000000000000000000000000000000000..8ebfb8494c44d202ff9f098a408986212ecd8d0a
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,183 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.core.BlockPos;
@@ -201,11 +46,11 @@ index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cb
 +    private final int minBuildSubChunkY;
 +    private final int maxFindSubChunkDistance;
 +    private final int maxFindDistance;
++    private final boolean isNether;
 +    private final ConcurrentMap<Vec3i, Set<Vec3i>> poiData = new ConcurrentHashMap<>();
-+    private final Map<Integer, Integer> overworldMaxDistanceSqr = Map.of(); // TODO
-+    private final Map<Integer, Integer> netherMaxDistanceSqr = Map.of(); // TODO
 +
 +    public LevelNetherPortalPoiManager(boolean isNether) {
++        this.isNether = isNether;
 +        this.maxFindSubChunkDistance = isNether ? 1 : 8;
 +        this.maxFindDistance = isNether ? 16 : 128;
 +        int minBuildHeight = isNether ? 0 : -64;
@@ -229,23 +74,20 @@ index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cb
 +    }
 +
 +    public Set<Vec3i> getSubChunkData(Vec3i subChunkPos) {
-+        Set<Vec3i> result = poiData.get(subChunkPos);
-+        if (result == null) {
-+            result = new HashSet<>();
-+           throw new UnloadedSubChunkException();
-+        }
-+        return result;
++        return poiData.getOrDefault(subChunkPos, Set.of());
 +    }
 +
-+    public Vec3i findClosestPoi(Vec3i center) throws UnloadedSubChunkException {
++    public Vec3i findClosestPoi(Vec3i center) {
 +        Vec3i centerSubChunk = calcSubChunkPos(center);
 +        Set<Vec3i> now = new HashSet<>();
 +        Set<Vec3i> all = new HashSet<>();
++        int n = 0;
 +        now.add(centerSubChunk);
 +        boolean shouldContinue = true;
 +        Vec3i result = null;
-+        double nowDistance = Double.MAX_VALUE;
++        double nowDistanceSqr = Double.MAX_VALUE;
 +        while (shouldContinue) {
++            n++;
 +            shouldContinue = false;
 +            Set<Vec3i> next = new HashSet<>();
 +            for (Vec3i subChunkPos : now) {
@@ -257,11 +99,11 @@ index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cb
 +                                || poi.getZ() - center.getZ() > maxFindDistance) {
 +                            continue;
 +                        }
-+                        double distance = center.distSqr(poi);
-+                        if (distance < nowDistance) {
++                        double distSqr = center.distSqr(poi);
++                        if (distSqr < nowDistanceSqr) {
 +                            result = poi;
-+                            nowDistance = distance;
-+                        } else if (distance == nowDistance) {
++                            nowDistanceSqr = distSqr;
++                        } else if (distSqr == nowDistanceSqr) {
 +                            assert result != null; // if result is null, distance = Double.MAX_VALUE != nowDistance
 +                            if (poi.getY() < result.getY()) {
 +                                result = poi;
@@ -272,6 +114,9 @@ index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cb
 +                shouldContinue = addNeighborsToNext(subChunkPos, next, all, centerSubChunk) || shouldContinue;
 +            }
 +            now = next;
++            if (getMaxDistanceSqr(n) >= nowDistanceSqr) {
++                shouldContinue = true;
++            }
 +        }
 +        return result;
 +    }
@@ -301,7 +146,70 @@ index 0000000000000000000000000000000000000000..4ea3e5126d13494b3903f5c5821660cb
 +        }
 +        return false;
 +    }
-+    
-+    public static class UnloadedSubChunkException extends RuntimeException {
++
++    private int getMaxDistanceSqr(int n) {
++        return isNether ? netherMaxDistanceSqr.get(n-1) : overworldMaxDistanceSqr.get(n-1);
 +    }
++
++    private final List<Integer> overworldMaxDistanceSqr = List.of(
++            0,
++            1,
++            2,
++            290,
++            578,
++            866,
++            1666,
++            2466,
++            3266,
++            4578,
++            5890,
++            7202,
++            9026,
++            10850,
++            12674,
++            15010,
++            17346,
++            19682,
++            22530,
++            25378,
++            28226,
++            31586,
++            34946,
++            38306,
++            42178,
++            46050,
++            49922,
++            54306,
++            58690,
++            63074,
++            67970,
++            72866,
++            77762,
++            83170,
++            88578,
++            93986,
++            99906,
++            105826,
++            111746,
++            118178
++    );
++    private final List<Integer> netherMaxDistanceSqr = List.of(
++            0,
++            1,
++            2,
++            290,
++            1090,
++            2402,
++            4226,
++            6562,
++            9410,
++            12770,
++            16642,
++            21026,
++            25922,
++            31330,
++            37250,
++            43682,
++            50626
++    );
 +}
