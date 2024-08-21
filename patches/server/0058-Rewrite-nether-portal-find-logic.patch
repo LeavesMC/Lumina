@@ -26,13 +26,12 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..6ff4d767c6bf4e0f9908069834dc97f4
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8ebfb8494c44d202ff9f098a408986212ecd8d0a
+index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281e2881824
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,182 @@
 +package org.leavesmc.lumina.utils;
 +
-+import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Vec3i;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
@@ -115,7 +114,7 @@ index 0000000000000000000000000000000000000000..8ebfb8494c44d202ff9f098a40898621
 +            }
 +            now = next;
 +            if (getMaxDistanceSqr(n) >= nowDistanceSqr) {
-+                shouldContinue = true;
++                shouldContinue = false;
 +            }
 +        }
 +        return result;
