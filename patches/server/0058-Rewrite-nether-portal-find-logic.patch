@@ -4,6 +4,18 @@ Date: Sun, 18 Aug 2024 21:44:23 +0800
 Subject: [PATCH] Rewrite nether portal find logic
 
 
+diff --git a/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java b/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
+index d72041aa814ff179e6e29a45dcd359a91d426d47..aaf2afe2f101e4b292be079a0ae64dce284ba431 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
++++ b/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
+@@ -201,6 +201,7 @@ public final class PoiChunk {
+                 // completely empty, no point in storing this
+                 continue;
+             }
++            for (net.minecraft.core.BlockPos pos : deserialized.loadedNetherPortalPoi) world.netherPortalPoiManager.addPoi(pos); // Lumina - rewrite nether portal find logic
+ 
+             readAnything = true;
+             ret.sections[sectionY - ret.minSection] = deserialized;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..6ff4d767c6bf4e0f9908069834dc97f4351d6236 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -24,12 +36,63 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..6ff4d767c6bf4e0f9908069834dc97f4
          //this.updateSkyBrightness(); // Folia - region threading - delay until first tick
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
+index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..3f2f4ae25de3ecf559bd3650290fe27d60d1d6b8 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
+@@ -30,6 +30,8 @@ public class PoiSection {
+     private final Runnable setDirty;
+     private boolean isValid;
+     public final Optional<PoiSection> noAllocateOptional = Optional.of(this); // Paper - rewrite chunk system
++    private boolean loading = false; // Lumina - rewrite nether portal find logic
++    public final Set<BlockPos> loadedNetherPortalPoi = new java.util.HashSet<>();
+ 
+     public static Codec<PoiSection> codec(Runnable updateListener) {
+         return RecordCodecBuilder.<PoiSection>create(
+@@ -56,7 +58,9 @@ public class PoiSection {
+     private PoiSection(Runnable updateListener, boolean valid, List<PoiRecord> pois) {
+         this.setDirty = updateListener;
+         this.isValid = valid;
++        this.loading = true; // Lumina - rewrite nether portal find logic
+         pois.forEach(this::add);
++        this.loading = false; // Lumina - rewrite nether portal find logic
+     }
+ 
+     public Stream<PoiRecord> getRecords(Predicate<Holder<PoiType>> predicate, PoiManager.Occupancy occupationStatus) {
+@@ -87,6 +91,7 @@ public class PoiSection {
+ 
+             Util.logAndPauseIfInIde("POI data mismatch: already registered at " + blockPos);
+         }
++        if (holder.is(PoiTypes.NETHER_PORTAL) && loading) loadedNetherPortalPoi.add(blockPos); // Lumina - rewrite nether portal find logic
+ 
+         this.records.put(s, poi);
+         this.byType.computeIfAbsent(holder, type -> Sets.newHashSet()).add(poi);
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..554a3286a1c3a55f3713507d20487b43826b731f 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1021,6 +1021,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
+         io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // Folia - region threading
+         io.papermc.paper.threadedregions.RegionizedWorldData worldData = this.getCurrentWorldData(); // Folia - region threading
++        // Lumina start - rewrite nether portal find logic
++        BlockState oldState = getBlockState(pos);
++        if (oldState.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
++            ((ServerLevel)this).netherPortalPoiManager.addPoi(pos);
++        }
++        if (state.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
++            ((ServerLevel)this).netherPortalPoiManager.removePoi(pos);
++        }
++        // Lumina end - rewrite nether portal find logic
+         // CraftBukkit start - tree generation
+         if (worldData.captureTreeGeneration) { // Folia - region threading
+             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281e2881824
+index 0000000000000000000000000000000000000000..32dced0e22d54628226faf8b33ed7fbba4d14d4e
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,183 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.core.Vec3i;
@@ -59,6 +122,7 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +    }
 +
 +    public void addPoi(Vec3i pos) {
++        System.out.println("add nether portal poi at " + (isNether ? "nether" : "overworld") +": " + pos);
 +        poiData.computeIfAbsent(
 +                calcSubChunkPos(pos),
 +                (k) -> ConcurrentHashMap.newKeySet()
