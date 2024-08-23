@@ -68,7 +68,7 @@ index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..3f2f4ae25de3ecf559bd3650290fe27d
          this.records.put(s, poi);
          this.byType.computeIfAbsent(holder, type -> Sets.newHashSet()).add(poi);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..554a3286a1c3a55f3713507d20487b43826b731f 100644
+index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..eb8799be05ca2fd92500156275947ba56c10a8f1 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -1021,6 +1021,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
@@ -78,10 +78,10 @@ index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..554a3286a1c3a55f3713507d20487b43
 +        // Lumina start - rewrite nether portal find logic
 +        BlockState oldState = getBlockState(pos);
 +        if (oldState.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
-+            ((ServerLevel)this).netherPortalPoiManager.addPoi(pos);
++            ((ServerLevel)this).netherPortalPoiManager.removePoi(pos);
 +        }
 +        if (state.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
-+            ((ServerLevel)this).netherPortalPoiManager.removePoi(pos);
++            ((ServerLevel)this).netherPortalPoiManager.addPoi(pos);
 +        }
 +        // Lumina end - rewrite nether portal find logic
          // CraftBukkit start - tree generation
@@ -89,10 +89,10 @@ index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..554a3286a1c3a55f3713507d20487b43
              // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..32dced0e22d54628226faf8b33ed7fbba4d14d4e
+index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281e2881824
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,182 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.core.Vec3i;
@@ -122,7 +122,6 @@ index 0000000000000000000000000000000000000000..32dced0e22d54628226faf8b33ed7fbb
 +    }
 +
 +    public void addPoi(Vec3i pos) {
-+        System.out.println("add nether portal poi at " + (isNether ? "nether" : "overworld") +": " + pos);
 +        poiData.computeIfAbsent(
 +                calcSubChunkPos(pos),
 +                (k) -> ConcurrentHashMap.newKeySet()
