@@ -58,7 +58,7 @@ Paper 已经优化了
 ### maxEntityCollisions
 
 请使用 `paper-world-defaults.yml` 中的 `max-entity-collisions`
-配置（此配置的默认值已经被修改，详见[Modify List](./DefaultModifiedConfigList)）
+配置（此配置的默认值已经被修改，详见[Modify List](DefaultModifiedConfigList.md)）
 
 ### pingPlayerListLimit
 

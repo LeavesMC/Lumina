@@ -58,7 +58,7 @@ Not implemented yet
 ### maxEntityCollisions
 
 Please use `max identity collisions` in` paper-world-defaults.yml`
-Configuration (The default value of this configuration has been modified, see [Modify List](./DefaultModifiedConfigList) for
+Configuration (The default value of this configuration has been modified, see [Modify List](DefaultModifiedConfigList.md) for
 details
 
 ### pingPlayerListLimit
