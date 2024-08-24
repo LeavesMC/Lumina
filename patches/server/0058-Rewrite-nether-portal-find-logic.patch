@@ -5,14 +5,14 @@ Subject: [PATCH] Rewrite nether portal find logic
 
 
 diff --git a/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java b/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
-index d72041aa814ff179e6e29a45dcd359a91d426d47..aaf2afe2f101e4b292be079a0ae64dce284ba431 100644
+index d72041aa814ff179e6e29a45dcd359a91d426d47..12f27646a7457203d0578e1acdce791df967a625 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/poi/PoiChunk.java
 @@ -201,6 +201,7 @@ public final class PoiChunk {
                  // completely empty, no point in storing this
                  continue;
              }
-+            for (net.minecraft.core.BlockPos pos : deserialized.loadedNetherPortalPoi) world.netherPortalPoiManager.addPoi(pos); // Lumina - rewrite nether portal find logic
++            world.chunkTaskScheduler.scheduleChunkTask(chunkX, chunkZ, () -> {for (net.minecraft.core.BlockPos pos : deserialized.loadedNetherPortalPoi) world.netherPortalPoiManager.addPoi(pos, world.getBlockState(pos).getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_AXIS));}, ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHEST); // Lumina - rewrite nether portal find logic
  
              readAnything = true;
              ret.sections[sectionY - ret.minSection] = deserialized;
@@ -68,31 +68,51 @@ index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..3f2f4ae25de3ecf559bd3650290fe27d
          this.records.put(s, poi);
          this.byType.computeIfAbsent(holder, type -> Sets.newHashSet()).add(poi);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..eb8799be05ca2fd92500156275947ba56c10a8f1 100644
+index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..72d71c4ad3a4a16352fd425e1203a7ce56bc1091 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -1021,6 +1021,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
-     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
-         io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // Folia - region threading
-         io.papermc.paper.threadedregions.RegionizedWorldData worldData = this.getCurrentWorldData(); // Folia - region threading
+@@ -57,6 +57,7 @@ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.border.BorderChangeListener;
+ import net.minecraft.world.level.border.WorldBorder;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 1e96806c974a9fdb574f851daea2fb67cb9ac409..0374248af0aebf5c5840f570dd79199d82c278db 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -39,6 +39,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
+ import net.minecraft.world.level.block.entity.BlockEntityType;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.gameevent.EuclideanGameEventListenerRegistry;
+ import net.minecraft.world.level.gameevent.GameEventListener;
+@@ -494,6 +495,15 @@ public class LevelChunk extends ChunkAccess {
+     public BlockState setBlockState(BlockPos blockposition, BlockState iblockdata, boolean flag, boolean doPlace) {
+         io.papermc.paper.util.TickThread.ensureTickThread(this.level, blockposition, "Updating block asynchronously"); // Folia - region threading
+         // CraftBukkit end
 +        // Lumina start - rewrite nether portal find logic
-+        BlockState oldState = getBlockState(pos);
++        BlockState oldState = getBlockState(blockposition);
 +        if (oldState.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
-+            ((ServerLevel)this).netherPortalPoiManager.removePoi(pos);
++            level.netherPortalPoiManager.removePoi(blockposition);
 +        }
-+        if (state.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
-+            ((ServerLevel)this).netherPortalPoiManager.addPoi(pos);
++        if (iblockdata.is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
++            level.netherPortalPoiManager.addPoi(blockposition, iblockdata.getValue(BlockStateProperties.HORIZONTAL_AXIS));
 +        }
 +        // Lumina end - rewrite nether portal find logic
-         // CraftBukkit start - tree generation
-         if (worldData.captureTreeGeneration) { // Folia - region threading
-             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
+         int i = blockposition.getY();
+         LevelChunkSection chunksection = this.getSection(this.getSectionIndex(i));
+         boolean flag1 = chunksection.hasOnlyAir();
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281e2881824
+index 0000000000000000000000000000000000000000..b3bed4e7c5425def2950eef08e99325b15ffaca4
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,186 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.core.Vec3i;
@@ -103,13 +123,16 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.ConcurrentMap;
 +
++import static net.minecraft.core.Direction.Axis;
++
 +public class LevelNetherPortalPoiManager {
 +    private final int maxBuildSubChunkY;
 +    private final int minBuildSubChunkY;
 +    private final int maxFindSubChunkDistance;
 +    private final int maxFindDistance;
 +    private final boolean isNether;
-+    private final ConcurrentMap<Vec3i, Set<Vec3i>> poiData = new ConcurrentHashMap<>();
++    private final ConcurrentMap<Vec3i, ConcurrentMap<Vec3i, Axis>> poiData = new ConcurrentHashMap<>();
++    private static final ConcurrentMap<Vec3i, Axis> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
 +
 +    public LevelNetherPortalPoiManager(boolean isNether) {
 +        this.isNether = isNether;
@@ -121,22 +144,23 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +        this.maxBuildSubChunkY = maxBuildHeight >> 4;
 +    }
 +
-+    public void addPoi(Vec3i pos) {
++    public void addPoi(@NotNull Vec3i pos, @NotNull Axis axis) {
++        System.out.println("add poi at " + (isNether?"nether":"overworld") + " " + pos.toShortString() + " " + axis.toString());
 +        poiData.computeIfAbsent(
 +                calcSubChunkPos(pos),
-+                (k) -> ConcurrentHashMap.newKeySet()
-+        ).add(pos);
++                (k) -> new ConcurrentHashMap<>()
++        ).put(pos, axis);
 +    }
 +
 +    public void removePoi(Vec3i pos) {
-+        Set<Vec3i> set = poiData.get(calcSubChunkPos(pos));
++        ConcurrentMap<Vec3i, Axis> set = poiData.get(calcSubChunkPos(pos));
 +        if (set != null) {
 +            set.remove(pos);
 +        }
 +    }
 +
-+    public Set<Vec3i> getSubChunkData(Vec3i subChunkPos) {
-+        return poiData.getOrDefault(subChunkPos, Set.of());
++    public ConcurrentMap<Vec3i, Axis> getSubChunkData(Vec3i subChunkPos) {
++        return poiData.getOrDefault(subChunkPos, EMPTY_SUB_CHUNK_DATA);
 +    }
 +
 +    public Vec3i findClosestPoi(Vec3i center) {
@@ -154,9 +178,9 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +            Set<Vec3i> next = new HashSet<>();
 +            for (Vec3i subChunkPos : now) {
 +                all.add(subChunkPos);
-+                Set<Vec3i> subChunkData = getSubChunkData(subChunkPos);
++                ConcurrentMap<Vec3i, Axis> subChunkData = getSubChunkData(subChunkPos);
 +                if (subChunkData != null) {
-+                    for (Vec3i poi : subChunkData) {
++                    for (Vec3i poi : subChunkData.keySet()) {
 +                        if (poi.getX() - center.getX() > maxFindDistance
 +                                || poi.getZ() - center.getZ() > maxFindDistance) {
 +                            continue;
@@ -210,10 +234,10 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +    }
 +
 +    private int getMaxDistanceSqr(int n) {
-+        return isNether ? netherMaxDistanceSqr.get(n-1) : overworldMaxDistanceSqr.get(n-1);
++        return isNether ? netherMaxDistanceSqr[n - 1] : overworldMaxDistanceSqr[n - 1];
 +    }
 +
-+    private final List<Integer> overworldMaxDistanceSqr = List.of(
++    private final int[] overworldMaxDistanceSqr = {
 +            0,
 +            1,
 +            2,
@@ -254,8 +278,8 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +            105826,
 +            111746,
 +            118178
-+    );
-+    private final List<Integer> netherMaxDistanceSqr = List.of(
++    };
++    private final int[] netherMaxDistanceSqr = {
 +            0,
 +            1,
 +            2,
@@ -273,5 +297,5 @@ index 0000000000000000000000000000000000000000..9fb6d7cefa26ffbb9044936e83f79281
 +            37250,
 +            43682,
 +            50626
-+    );
++    };
 +}
