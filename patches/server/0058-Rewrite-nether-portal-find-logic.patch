@@ -130,12 +130,22 @@ index 1e96806c974a9fdb574f851daea2fb67cb9ac409..146f50d0a56cd6031b74c0c770a68dc7
          int i = blockposition.getY();
          LevelChunkSection chunksection = this.getSection(this.getSectionIndex(i));
          boolean flag1 = chunksection.hasOnlyAir();
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
+index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1eca844c0 100644
+--- a/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Performance.java
+@@ -11,4 +11,5 @@ public class Performance {
+     public boolean entityGoalSelectorInactiveTick = false;
+     public boolean allowLoadChunksToActiveClimbingEntities = false;
+     public boolean optimizeSuffocation = false;
++    public boolean cacheNetherPortalFind = true;
+ }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72a488fb72
+index 0000000000000000000000000000000000000000..b106c89c98d03de4b54f1ee914e5b7e062622b79
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,212 @@
+@@ -0,0 +1,247 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.BlockUtil;
@@ -149,6 +159,7 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.util.*;
 +import java.util.concurrent.ConcurrentHashMap;
@@ -163,8 +174,10 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +    private final int maxFindDistance;
 +    private final ServerLevel level;
 +    private final boolean isNether;
-+    private final ConcurrentMap<BlockPos, ConcurrentMap<BlockPos, FoundRectangle>> poiData = new ConcurrentHashMap<>();
-+    private static final ConcurrentMap<BlockPos, FoundRectangle> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
++    private final ConcurrentMap<BlockPos, ConcurrentMap<BlockPos, PortalData>> poiData = new ConcurrentHashMap<>();
++    private final ConcurrentMap<BlockPos, PortalData> cache = new ConcurrentHashMap<>(); // this may cause error when border move
++    private final ConcurrentMap<PortalData, Set<BlockPos>> portalData = new ConcurrentHashMap<>();
++    private static final ConcurrentMap<BlockPos, PortalData> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
 +
 +    public LevelNetherPortalPoiManager(@NotNull ServerLevel level) {
 +        this.isNether = level.getTypeKey() == LevelStem.NETHER;
@@ -178,10 +191,7 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +    }
 +
 +    public void addPoi(@NotNull BlockPos pos, @NotNull BlockState state) {
-+        poiData.computeIfAbsent(
-+                calcSubChunkPos(pos),
-+                (k) -> new ConcurrentHashMap<>()
-+        ).put(pos, BlockUtil.getLargestRectangleAround(
++        PortalData data = toPortalData(BlockUtil.getLargestRectangleAround(
 +                pos,
 +                state.getValue(BlockStateProperties.HORIZONTAL_AXIS),
 +                21,
@@ -189,27 +199,47 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +                21,
 +                (blockPos) -> this.level.getBlockStateFromEmptyChunk(blockPos) == state)
 +        );
++        if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
++            portalData.computeIfAbsent(data, (k) -> ConcurrentHashMap.newKeySet()).add(pos);
++        }
++        poiData.computeIfAbsent(
++                calcSubChunkPos(pos),
++                (k) -> new ConcurrentHashMap<>()
++        ).put(pos, data);
 +    }
 +
 +    public void removePoi(BlockPos pos) {
-+        ConcurrentMap<BlockPos, FoundRectangle> set = poiData.get(calcSubChunkPos(pos));
++        ConcurrentMap<BlockPos, PortalData> set = poiData.get(calcSubChunkPos(pos));
 +        if (set != null) {
++            if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
++                PortalData data = cache.get(pos);
++                if (data != null) {
++                    cache.remove(pos);
++                    for (BlockPos i : portalData.get(data)) {
++                        cache.remove(i);
++                    }
++                    portalData.remove(data);
++                }
++            }
 +            set.remove(pos);
 +        }
 +    }
 +
-+    public ConcurrentMap<BlockPos, FoundRectangle> getSubChunkData(BlockPos subChunkPos) {
++    private ConcurrentMap<BlockPos, PortalData> getSubChunkData(BlockPos subChunkPos) {
 +        return poiData.getOrDefault(subChunkPos, EMPTY_SUB_CHUNK_DATA);
 +    }
 +
 +    public @Nullable FoundRectangle findClosestPortal(BlockPos center, WorldBorder worldborder) {
++        if (LuminaConfig.configModule.performance.cacheNetherPortalFind && cache.containsKey(center)) {
++            return toFoundRectangle(cache.get(center));
++        }
 +        BlockPos centerSubChunk = calcSubChunkPos(center);
 +        Set<BlockPos> now = new HashSet<>();
 +        Set<BlockPos> all = new HashSet<>();
 +        int n = 0;
 +        now.add(centerSubChunk);
 +        boolean shouldContinue = true;
-+        FoundRectangle result = null;
++        PortalData result = null;
 +        BlockPos resultPos = null;
 +        double nowDistanceSqr = Double.MAX_VALUE;
 +        while (shouldContinue) {
@@ -218,7 +248,7 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +            Set<BlockPos> next = new HashSet<>();
 +            for (BlockPos subChunkPos : now) {
 +                all.add(subChunkPos);
-+                ConcurrentMap<BlockPos, FoundRectangle> subChunkData = getSubChunkData(subChunkPos);
++                ConcurrentMap<BlockPos, PortalData> subChunkData = getSubChunkData(subChunkPos);
 +                if (subChunkData != null) {
 +                    for (BlockPos poi : subChunkData.keySet()) {
 +                        if (!worldborder.isWithinBounds(poi) || (isNether && level.paperConfig()
@@ -251,8 +281,10 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +                shouldContinue = false;
 +            }
 +        }
-+        System.out.println(n);
-+        return result;
++        if (LuminaConfig.configModule.performance.cacheNetherPortalFind && result != null) {
++            cache.put(center, result);
++        }
++        return toFoundRectangle(result);
 +    }
 +
 +    private boolean addNeighborsToNext(@NotNull BlockPos subChunkPos, Set<BlockPos> next, Set<BlockPos> all, BlockPos center) {
@@ -347,4 +379,17 @@ index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72
 +            50626,
 +            58082
 +    };
++
++    private record PortalData(BlockPos minCorner, int x, int y) {
++    }
++
++    @Contract("_ -> new")
++    private static @NotNull PortalData toPortalData(@NotNull FoundRectangle rectangle) {
++        return new PortalData(rectangle.minCorner, rectangle.axis1Size, rectangle.axis2Size);
++    }
++
++    @Contract(value = "_ -> new", pure = true)
++    private static @NotNull FoundRectangle toFoundRectangle(@NotNull PortalData data) {
++        return new FoundRectangle(data.minCorner, data.x, data.y);
++    }
 +}
