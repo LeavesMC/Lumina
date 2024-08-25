@@ -37,7 +37,7 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..5ebdcca24e8bee4e154fd5fbb10638d0
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 38c6403c780e276910cb0c30cb12b066249be81e..f34b1de3358860ec6227a8bc17edd7d4850f1c84 100644
+index 38c6403c780e276910cb0c30cb12b066249be81e..45eb414e4771ddff644d0231d819cb35b1130ca9 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4389,12 +4389,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -47,7 +47,7 @@ index 38c6403c780e276910cb0c30cb12b066249be81e..f34b1de3358860ec6227a8bc17edd7d4
 -                        BlockUtil.FoundRectangle portal =
 -                            destination.getPortalForcer().findPortalAround(targetPos, destinationBorder, portalSearchRadius).orElse(null);
 +                        // Lumina start - rewrite nether portal find logic
-+                        BlockUtil.FoundRectangle portal = destination.netherPortalPoiManager.findClosestPortal(this.portalEntrancePos, destination.getWorldBorder());
++                        BlockUtil.FoundRectangle portal = destination.netherPortalPoiManager.findClosestPortal(targetPos, destinationBorder);
 +                        if (portal == null) {
 +                            portal = destination.getPortalForcer().findPortalAround(targetPos, destinationBorder, portalSearchRadius).orElse(null);
 +                        }
@@ -132,7 +132,7 @@ index 1e96806c974a9fdb574f851daea2fb67cb9ac409..146f50d0a56cd6031b74c0c770a68dc7
          boolean flag1 = chunksection.hasOnlyAir();
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c33dcb7bc6b187ee77cd73250083bb3b8410d41a
+index 0000000000000000000000000000000000000000..c0ff9f8250f36b42d1a8c7c0a718ca72a488fb72
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 @@ -0,0 +1,212 @@
@@ -189,7 +189,6 @@ index 0000000000000000000000000000000000000000..c33dcb7bc6b187ee77cd73250083bb3b
 +                21,
 +                (blockPos) -> this.level.getBlockStateFromEmptyChunk(blockPos) == state)
 +        );
-+        System.out.println("add poi at " + pos + " isNether: " + isNether);
 +    }
 +
 +    public void removePoi(BlockPos pos) {
@@ -252,6 +251,7 @@ index 0000000000000000000000000000000000000000..c33dcb7bc6b187ee77cd73250083bb3b
 +                shouldContinue = false;
 +            }
 +        }
++        System.out.println(n);
 +        return result;
 +    }
 +
