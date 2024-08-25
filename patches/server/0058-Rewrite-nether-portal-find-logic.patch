@@ -36,6 +36,29 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..5ebdcca24e8bee4e154fd5fbb10638d0
          //this.updateSkyBrightness(); // Folia - region threading - delay until first tick
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 38c6403c780e276910cb0c30cb12b066249be81e..f34b1de3358860ec6227a8bc17edd7d4850f1c84 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4389,12 +4389,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                     net.minecraft.world.level.chunk.status.ChunkStatus.EMPTY,
+                     ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGH,
+                     (chunks) -> {
+-                        BlockUtil.FoundRectangle portal =
+-                            destination.getPortalForcer().findPortalAround(targetPos, destinationBorder, portalSearchRadius).orElse(null);
++                        // Lumina start - rewrite nether portal find logic
++                        BlockUtil.FoundRectangle portal = destination.netherPortalPoiManager.findClosestPortal(this.portalEntrancePos, destination.getWorldBorder());
++                        if (portal == null) {
++                            portal = destination.getPortalForcer().findPortalAround(targetPos, destinationBorder, portalSearchRadius).orElse(null);
++                        }
+                         if (portal != null) {
+                             portalFound.complete(portal);
+                             return;
+                         }
++                        // Lumina end - rewrite nether portal find logic
+ 
+                         // add tickets so that we can re-search for a portal once the chunks are loaded
+                         Long ticketId = Long.valueOf(CREATE_PORTAL_DOUBLE_CHECK.getAndIncrement());
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
 index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..3f2f4ae25de3ecf559bd3650290fe27d60d1d6b8 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiSection.java
@@ -109,29 +132,29 @@ index 1e96806c974a9fdb574f851daea2fb67cb9ac409..146f50d0a56cd6031b74c0c770a68dc7
          boolean flag1 = chunksection.hasOnlyAir();
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c1466005853cf19
+index 0000000000000000000000000000000000000000..c33dcb7bc6b187ee77cd73250083bb3b8410d41a
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,212 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.BlockUtil;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
-+import net.minecraft.core.Vec3i;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.border.WorldBorder;
 +import net.minecraft.world.level.dimension.LevelStem;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
 +
 +import java.util.*;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.ConcurrentMap;
 +
 +import static net.minecraft.BlockUtil.*;
-+import static net.minecraft.core.Direction.Axis;
 +
 +public class LevelNetherPortalPoiManager {
 +    private final int maxBuildSubChunkY;
@@ -140,8 +163,8 @@ index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c146600
 +    private final int maxFindDistance;
 +    private final ServerLevel level;
 +    private final boolean isNether;
-+    private final ConcurrentMap<Vec3i, ConcurrentMap<Vec3i, FoundRectangle>> poiData = new ConcurrentHashMap<>();
-+    private static final ConcurrentMap<Vec3i, FoundRectangle> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
++    private final ConcurrentMap<BlockPos, ConcurrentMap<BlockPos, FoundRectangle>> poiData = new ConcurrentHashMap<>();
++    private static final ConcurrentMap<BlockPos, FoundRectangle> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
 +
 +    public LevelNetherPortalPoiManager(@NotNull ServerLevel level) {
 +        this.isNether = level.getTypeKey() == LevelStem.NETHER;
@@ -166,49 +189,58 @@ index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c146600
 +                21,
 +                (blockPos) -> this.level.getBlockStateFromEmptyChunk(blockPos) == state)
 +        );
++        System.out.println("add poi at " + pos + " isNether: " + isNether);
 +    }
 +
-+    public void removePoi(Vec3i pos) {
-+        ConcurrentMap<Vec3i, FoundRectangle> set = poiData.get(calcSubChunkPos(pos));
++    public void removePoi(BlockPos pos) {
++        ConcurrentMap<BlockPos, FoundRectangle> set = poiData.get(calcSubChunkPos(pos));
 +        if (set != null) {
 +            set.remove(pos);
 +        }
 +    }
 +
-+    public ConcurrentMap<Vec3i, FoundRectangle> getSubChunkData(Vec3i subChunkPos) {
++    public ConcurrentMap<BlockPos, FoundRectangle> getSubChunkData(BlockPos subChunkPos) {
 +        return poiData.getOrDefault(subChunkPos, EMPTY_SUB_CHUNK_DATA);
 +    }
 +
-+    public Vec3i findClosestPoi(Vec3i center) {
-+        Vec3i centerSubChunk = calcSubChunkPos(center);
-+        Set<Vec3i> now = new HashSet<>();
-+        Set<Vec3i> all = new HashSet<>();
++    public @Nullable FoundRectangle findClosestPortal(BlockPos center, WorldBorder worldborder) {
++        BlockPos centerSubChunk = calcSubChunkPos(center);
++        Set<BlockPos> now = new HashSet<>();
++        Set<BlockPos> all = new HashSet<>();
 +        int n = 0;
 +        now.add(centerSubChunk);
 +        boolean shouldContinue = true;
-+        Vec3i result = null;
++        FoundRectangle result = null;
++        BlockPos resultPos = null;
 +        double nowDistanceSqr = Double.MAX_VALUE;
 +        while (shouldContinue) {
 +            n++;
 +            shouldContinue = false;
-+            Set<Vec3i> next = new HashSet<>();
-+            for (Vec3i subChunkPos : now) {
++            Set<BlockPos> next = new HashSet<>();
++            for (BlockPos subChunkPos : now) {
 +                all.add(subChunkPos);
-+                ConcurrentMap<Vec3i, FoundRectangle> subChunkData = getSubChunkData(subChunkPos);
++                ConcurrentMap<BlockPos, FoundRectangle> subChunkData = getSubChunkData(subChunkPos);
 +                if (subChunkData != null) {
-+                    for (Vec3i poi : subChunkData.keySet()) {
++                    for (BlockPos poi : subChunkData.keySet()) {
++                        if (!worldborder.isWithinBounds(poi) || (isNether && level.paperConfig()
++                                .environment
++                                .netherCeilingVoidDamageHeight
++                                .test(v -> poi.getY() >= v))) {
++                            continue;
++                        }
 +                        if (poi.getX() - center.getX() > maxFindDistance
 +                                || poi.getZ() - center.getZ() > maxFindDistance) {
 +                            continue;
 +                        }
 +                        double distSqr = center.distSqr(poi);
 +                        if (distSqr < nowDistanceSqr) {
-+                            result = poi;
++                            result = subChunkData.get(poi);
++                            resultPos = poi;
 +                            nowDistanceSqr = distSqr;
 +                        } else if (distSqr == nowDistanceSqr) {
 +                            assert result != null; // if result is null, distance = Double.MAX_VALUE != nowDistance
-+                            if (poi.getY() < result.getY()) {
-+                                result = poi;
++                            if (poi.getY() < resultPos.getY()) {
++                                result = subChunkData.get(poi);
 +                            }
 +                        }
 +                    }
@@ -223,7 +255,7 @@ index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c146600
 +        return result;
 +    }
 +
-+    private boolean addNeighborsToNext(@NotNull Vec3i subChunkPos, Set<Vec3i> next, Set<Vec3i> all, Vec3i center) {
++    private boolean addNeighborsToNext(@NotNull BlockPos subChunkPos, Set<BlockPos> next, Set<BlockPos> all, BlockPos center) {
 +        boolean shouldContinue = addToNext(subChunkPos.above(), next, all, center);
 +        shouldContinue = addToNext(subChunkPos.below(), next, all, center) || shouldContinue;
 +        shouldContinue = addToNext(subChunkPos.north(), next, all, center) || shouldContinue;
@@ -233,11 +265,11 @@ index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c146600
 +    }
 +
 +    @Contract("_ -> new")
-+    private @NotNull Vec3i calcSubChunkPos(@NotNull Vec3i pos) {
-+        return new Vec3i(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
++    private @NotNull BlockPos calcSubChunkPos(@NotNull BlockPos pos) {
++        return new BlockPos(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
 +    }
 +
-+    private boolean addToNext(Vec3i subChunkPos, Set<Vec3i> next, @NotNull Set<Vec3i> all, Vec3i center) {
++    private boolean addToNext(BlockPos subChunkPos, Set<BlockPos> next, @NotNull Set<BlockPos> all, BlockPos center) {
 +        if (!all.contains(subChunkPos)
 +                && Math.abs(center.getX() - subChunkPos.getX()) <= maxFindSubChunkDistance
 +                && Math.abs(center.getZ() - subChunkPos.getZ()) <= maxFindSubChunkDistance
@@ -312,6 +344,7 @@ index 0000000000000000000000000000000000000000..50329f348565441cbebf19742c146600
 +            31330,
 +            37250,
 +            43682,
-+            50626
++            50626,
++            58082
 +    };
 +}
