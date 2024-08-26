@@ -172,10 +172,10 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cc0657a7a174e26059017dc3bcad051dbcef4504
+index 0000000000000000000000000000000000000000..8c3ccf39202ca7b19229be03fd6a3ffd2060edbd
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,261 @@
+@@ -0,0 +1,264 @@
 +package org.leavesmc.lumina.utils;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -340,6 +340,9 @@ index 0000000000000000000000000000000000000000..cc0657a7a174e26059017dc3bcad051d
 +            cache.put(center, result);
 +            reserveCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).add(center);
 +            reserveAffectCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).addAll(all);
++            for (BlockPos subChunkPos : all) {
++                affectCache.computeIfAbsent(subChunkPos, (k) -> ConcurrentHashMap.newKeySet()).add(result);
++            }
 +        }
 +        return result;
 +    }
