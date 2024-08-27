@@ -172,7 +172,7 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8c3ccf39202ca7b19229be03fd6a3ffd2060edbd
+index 0000000000000000000000000000000000000000..ca0660d245d52eb6bc5f5e8f72a21f2e076b4082
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 @@ -0,0 +1,264 @@
@@ -267,7 +267,7 @@ index 0000000000000000000000000000000000000000..8c3ccf39202ca7b19229be03fd6a3ffd
 +            if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
 +                FoundRectangle foundRectangle = set.get(pos);
 +                if (foundRectangle != null) {
-+                    Set<BlockPos> affectSet = reserveAffectCache.get(foundRectangle);
++                    Set<BlockPos> affectSet = reserveAffectCache.getOrDefault(foundRectangle, Set.of());
 +                    reserveAffectCache.remove(foundRectangle);
 +                    for (BlockPos affect : affectSet) {
 +                        affectCache.remove(affect);
