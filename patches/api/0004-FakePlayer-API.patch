@@ -4,56 +4,6 @@ Date: Sat, 3 Aug 2024 12:24:14 +0800
 Subject: [PATCH] FakePlayer API
 
 
-diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 15049641b8123abf03edcbb49257fb4f3db0a5ec..7e3c30ac8dfda0453949dff00f8f0428dfb19b6d 100644
---- a/src/main/java/org/bukkit/Bukkit.java
-+++ b/src/main/java/org/bukkit/Bukkit.java
-@@ -202,6 +202,21 @@ public final class Bukkit {
-         return server.getOnlinePlayers();
-     }
- 
-+    // Lumina start - player type
-+
-+    /**
-+     * Same as {@link #getOnlinePlayers()} but with a player type filter
-+     *
-+     * @param playerType the type of player to get
-+     *
-+     * @return a view of currently online players.
-+     */
-+    @NotNull
-+    public Collection<? extends Player> getOnlinePlayers(@NotNull org.leavesmc.lumina.utils.PlayerType playerType) {
-+        return server.getOnlinePlayers(playerType);
-+    }
-+    // Lumina end - player type
-+
-     /**
-      * Get the maximum amount of players which can login to this server.
-      *
-diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 1f51f80e8516cfac7ed4078ed96e535389a31f25..0dab1de3c3869a5c23a995f804c826d42ffaa40f 100644
---- a/src/main/java/org/bukkit/Server.java
-+++ b/src/main/java/org/bukkit/Server.java
-@@ -159,6 +159,19 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
-     @NotNull
-     public Collection<? extends Player> getOnlinePlayers();
- 
-+    // Lumina start - player type
-+
-+    /**
-+     * Same as {@link #getOnlinePlayers()} but with a player type filter
-+     *
-+     * @param playerType the type of player to get
-+     *
-+     * @return a view of currently online players.
-+     */
-+    @NotNull
-+    public Collection<? extends Player> getOnlinePlayers(@NotNull org.leavesmc.lumina.utils.PlayerType playerType);
-+    // Lumina end - player type
-+
-     /**
-      * Get the maximum amount of players which can login to this server.
-      *
 diff --git a/src/main/java/org/leavesmc/lumina/entity/FakePlayer.java b/src/main/java/org/leavesmc/lumina/entity/FakePlayer.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..d79a3be1e73317641121e2a2edc7abbfb0929d82
