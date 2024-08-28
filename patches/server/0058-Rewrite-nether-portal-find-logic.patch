@@ -172,10 +172,10 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ca0660d245d52eb6bc5f5e8f72a21f2e076b4082
+index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213e99fc9d8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,223 @@
 +package org.leavesmc.lumina.utils;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -374,69 +374,28 @@ index 0000000000000000000000000000000000000000..ca0660d245d52eb6bc5f5e8f72a21f2e
 +    }
 +
 +    private int getMaxDistanceSqr(int n) {
-+        return isNether ? netherMaxDistanceSqr[n - 1] : overworldMaxDistanceSqr[n - 1];
++        if (n < 4) {
++            return n - 1;
++        }
++        if (isNether) {
++            return netherMaxDistanceSqrCache.computeIfAbsent(n, (i) -> 1 + pow(16 * (i - 3) + 1));
++        } else {
++            return overworldMaxDistanceSqrCache.computeIfAbsent(n, (i) -> {
++                int k = i / 3;
++                return switch (i - 3 * k) {
++                    case 0 -> 3 * pow(16 * (k - 1) + 1) - 1;
++                    case 1 -> pow(16 * k + 1) + 2 * pow(16 * (k - 1) + 1) - 1;
++                    case 2 -> 2 * pow(16 * k + 1) + 2 * pow(16 * (k - 1) + 1) - 1;
++                    default -> throw new RuntimeException("WTF");
++                };
++            });
++        }
 +    }
 +
-+    private final int[] overworldMaxDistanceSqr = {
-+            0,
-+            1,
-+            2,
-+            290,
-+            578,
-+            866,
-+            1666,
-+            2466,
-+            3266,
-+            4578,
-+            5890,
-+            7202,
-+            9026,
-+            10850,
-+            12674,
-+            15010,
-+            17346,
-+            19682,
-+            22530,
-+            25378,
-+            28226,
-+            31586,
-+            34946,
-+            38306,
-+            42178,
-+            46050,
-+            49922,
-+            54306,
-+            58690,
-+            63074,
-+            67970,
-+            72866,
-+            77762,
-+            83170,
-+            88578,
-+            93986,
-+            99906,
-+            105826,
-+            111746,
-+            118178
-+    };
-+    private final int[] netherMaxDistanceSqr = {
-+            0,
-+            1,
-+            2,
-+            290,
-+            1090,
-+            2402,
-+            4226,
-+            6562,
-+            9410,
-+            12770,
-+            16642,
-+            21026,
-+            25922,
-+            31330,
-+            37250,
-+            43682,
-+            50626,
-+            58082
-+    };
++    private int pow(int a) {
++        return a * a;
++    }
++
++    private final ConcurrentMap<Integer, Integer> overworldMaxDistanceSqrCache = new ConcurrentHashMap<>();
++    private final ConcurrentMap<Integer, Integer> netherMaxDistanceSqrCache = new ConcurrentHashMap<>();
 +}
