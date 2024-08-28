@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Wed, 28 Aug 2024 11:30:23 +0800
+Subject: [PATCH] debug: add debug output to nether portal find
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 45eb414e4771ddff644d0231d819cb35b1130ca9..3b5a75a94971531f94ce76cfba85148aaa725a3b 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4392,12 +4392,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                         // Lumina start - rewrite nether portal find logic
+                         BlockUtil.FoundRectangle portal = destination.netherPortalPoiManager.findClosestPortal(targetPos, destinationBorder);
+                         if (portal == null) {
++                            System.out.println("No exist data in ConcurrentData.");
+                             portal = destination.getPortalForcer().findPortalAround(targetPos, destinationBorder, portalSearchRadius).orElse(null);
+                         }
+                         if (portal != null) {
++                            System.out.println("End foundRectangle: { minCorner: " + portal.minCorner + ", axis1Size: " + portal.axis1Size + ", axis2Size: " + portal.axis2Size + " }");
+                             portalFound.complete(portal);
+                             return;
+                         }
++                        System.out.println("Fallback to folia logic");
+                         // Lumina end - rewrite nether portal find logic
+ 
+                         // add tickets so that we can re-search for a portal once the chunks are loaded
