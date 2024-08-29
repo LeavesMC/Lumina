@@ -46,6 +46,51 @@ index 840611677feb4979eb2d492063ae4388ea350506..ab2a2cf0df10cee8045fbb86abce9eaf
      }
  
      public static class IntBounds {
+diff --git a/src/main/java/net/minecraft/core/SectionPos.java b/src/main/java/net/minecraft/core/SectionPos.java
+index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..4284d952d30e97042196de740c311851098fd8e4 100644
+--- a/src/main/java/net/minecraft/core/SectionPos.java
++++ b/src/main/java/net/minecraft/core/SectionPos.java
+@@ -33,6 +33,40 @@ public class SectionPos extends Vec3i {
+         super(x, y, z);
+     }
+ 
++    // Lumina start - rewrite nether portal find logic
++    public SectionPos atY(int neoY) {
++        return new SectionPos(x, neoY, z);
++    }
++
++    public SectionPos north() {
++        return fromVec3i(super.north());
++    }
++
++    public SectionPos south() {
++        return fromVec3i(super.south());
++    }
++
++    public SectionPos west() {
++        return fromVec3i(super.west());
++    }
++
++    public SectionPos east() {
++        return fromVec3i(super.east());
++    }
++
++    public SectionPos below() {
++        return fromVec3i(super.below());
++    }
++
++    public SectionPos above() {
++        return fromVec3i(super.above());
++    }
++
++    private SectionPos fromVec3i(Vec3i i) {
++        return new SectionPos(i.x, i.y, i.z);
++    }
++    // Lumina end - rewrite nether portal find logic
++
+     public static SectionPos of(int x, int y, int z) {
+         return new SectionPos(x, y, z);
+     }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..5ebdcca24e8bee4e154fd5fbb10638d0b83ba405 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -172,7 +217,7 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213e99fc9d8
+index 0000000000000000000000000000000000000000..3640b3a748f4e009e902324222a8500540942558
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 @@ -0,0 +1,223 @@
@@ -182,12 +227,12 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +import net.minecraft.BlockUtil;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
++import net.minecraft.core.SectionPos;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 +import net.minecraft.world.level.border.WorldBorder;
 +import net.minecraft.world.level.dimension.LevelStem;
-+import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
 +import org.leavesmc.lumina.config.LuminaConfig;
@@ -205,11 +250,11 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +    private final int maxFindDistance;
 +    private final ServerLevel level;
 +    private final boolean isNether;
-+    private final ConcurrentMap<BlockPos, ConcurrentMap<BlockPos, FoundRectangle>> poiData = new ConcurrentHashMap<>();
++    private final ConcurrentMap<SectionPos, ConcurrentMap<BlockPos, FoundRectangle>> poiData = new ConcurrentHashMap<>();
 +    private final ConcurrentMap<BlockPos, FoundRectangle> cache = new ConcurrentHashMap<>(); // this may cause error when border move
 +    private final ConcurrentMap<FoundRectangle, Set<BlockPos>> reserveCache = new ConcurrentHashMap<>();
-+    private final ConcurrentMap<BlockPos, Set<FoundRectangle>> affectCache = new ConcurrentHashMap<>();
-+    private final ConcurrentMap<FoundRectangle, Set<BlockPos>> reserveAffectCache = new ConcurrentHashMap<>();
++    private final ConcurrentMap<SectionPos, Set<FoundRectangle>> affectCache = new ConcurrentHashMap<>();
++    private final ConcurrentMap<FoundRectangle, Set<SectionPos>> reserveAffectCache = new ConcurrentHashMap<>();
 +    private static final ConcurrentMap<BlockPos, FoundRectangle> EMPTY_SUB_CHUNK_DATA = new ConcurrentHashMap<>();
 +
 +    public LevelNetherPortalPoiManager(@NotNull ServerLevel level) {
@@ -232,18 +277,17 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +                21,
 +                (blockPos) -> this.level.getBlockStateFromEmptyChunk(blockPos) == state
 +        );
-+        BlockPos subChunkPos = calcSubChunkPos(pos);
++        SectionPos subChunkPos = SectionPos.of(pos);
 +        if(foundRectangle.axis2Size == 1 && foundRectangle.axis1Size == 1) {
 +            addInternal(pos, subChunkPos, foundRectangle);
 +        } else {
 +            RegionizedServer.getInstance().taskQueue.queueChunkTask(
-+                    level, subChunkPos.getX(), subChunkPos.getZ(), () -> {
-+                addInternal(pos, subChunkPos, foundRectangle);
-+            });
++                    level, subChunkPos.getX(), subChunkPos.getZ(),
++                    () -> addInternal(pos, subChunkPos, foundRectangle));
 +        }
 +    }
 +
-+    private void addInternal(@NotNull BlockPos pos, @NotNull BlockPos subChunkPos, @NotNull FoundRectangle foundRectangle) {
++    private void addInternal(@NotNull BlockPos pos, @NotNull SectionPos subChunkPos, @NotNull FoundRectangle foundRectangle) {
 +        if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
 +            Set<FoundRectangle> affectSet = affectCache.getOrDefault(subChunkPos, Set.of());
 +            affectCache.remove(subChunkPos);
@@ -256,23 +300,23 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +            }
 +        }
 +        poiData.computeIfAbsent(
-+                calcSubChunkPos(pos),
++                SectionPos.of(pos),
 +                (k) -> new ConcurrentHashMap<>()
 +        ).put(pos, foundRectangle);
 +    }
 +
 +    public void removePoi(BlockPos pos) {
-+        ConcurrentMap<BlockPos, FoundRectangle> set = poiData.get(calcSubChunkPos(pos));
++        ConcurrentMap<BlockPos, FoundRectangle> set = poiData.get(SectionPos.of(pos));
 +        if (set != null) {
 +            if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
 +                FoundRectangle foundRectangle = set.get(pos);
 +                if (foundRectangle != null) {
-+                    Set<BlockPos> affectSet = reserveAffectCache.getOrDefault(foundRectangle, Set.of());
++                    Set<SectionPos> affectSet = reserveAffectCache.getOrDefault(foundRectangle, Set.of());
 +                    reserveAffectCache.remove(foundRectangle);
-+                    for (BlockPos affect : affectSet) {
++                    for (SectionPos affect : affectSet) {
 +                        affectCache.remove(affect);
 +                    }
-+                    affectCache.remove(calcSubChunkPos(pos));
++                    affectCache.remove(SectionPos.of(pos));
 +                    cache.remove(pos);
 +                }
 +            }
@@ -280,7 +324,7 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +        }
 +    }
 +
-+    private ConcurrentMap<BlockPos, FoundRectangle> getSubChunkData(BlockPos subChunkPos) {
++    private ConcurrentMap<BlockPos, FoundRectangle> getSubChunkData(SectionPos subChunkPos) {
 +        return poiData.getOrDefault(subChunkPos, EMPTY_SUB_CHUNK_DATA);
 +    }
 +
@@ -288,9 +332,15 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +        if (LuminaConfig.configModule.performance.cacheNetherPortalFind && cache.containsKey(center)) {
 +            return cache.get(center);
 +        }
-+        BlockPos centerSubChunk = calcSubChunkPos(center);
-+        Set<BlockPos> now = new HashSet<>();
-+        Set<BlockPos> all = new HashSet<>();
++        SectionPos centerSubChunk = SectionPos.of(center);
++        if (centerSubChunk.getY() > maxBuildSubChunkY) {
++            centerSubChunk = centerSubChunk.atY(maxBuildSubChunkY);
++        }
++        if (centerSubChunk.getY() < minBuildSubChunkY) {
++            centerSubChunk = centerSubChunk.atY(minBuildSubChunkY);
++        }
++        Set<SectionPos> now = new HashSet<>();
++        Set<SectionPos> all = new HashSet<>();
 +        int n = 0;
 +        now.add(centerSubChunk);
 +        boolean shouldContinue = true;
@@ -300,8 +350,8 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +        while (shouldContinue) {
 +            n++;
 +            shouldContinue = false;
-+            Set<BlockPos> next = new HashSet<>();
-+            for (BlockPos subChunkPos : now) {
++            Set<SectionPos> next = new HashSet<>();
++            for (SectionPos subChunkPos : now) {
 +                all.add(subChunkPos);
 +                ConcurrentMap<BlockPos, FoundRectangle> subChunkData = getSubChunkData(subChunkPos);
 +                if (subChunkData != null) {
@@ -340,14 +390,14 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +            cache.put(center, result);
 +            reserveCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).add(center);
 +            reserveAffectCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).addAll(all);
-+            for (BlockPos subChunkPos : all) {
++            for (SectionPos subChunkPos : all) {
 +                affectCache.computeIfAbsent(subChunkPos, (k) -> ConcurrentHashMap.newKeySet()).add(result);
 +            }
 +        }
 +        return result;
 +    }
 +
-+    private boolean addNeighborsToNext(@NotNull BlockPos subChunkPos, Set<BlockPos> next, Set<BlockPos> all, BlockPos center) {
++    private boolean addNeighborsToNext(@NotNull SectionPos subChunkPos, Set<SectionPos> next, Set<SectionPos> all, SectionPos center) {
 +        boolean shouldContinue = addToNext(subChunkPos.above(), next, all, center);
 +        shouldContinue = addToNext(subChunkPos.below(), next, all, center) || shouldContinue;
 +        shouldContinue = addToNext(subChunkPos.north(), next, all, center) || shouldContinue;
@@ -356,12 +406,7 @@ index 0000000000000000000000000000000000000000..8f495d1e149f3c49d88759c58df20213
 +        return addToNext(subChunkPos.west(), next, all, center) || shouldContinue;
 +    }
 +
-+    @Contract("_ -> new")
-+    private @NotNull BlockPos calcSubChunkPos(@NotNull BlockPos pos) {
-+        return new BlockPos(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
-+    }
-+
-+    private boolean addToNext(BlockPos subChunkPos, Set<BlockPos> next, @NotNull Set<BlockPos> all, BlockPos center) {
++    private boolean addToNext(SectionPos subChunkPos, Set<SectionPos> next, @NotNull Set<SectionPos> all, SectionPos center) {
 +        if (!all.contains(subChunkPos)
 +                && Math.abs(center.getX() - subChunkPos.getX()) <= maxFindSubChunkDistance
 +                && Math.abs(center.getZ() - subChunkPos.getZ()) <= maxFindSubChunkDistance
