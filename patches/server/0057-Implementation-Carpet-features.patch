@@ -3334,7 +3334,7 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5b
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b586912ec67ea6708e0df260adc7c949e87a2075..59daeab40d7404e86034f4614cffc75797ef54a2 100644
+index b586912ec67ea6708e0df260adc7c949e87a2075..2be07f8c48a08ebe9d49d1110043eebed2e2ef42 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -22,19 +22,7 @@ import java.io.FileNotFoundException;
@@ -3398,23 +3398,15 @@ index b586912ec67ea6708e0df260adc7c949e87a2075..59daeab40d7404e86034f4614cffc757
          this.serverVersion = io.papermc.paper.ServerBuildInfo.buildInfo().asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_SIMPLE); // Paper - improve version
          this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
          this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
-@@ -660,8 +657,15 @@ public final class CraftServer implements Server {
+@@ -660,7 +657,7 @@ public final class CraftServer implements Server {
  
      @Override
      public List<CraftPlayer> getOnlinePlayers() {
 -        return this.playerView;
 +        return this.playerView.get(org.leavesmc.lumina.utils.PlayerType.REAL);
-+    }
-+
-+    // Lumina start - player type
-+    @Override
-+    public Collection<? extends Player> getOnlinePlayers(@NotNull org.leavesmc.lumina.utils.PlayerType playerType) {
-+        return this.playerView.get(playerType);
      }
-+    // Lumina end - player type
  
      @Override
-     @Deprecated
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 index 843f24b0de5b9e80db420541699ddaf04dd56aa3..a5816f40bde921372dfdb2d6c7949dbdae884b02 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
