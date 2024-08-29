@@ -47,10 +47,10 @@ index 840611677feb4979eb2d492063ae4388ea350506..ab2a2cf0df10cee8045fbb86abce9eaf
  
      public static class IntBounds {
 diff --git a/src/main/java/net/minecraft/core/SectionPos.java b/src/main/java/net/minecraft/core/SectionPos.java
-index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..4284d952d30e97042196de740c311851098fd8e4 100644
+index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..8e4dc000beedde8109a17de648cdef893465b3a7 100644
 --- a/src/main/java/net/minecraft/core/SectionPos.java
 +++ b/src/main/java/net/minecraft/core/SectionPos.java
-@@ -33,6 +33,40 @@ public class SectionPos extends Vec3i {
+@@ -33,6 +33,43 @@ public class SectionPos extends Vec3i {
          super(x, y, z);
      }
  
@@ -60,31 +60,34 @@ index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..4284d952d30e97042196de740c311851
 +    }
 +
 +    public SectionPos north() {
-+        return fromVec3i(super.north());
++        return relative(Direction.NORTH, 1);
 +    }
 +
 +    public SectionPos south() {
-+        return fromVec3i(super.south());
++        return relative(Direction.SOUTH, 1);
 +    }
 +
 +    public SectionPos west() {
-+        return fromVec3i(super.west());
++        return relative(Direction.WEST, 1);
 +    }
 +
 +    public SectionPos east() {
-+        return fromVec3i(super.east());
++        return relative(Direction.EAST, 1);
 +    }
 +
 +    public SectionPos below() {
-+        return fromVec3i(super.below());
++        return relative(Direction.DOWN, 1);
 +    }
 +
 +    public SectionPos above() {
-+        return fromVec3i(super.above());
++        return relative(Direction.UP, 1);
 +    }
 +
-+    private SectionPos fromVec3i(Vec3i i) {
-+        return new SectionPos(i.x, i.y, i.z);
++    @Override
++    public SectionPos relative(Direction direction, int i) {
++        return i == 0
++                ? this
++                : new SectionPos(this.getX() + direction.getStepX() * i, this.getY() + direction.getStepY() * i, this.getZ() + direction.getStepZ() * i);
 +    }
 +    // Lumina end - rewrite nether portal find logic
 +
