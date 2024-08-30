@@ -47,18 +47,14 @@ index 840611677feb4979eb2d492063ae4388ea350506..ab2a2cf0df10cee8045fbb86abce9eaf
  
      public static class IntBounds {
 diff --git a/src/main/java/net/minecraft/core/SectionPos.java b/src/main/java/net/minecraft/core/SectionPos.java
-index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..8e4dc000beedde8109a17de648cdef893465b3a7 100644
+index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..409e7d3b2a6b02871346cafd0ede1890094f6d92 100644
 --- a/src/main/java/net/minecraft/core/SectionPos.java
 +++ b/src/main/java/net/minecraft/core/SectionPos.java
-@@ -33,6 +33,43 @@ public class SectionPos extends Vec3i {
+@@ -33,6 +33,39 @@ public class SectionPos extends Vec3i {
          super(x, y, z);
      }
  
 +    // Lumina start - rewrite nether portal find logic
-+    public SectionPos atY(int neoY) {
-+        return new SectionPos(x, neoY, z);
-+    }
-+
 +    public SectionPos north() {
 +        return relative(Direction.NORTH, 1);
 +    }
@@ -220,7 +216,7 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3640b3a748f4e009e902324222a8500540942558
+index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d84938e6299ac
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 @@ -0,0 +1,223 @@
@@ -337,10 +333,10 @@ index 0000000000000000000000000000000000000000..3640b3a748f4e009e902324222a85005
 +        }
 +        SectionPos centerSubChunk = SectionPos.of(center);
 +        if (centerSubChunk.getY() > maxBuildSubChunkY) {
-+            centerSubChunk = centerSubChunk.atY(maxBuildSubChunkY);
++            centerSubChunk = SectionPos.of(centerSubChunk.x(), maxBuildSubChunkY, centerSubChunk.z());
 +        }
 +        if (centerSubChunk.getY() < minBuildSubChunkY) {
-+            centerSubChunk = centerSubChunk.atY(minBuildSubChunkY);
++            centerSubChunk = SectionPos.of(centerSubChunk.x(), minBuildSubChunkY, centerSubChunk.z());
 +        }
 +        Set<SectionPos> now = new HashSet<>();
 +        Set<SectionPos> all = new HashSet<>();
