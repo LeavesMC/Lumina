@@ -267,6 +267,18 @@ index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376
          if (event.isAsynchronous() && this.server.isPrimaryThread()) {
              throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
          } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java b/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
+index 3f3fd8b1881106f893ffb677272e50d77cbb6626..b712f746f6ffde34b7d5958fd3f9e5c2a3bdf45b 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
+@@ -133,6 +133,7 @@ public final class RegionShutdownThread extends TickThread {
+             TickRegions.getScheduler().dumpAliveThreadTraces("Did not shut down in time");
+         }
+ 
++        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(MinecraftServer.getServer()); // Lumina - Porting Carpet's features - call onServerClosed
+         MinecraftServer.getServer().stopServer(); // stop part 1: most logic, kicking players, plugins, etc
+         // halt all chunk systems first so that any in-progress chunk generation stops
+         LOGGER.info("Halting chunk systems");
 diff --git a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java b/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
 index 18dc2bf205844f0722e5b8b42d8063d97e000f1d..a41a8dae6c59f158f847f3cd232d0f69a1d904bb 100644
 --- a/src/main/java/net/minecraft/commands/arguments/blocks/BlockInput.java
@@ -354,7 +366,7 @@ index d5e8dd947cb29343074df8074e791357c72e7f7b..1bfb318630bb66c373b55719e0246658
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, callbacks, flush);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 418f2d2483bb1d79ef7da25539b42c5c73cd93b6..f5f41843c4e39eae001d31851d1946874166d0a0 100644
+index 418f2d2483bb1d79ef7da25539b42c5c73cd93b6..53a02d9ec3eb8be7f8a38d92ebd55bb5a170ae76 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -449,6 +449,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -374,14 +386,6 @@ index 418f2d2483bb1d79ef7da25539b42c5c73cd93b6..f5f41843c4e39eae001d31851d194687
      }
  
      protected void forceDifficulty() {}
-@@ -998,6 +999,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-     // Folia end - region threading
- 
-     public void stopServer() {
-+        org.leavesmc.lumina.carpet.CarpetServer.onServerClosed(this); // Lumina - Porting Carpet's features - call onServerClosed
-         // Folia start - region threading
-         // halt scheduler
-         // don't wait, we may be on a scheduler thread
 diff --git a/src/main/java/net/minecraft/server/ServerFunctionLibrary.java b/src/main/java/net/minecraft/server/ServerFunctionLibrary.java
 index bae0d208b31aa0a6977c30f2f8484ab3c316bc71..e877cc4981b522cfb988c30e2029f11d0e05b3b5 100644
 --- a/src/main/java/net/minecraft/server/ServerFunctionLibrary.java
@@ -6808,17 +6812,15 @@ index 0000000000000000000000000000000000000000..949eea4d3c29e0b2f7e90e1ea924f852
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b2bb7b9ac
+index 0000000000000000000000000000000000000000..d0558f39decc3e1d3727b30a4af2131d5a2bb117
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/HUDController.java
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,157 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
++import com.google.common.collect.Maps;
++import com.google.common.collect.Sets;
 +import io.papermc.paper.threadedregions.*;
-+import org.bukkit.Bukkit;
-+import org.bukkit.entity.Entity;
-+import org.bukkit.entity.Player;
-+import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.carpet.helpers.HopperCounter;
 +import org.leavesmc.lumina.carpet.logging.logHelpers.PacketCounter;
 +import org.leavesmc.lumina.carpet.utils.Messenger;
@@ -6827,24 +6829,15 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +import net.minecraft.network.protocol.game.ClientboundTabListPacket;
 +import net.minecraft.resources.ResourceKey;
 +import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.ServerTickRateManager;
 +import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.util.TimeUtil;
 +import net.minecraft.world.level.Level;
 +
-+import java.util.ArrayList;
-+import java.util.HashMap;
-+import java.util.HashSet;
-+import java.util.List;
-+import java.util.Locale;
-+import java.util.Map;
-+import java.util.Set;
++import java.util.*;
 +import java.util.function.Consumer;
 +
-+import static org.leavesmc.lumina.carpet.logging.LoggerRegistry.playerSubscriptions;
-+
 +public class HUDController {
-+    private static final List<Consumer<MinecraftServer>> HUDListeners = new ArrayList<>();
++    private static final Set<Consumer<MinecraftServer>> HUDListeners = Sets.newConcurrentHashSet();
 +
 +    /**
 +     * Adds listener to be called when HUD is updated for logging information
@@ -6855,13 +6848,13 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +        HUDListeners.add(listener);
 +    }
 +
-+    public static final Map<ServerPlayer, List<Component>> player_huds = new HashMap<>();
++    public static final Map<ServerPlayer, List<Component>> player_huds = Maps.newConcurrentMap();
 +    //keyed with player names so unlogged players don't hold the reference
-+    public static final Map<String, Component> scarpet_headers = new HashMap<>();
++    public static final Map<String, Component> scarpet_headers = Maps.newConcurrentMap();
 +
-+    public static final Map<String, Component> scarpet_footers = new HashMap<>();
++    public static final Map<String, Component> scarpet_footers = Maps.newConcurrentMap();
 +
-+    private static final Map<String, Boolean> shouldSendClear = new HashMap<>();
++    private static final Map<String, Boolean> shouldSendClear = Maps.newConcurrentMap();
 +
 +    public static void resetScarpetHUDs() {
 +        scarpet_headers.clear();
@@ -6870,12 +6863,15 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +
 +    public static void addMessage(ServerPlayer player, Component hudMessage) {
 +        if (player == null) return;
-+        if (!player_huds.containsKey(player)) {
-+            player_huds.put(player, new ArrayList<>());
-+        } else {
-+            player_huds.get(player).add(Component.literal("\n"));
++        final List<Component> hudMessages = player_huds.computeIfAbsent(player, k -> new ArrayList<>());
++
++        if (hudMessages.isEmpty()) {
++            hudMessages.add(hudMessage);
++            return;
 +        }
-+        player_huds.get(player).add(hudMessage);
++
++        hudMessages.add(Component.literal("\n"));
++        hudMessages.add(hudMessage);
 +    }
 +
 +    public static void clearPlayer(ServerPlayer player) {
@@ -6888,6 +6884,7 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +        if (RegionizedServer.getGlobalTickData().getCurrentTick() % 20 != 0) {
 +            return;
 +        }
++
 +        player_huds.clear();
 +        if (LoggerRegistry.__mobcaps) {
 +            LoggerRegistry.getLogger("mobcaps").log((option, pl) -> {
@@ -6908,8 +6905,9 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +        if (LoggerRegistry.__packets) {
 +            LoggerRegistry.getLogger("packets").log(HUDController::packetCounter);
 +        }
++
 +        for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
-+            player.getBukkitEntity().getScheduler().run(CarpetServer.PLUGIN, task -> {
++            player.getBukkitEntity().taskScheduler.schedule(task -> {
 +                String playerName = player.getScoreboardName();
 +                if (LoggerRegistry.__tps) {
 +                    final ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> currentRegion = TickRegionScheduler.getCurrentRegion();
@@ -6928,7 +6926,7 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +                                "g TPS: ", String.format(Locale.US, "%s %.1f", color, tps),
 +                                "g  MSPT: ", String.format(Locale.US, "%s %.1f", color, mspt));
 +                    }
-+                    if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey("tps")) {
++                    if (LoggerRegistry.isPlayerSubscripting(playerName, "tps")) {
 +                        HUDController.addMessage(player, tpsMsg);
 +                    }
 +                }
@@ -6952,16 +6950,18 @@ index 0000000000000000000000000000000000000000..ec0a3bfe269ff3093e2f2ec724802d8b
 +                // });
 +                // extensions have time to pitch in.
 +                // HUDListeners.forEach(l -> l.accept(server)); // TODO
-+            }, null);
++            }, null, 1);
 +        }
 +    }
 +
 +    private static Component[] send_counter_info(MinecraftServer server, String colors) {
 +        List<Component> res = new ArrayList<>();
++
 +        for (String color : colors.split(",")) {
 +            HopperCounter counter = HopperCounter.getCounter(color);
 +            if (counter != null) res.addAll(counter.format(server, false, true));
 +        }
++
 +        return res.toArray(new Component[0]);
 +    }
 +
@@ -7025,10 +7025,10 @@ index 0000000000000000000000000000000000000000..e3de8593057c4f7c3f017c7fe3d3d85f
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java b/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d347432b14e23
+index 0000000000000000000000000000000000000000..f79b8e4fe39df3f37af14de3e2670507891cfe3c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/Logger.java
-@@ -0,0 +1,227 @@
+@@ -0,0 +1,230 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
 +import java.lang.reflect.Field;
@@ -7039,6 +7039,9 @@ index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d3474
 +import java.util.Set;
 +import java.util.function.Supplier;
 +
++import com.google.common.collect.Maps;
++import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
++import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerPlayer;
@@ -7082,8 +7085,8 @@ index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d3474
 +    }
 +
 +    public Logger(Field acceleratorField, String logName, String def, String[] options, boolean strictOptions) {
-+        subscribedOnlinePlayers = new HashMap<>();
-+        subscribedOfflinePlayers = new HashMap<>();
++        subscribedOnlinePlayers = Object2ObjectMaps.synchronize(new Object2ObjectLinkedOpenHashMap<>());
++        subscribedOfflinePlayers = Object2ObjectMaps.synchronize(new Object2ObjectLinkedOpenHashMap<>());
 +        this.acceleratorField = acceleratorField;
 +        this.logName = logName;
 +        this.default_option = def;
@@ -7130,7 +7133,7 @@ index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d3474
 +     * Returns true if there are any online subscribers for this log.
 +     */
 +    public boolean hasOnlineSubscribers() {
-+        return subscribedOnlinePlayers.size() > 0;
++        return !subscribedOnlinePlayers.isEmpty();
 +    }
 +
 +    public void serverStopped() {
@@ -7258,12 +7261,14 @@ index 0000000000000000000000000000000000000000..dda544edd7a03113d68612118e2d3474
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63bd67a807
+index 0000000000000000000000000000000000000000..e36e5b3661f780faba5995fe1963c2d902a0c966
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/logging/LoggerRegistry.java
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,163 @@
 +package org.leavesmc.lumina.carpet.logging;
 +
++import com.google.common.collect.Maps;
++import com.google.common.collect.Sets;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +
 +import java.lang.reflect.Field;
@@ -7277,20 +7282,21 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +import net.minecraft.world.item.DyeColor;
 +
 +public class LoggerRegistry {
++    private final static Set<String> seenPlayers = Sets.newConcurrentHashSet();
 +    // Map from logger names to loggers.
-+    private static final Map<String, Logger> loggerRegistry = new HashMap<>();
++    private static final Map<String, Logger> loggerRegistry = Maps.newConcurrentMap();
 +    // Map from player names to the set of names of the logs that player is subscribed to.
-+    protected static final Map<String, Map<String, String>> playerSubscriptions = new HashMap<>();
++    private static final Map<String, Map<String, String>> playerSubscriptions = Maps.newConcurrentMap();
 +    //statics to quickly asses if its worth even to call each one
-+    public static boolean __tnt;
-+    public static boolean __projectiles;
-+    public static boolean __fallingBlocks;
-+    public static boolean __tps;
-+    public static boolean __counter;
-+    public static boolean __mobcaps;
-+    public static boolean __packets;
-+    public static boolean __pathfinding;
-+    public static boolean __explosions;
++    public static volatile boolean __tnt;
++    public static volatile boolean __projectiles;
++    public static volatile boolean __fallingBlocks;
++    public static volatile boolean __tps;
++    public static volatile boolean __counter;
++    public static volatile boolean __mobcaps;
++    public static volatile boolean __packets;
++    public static volatile boolean __pathfinding;
++    public static volatile boolean __explosions;
 +
 +    public static void initLoggers() {
 +        stopLoggers();
@@ -7329,10 +7335,10 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +     * Subscribes the player with name playerName to the log with name logName.
 +     */
 +    public static void subscribePlayer(String playerName, String logName, String option) {
-+        if (!playerSubscriptions.containsKey(playerName)) playerSubscriptions.put(playerName, new HashMap<>());
++        final Map<String, String> optionMap = playerSubscriptions.computeIfAbsent(playerName, unused -> new HashMap<>());
 +        Logger log = loggerRegistry.get(logName);
 +        if (option == null) option = log.getDefault();
-+        playerSubscriptions.get(playerName).put(logName, option);
++        optionMap.put(logName, option);
 +        log.addPlayer(playerName, option);
 +    }
 +
@@ -7340,11 +7346,12 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +     * Unsubscribes the player with name playerName from the log with name logName.
 +     */
 +    public static void unsubscribePlayer(String playerName, String logName) {
-+        if (playerSubscriptions.containsKey(playerName)) {
-+            Map<String, String> subscriptions = playerSubscriptions.get(playerName);
-+            subscriptions.remove(logName);
++        final Map<String, String> subscriptionMap = playerSubscriptions.get(playerName);
++
++        if (subscriptionMap != null) {
++            subscriptionMap.remove(logName);
 +            loggerRegistry.get(logName).removePlayer(playerName);
-+            if (subscriptions.size() == 0) playerSubscriptions.remove(playerName);
++            if (subscriptionMap.isEmpty()) playerSubscriptions.remove(playerName);
 +        }
 +    }
 +
@@ -7352,23 +7359,22 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +     * If the player is not subscribed to the log, then subscribe them. Otherwise, unsubscribe them.
 +     */
 +    public static boolean togglePlayerSubscription(String playerName, String logName) {
-+        if (playerSubscriptions.containsKey(playerName) && playerSubscriptions.get(playerName).containsKey(logName)) {
-+            unsubscribePlayer(playerName, logName);
-+            return false;
-+        } else {
++        final Map<String, String> subscriptionMap = playerSubscriptions.get(playerName);
++
++        if (subscriptionMap == null || !subscriptionMap.containsKey(logName)) {
 +            subscribePlayer(playerName, logName, null);
 +            return true;
 +        }
++
++        unsubscribePlayer(playerName, logName);
++        return false;
 +    }
 +
 +    /**
 +     * Get the set of logs the current player is subscribed to.
 +     */
 +    public static Map<String, String> getPlayerSubscriptions(String playerName) {
-+        if (playerSubscriptions.containsKey(playerName)) {
-+            return playerSubscriptions.get(playerName);
-+        }
-+        return null;
++        return playerSubscriptions.get(playerName);
 +    }
 +
 +    protected static void setAccess(Logger logger) {
@@ -7389,8 +7395,6 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +        setAccess(logger);
 +    }
 +
-+    private final static Set<String> seenPlayers = new HashSet<>();
-+
 +    public static void stopLoggers() {
 +        for (Logger log : loggerRegistry.values()) {
 +            log.serverStopped();
@@ -7401,12 +7405,8 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +    }
 +
 +    public static void playerConnected(Player player) {
-+        boolean firstTime = false;
-+        if (!seenPlayers.contains(player.getName().getString())) {
-+            seenPlayers.add(player.getName().getString());
-+            firstTime = true;
-+            //subscribe them to the defualt loggers
-+        }
++        boolean firstTime = !seenPlayers.add(player.getName().getString());
++        //subscribe them to the defualt loggers
 +        for (Logger log : loggerRegistry.values()) {
 +            log.onPlayerConnect(player, firstTime);
 +        }
@@ -7416,6 +7416,16 @@ index 0000000000000000000000000000000000000000..5505b73aff5bf73259e585cbf545eb63
 +        for (Logger log : loggerRegistry.values()) {
 +            log.onPlayerDisconnect(player);
 +        }
++    }
++
++    public static boolean isPlayerSubscripting(String playerName, String logName) {
++        final Map<String, String> subscriptionMap = playerSubscriptions.get(playerName);
++
++        if (subscriptionMap == null) {
++            return false;
++        }
++
++        return subscriptionMap.containsKey(logName);
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/ExplosionLogHelper.java b/src/main/java/org/leavesmc/lumina/carpet/logging/logHelpers/ExplosionLogHelper.java
@@ -8361,12 +8371,13 @@ index 0000000000000000000000000000000000000000..a85fc086dfd15b30d6066fd888fb1750
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java b/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..61d41fcfcb1351453a83926506d8fb5fef0072f7
+index 0000000000000000000000000000000000000000..2eb8d9aaa421ecbd0ae7b3969ce53113d67fe0be
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/script/utils/ParticleParser.java
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,44 @@
 +package org.leavesmc.lumina.carpet.script.utils;
 +
++import com.google.common.collect.Maps;
 +import com.mojang.brigadier.StringReader;
 +import com.mojang.brigadier.exceptions.CommandSyntaxException;
 +import net.minecraft.commands.arguments.ParticleArgument;
@@ -8379,7 +8390,7 @@ index 0000000000000000000000000000000000000000..61d41fcfcb1351453a83926506d8fb5f
 +
 +public class ParticleParser
 +{
-+    private static final Map<String, ParticleOptions> particleCache = new HashMap<>(); // we reset this on reloads, but probably need something better
++    private static final Map<String, ParticleOptions> particleCache = Maps.newConcurrentMap(); // we reset this on reloads, but probably need something better
 +
 +    private static ParticleOptions parseParticle(String name, RegistryAccess lookup)
 +    {
@@ -9115,15 +9126,15 @@ index 0000000000000000000000000000000000000000..0eb66c8bd216e84e5ad946b9cc4c2507
 +
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2a8e9054262d900f5ebe53a100834051fb05cab1
+index 0000000000000000000000000000000000000000..7ce683d3ee99fd2236b088a23e588999cf257d9b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/utils/MobAI.java
 @@ -0,0 +1,57 @@
 +package org.leavesmc.lumina.carpet.utils;
 +
++import com.google.common.collect.Maps;
 +import com.google.common.collect.Sets;
 +
-+import java.util.HashMap;
 +import java.util.Map;
 +import java.util.Set;
 +
@@ -9135,7 +9146,7 @@ index 0000000000000000000000000000000000000000..2a8e9054262d900f5ebe53a100834051
 +
 +public class MobAI {
 +    @SuppressWarnings("MapOrSetKeyShouldOverrideHashCodeEquals")
-+    private static final Map<EntityType<?>, Set<TrackingType>> AI_TRACKERS = new HashMap<>();
++    private static final Map<EntityType<?>, Set<TrackingType>> AI_TRACKERS = Maps.newConcurrentMap();
 +
 +    public static void resetTrackers() {
 +        AI_TRACKERS.clear();
