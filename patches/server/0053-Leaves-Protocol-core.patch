@@ -6,19 +6,19 @@ Subject: [PATCH] Leaves Protocol core
 This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves)
 License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
 
-diff --git a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
-index d306f911757a4d556c82c0070d4837db87afc497..671616b35efe03bfa97b5f52abccdd47da06ef75 100644
---- a/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
-+++ b/src/main/java/io/papermc/paper/threadedregions/scheduler/FoliaGlobalRegionScheduler.java
-@@ -29,6 +29,8 @@ public class FoliaGlobalRegionScheduler implements GlobalRegionScheduler {
-             }
-         }
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+index d22d3a7e9c5bb9913e28c73c5de9a6320281710e..f80df258cd1efc7e169f9387ba381631b55cc632 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+@@ -314,6 +314,8 @@ public final class RegionizedServer {
  
-+        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); // Leaves - protocol
+         // player list
+         MinecraftServer.getServer().getPlayerList().tick();
 +
-         if (run == null) {
-             return;
-         }
++        org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); // Leaves - protocol
+     }
+ 
+     private void tickPlayerSample() {
 diff --git a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 index 0211311b3b63bcdea7ebf7bcb24629674c771402..c05a72f4928ee2cec28a61ed06a9079d52634900 100644
 --- a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java

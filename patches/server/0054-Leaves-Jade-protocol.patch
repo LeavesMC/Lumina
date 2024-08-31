@@ -127,10 +127,10 @@ index 3df389bd7703a59ce3c862570867125f17259b2a..eebe61df39a8129f9fd4d81393004358
      protected CompositeLootItemCondition(List<LootItemCondition> terms, Predicate<LootContext> predicate) {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f0187900acb70eabd3558fb4583348f68110b777
+index 0000000000000000000000000000000000000000..999273c739e449e0a8d39f88bc68a651ad61f3b6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
-@@ -0,0 +1,399 @@
+@@ -0,0 +1,397 @@
 +package org.leavesmc.leaves.protocol.jade;
 +
 +import com.mojang.logging.LogUtils;
@@ -333,8 +333,7 @@ index 0000000000000000000000000000000000000000..f0187900acb70eabd3558fb4583348f6
 +            return;
 +        }
 +
-+        MinecraftServer server = MinecraftServer.getServer();
-+        server.execute(() -> {
++        player.getBukkitEntity().taskScheduler.schedule((c) -> {
 +            Level world = player.level();
 +            boolean showDetails = payload.showDetails;
 +            Entity entity = world.getEntity(payload.entityId);
@@ -368,7 +367,7 @@ index 0000000000000000000000000000000000000000..f0187900acb70eabd3558fb4583348f6
 +            tag.putInt("EntityId", entity.getId());
 +
 +            ProtocolUtils.sendPayloadPacket(player, new ReceiveDataPayload(tag));
-+        });
++        }, null, 1);
 +    }
 +
 +    @ProtocolHandler.PayloadReceiver(payload = RequestBlockPayload.class, payloadId = "request_block")
@@ -377,8 +376,7 @@ index 0000000000000000000000000000000000000000..f0187900acb70eabd3558fb4583348f6
 +            return;
 +        }
 +
-+        MinecraftServer server = MinecraftServer.getServer();
-+        server.execute(() -> {
++        player.getBukkitEntity().taskScheduler.schedule((c) -> {
 +            Level world = player.level();
 +            BlockState blockState = payload.blockState;
 +            Block block = blockState.getBlock();
@@ -422,7 +420,7 @@ index 0000000000000000000000000000000000000000..f0187900acb70eabd3558fb4583348f6
 +            tag.putString("BlockId", BuiltInRegistries.BLOCK.getKey(block).toString());
 +
 +            ProtocolUtils.sendPayloadPacket(player, new ReceiveDataPayload(tag));
-+        });
++        }, null, 1);
 +    }
 +
 +    @ProtocolHandler.ReloadServer
