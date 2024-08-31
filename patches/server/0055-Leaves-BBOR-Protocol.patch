@@ -36,7 +36,7 @@ index b798dbb7d22ab06c8d47c64d2db47b3d9a8fe946..b1c86ba3010f67a3a0db34b92df459bc
      public Level getLevel() {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..419bcd9f9ed314af56e122965867e439147e4663
+index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e909133414
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 @@ -0,0 +1,227 @@
@@ -82,7 +82,7 @@ index 0000000000000000000000000000000000000000..419bcd9f9ed314af56e122965867e439
 +    private static final ResourceLocation STRUCTURE_LIST_SYNC = id("structure_list_sync_v1");
 +    // call
 +    private static final Map<Integer, ServerPlayer> players = new ConcurrentHashMap<>();
-+    private static final Map<Integer, Set<BBoundingBox>> playerBoundingBoxesCache = new HashMap<>();
++    private static final Map<Integer, Set<BBoundingBox>> playerBoundingBoxesCache = new ConcurrentHashMap<>();
 +    private static final Map<ResourceLocation, Map<BBoundingBox, Set<BBoundingBox>>> dimensionCache = new ConcurrentHashMap<>();
 +
 +    @Contract("_ -> new")
