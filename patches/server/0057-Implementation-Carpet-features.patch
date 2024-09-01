@@ -3598,40 +3598,55 @@ index 0000000000000000000000000000000000000000..d3aa030299ec3fa8170b7fc39b5f23e7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd951d2dfce2
+index 0000000000000000000000000000000000000000..6f964f5ebcb61de27dca3d182cfd502f5241c356
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,81 @@
+@@ -0,0 +1,147 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
-+import net.minecraft.world.level.block.Block;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.leaves.protocol.CarpetServerProtocol;
++import org.leavesmc.lumina.carpet.utils.ConfigIdentifier;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
 +import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.NodePath;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
++import org.spongepowered.configurate.objectmapping.ObjectMapper;
++import org.spongepowered.configurate.objectmapping.meta.Comment;
 +
++import java.lang.annotation.Annotation;
 +import java.nio.file.Paths;
 +import java.util.HashMap;
++import java.util.Locale;
 +import java.util.Map;
 +import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.ConcurrentMap;
 +
 +public class CarpetConfig {
 +    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
 +    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
 +    public static CarpetConfigModule configModule;
-+    public static Block structureBlockIgnoredBlock;
++    // public static Block structureBlockIgnoredBlock;
 +    private static HoconConfigurationLoader loader;
 +    private static CommentedConfigurationNode node;
 +    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
++    private static final ConcurrentMap<String, Rule> RULE_CACHE = new ConcurrentHashMap<>();
 +
 +    public static void setup() {
++        final ObjectMapper.Factory customFactory = ObjectMapper.factoryBuilder()
++                .addProcessor(Comment.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
++                .addProcessor(ConfigIdentifier.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
++                .build();
 +        loader = HoconConfigurationLoader.builder()
 +                .emitComments(true)
 +                .prettyPrinting(true)
++                .defaultOptions(opts -> opts.serializers(build -> build.registerAnnotatedObjects(customFactory)))
 +                .path(Paths.get("carpet.conf"))
 +                .build();
 +
@@ -3645,6 +3660,27 @@ index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd95
 +        }
 +    }
 +
++    private static void setRuleCache(ConfigurationNode node, Object value, Annotation annotation) {
++        if (value != null) {
++            String v;
++            if (value instanceof Enum<?> e) {
++                v = e.name().toLowerCase(Locale.ROOT);
++            } else if (value instanceof Boolean b) {
++                v = Boolean.toString(b);
++            } else {
++                v = value.toString();
++            }
++            NodePath path = node.path();
++            String name = convertHyphenToCamelCase(path.get(path.size() - 1).toString());
++            Rule rule = RULE_CACHE.computeIfAbsent(name, k -> new Rule());
++            rule.name = name;
++            rule.value = v;
++            if (annotation instanceof ConfigIdentifier identifier) {
++                rule.identifier = identifier.value();
++            }
++        }
++    }
++
 +    public static void reload() {
 +        RegionizedServer.ensureGlobalTickThread("Reload carpet config off global region thread!");
 +        loadConfig();
@@ -3654,6 +3690,7 @@ index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd95
 +        try {
 +            node = loader.load();
 +            configModule = node.get(CarpetConfigModule.class);
++            RULE_CACHE.forEach((name, rule) -> rule.register());
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
 +        }
@@ -3668,6 +3705,7 @@ index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd95
 +        try {
 +            node.set(CarpetConfigModule.class, configModule);
 +            loader.save(node);
++            RULE_CACHE.forEach((name, rule) -> rule.register());
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
 +        }
@@ -3682,6 +3720,34 @@ index 0000000000000000000000000000000000000000..74f17493df7fbd31c1bb93f1a0cbdd95
 +    public static @NotNull CompletableFuture<Void> saveAsync() {
 +        return ConfigUtils.runAsync(CarpetConfig::save);
 +    }
++
++    private static class Rule {
++        public String identifier;
++        public String name;
++        public String value;
++
++        public void register() {
++            if (identifier == null) {
++                identifier = "carpet";
++            }
++            CarpetServerProtocol.CarpetRules.register(new CarpetServerProtocol.CarpetRule(identifier, name, value));
++        }
++    }
++
++    public static @NotNull String convertHyphenToCamelCase(@NotNull String input) {
++        String[] words = input.split("-");
++        StringBuilder camelCaseString = new StringBuilder();
++
++        for (String word : words) {
++            if (!word.isEmpty()) {
++                camelCaseString.append(Character.toUpperCase(word.charAt(0)))
++                        .append(word.substring(1).toLowerCase());
++            }
++        }
++
++        return camelCaseString.toString();
++    }
++
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
@@ -8686,6 +8752,24 @@ index 0000000000000000000000000000000000000000..1affe86d3db96ccf54f2f74741ef82e0
 +    }
 +}
 +
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/ConfigIdentifier.java b/src/main/java/org/leavesmc/lumina/carpet/utils/ConfigIdentifier.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..877e536f33ea784ecfe695cb2cbf20a1c972dec7
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/utils/ConfigIdentifier.java
+@@ -0,0 +1,12 @@
++package org.leavesmc.lumina.carpet.utils;
++
++import java.lang.annotation.ElementType;
++import java.lang.annotation.Retention;
++import java.lang.annotation.RetentionPolicy;
++import java.lang.annotation.Target;
++
++@Target({ElementType.FIELD})
++@Retention(RetentionPolicy.RUNTIME)
++public @interface ConfigIdentifier {
++    String value();
++}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java b/src/main/java/org/leavesmc/lumina/carpet/utils/DistanceCalculator.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..fd15a409c0488dce5eb23d625c4b3ac212c75c78
