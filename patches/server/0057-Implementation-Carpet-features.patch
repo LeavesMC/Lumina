@@ -3598,13 +3598,14 @@ index 0000000000000000000000000000000000000000..d3aa030299ec3fa8170b7fc39b5f23e7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6f964f5ebcb61de27dca3d182cfd502f5241c356
+index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3ada01b185
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,148 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
++import net.minecraft.world.level.block.Block;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.leaves.protocol.CarpetServerProtocol;
@@ -3632,7 +3633,7 @@ index 0000000000000000000000000000000000000000..6f964f5ebcb61de27dca3d182cfd502f
 +    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
 +    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
 +    public static CarpetConfigModule configModule;
-+    // public static Block structureBlockIgnoredBlock;
++    public static Block structureBlockIgnoredBlock;
 +    private static HoconConfigurationLoader loader;
 +    private static CommentedConfigurationNode node;
 +    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
