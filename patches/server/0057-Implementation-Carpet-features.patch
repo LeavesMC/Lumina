@@ -291,17 +291,17 @@ index af9b3ea74379d52f2ff08cb81e87a0a61062097a..e972df9e5d83eb6cf7a66e0e29086e5c
                          worldserver.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND);
                      }
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 0edfd864d7517aea82da24253c51f18d1fa1bd92..2d34f1829a4fbe752133e013bfffa856799eceda 100644
+index 0edfd864d7517aea82da24253c51f18d1fa1bd92..bf87e6734008daeeff13733f382effea88851a7a 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-             return false;
-         }
- 
+@@ -291,6 +291,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         );
+         dev.jorel.commandapi.CommandAPI.onEnable();
+         // Lumina end - enable CommandAPI
 +        org.leavesmc.lumina.carpet.CarpetServer.onGameStarted(); // Lumina - Implementation Carpet features
-         // Lumina start - enable CommandAPI
-         commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
-         dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
+         org.leavesmc.lumina.LuminaCommand.INSTANCE.registerCommands(); // Lumina - register commands
+         // CraftBukkit start
+         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
 index dfdb85c14c4afce7879acf9093d54f7480c0a08c..92c3f9bdc6e97614ea664bee46616fb73587a7d4 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
