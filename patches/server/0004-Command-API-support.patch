@@ -4,21 +4,6 @@ Date: Sat, 20 Jul 2024 06:06:46 +0000
 Subject: [PATCH] Command API support
 
 
-diff --git a/build.gradle.kts b/build.gradle.kts
-index e8f78fc0a8310a9428da2378f831795a0c047a4b..364f93c5cd4b5d1a0cd0c3026c3e1809491fb3e9 100644
---- a/build.gradle.kts
-+++ b/build.gradle.kts
-@@ -39,8 +39,8 @@ dependencies {
-     implementation("org.spongepowered:configurate-yaml:4.2.0-SNAPSHOT") // Paper - config files
-     implementation("org.spongepowered:configurate-hocon:4.2.0-SNAPSHOT") // Lumina - config files
-     // Lumina start - Command API
--    compileOnly("dev.jorel:commandapi-preprocessor:9.5.1")
--    implementation("dev.jorel:commandapi-bukkit-core:9.5.1")
-+    compileOnly("dev.jorel:commandapi-preprocessor:9.5.3")
-+    implementation("dev.jorel:commandapi-bukkit-core:9.5.3")
-     // Lumina end - Command API
-     implementation("commons-lang:commons-lang:2.6")
-     runtimeOnly("org.xerial:sqlite-jdbc:3.45.3.0")
 diff --git a/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373ae1230238
@@ -83,6 +68,178 @@ index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373a
 +
 +}
 \ No newline at end of file
+diff --git a/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java b/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..003a869e730000c498e0546e9ce692af4323b819
+--- /dev/null
++++ b/src/main/java/dev/jorel/commandapi/exceptions/WrapperCommandSyntaxException.java
+@@ -0,0 +1,166 @@
++/*******************************************************************************
++ * Copyright 2018, 2020 Jorel Ali (Skepter) - MIT License
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy of
++ * this software and associated documentation files (the "Software"), to deal in
++ * the Software without restriction, including without limitation the rights to
++ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
++ * the Software, and to permit persons to whom the Software is furnished to do so,
++ * subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in all
++ * copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
++ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
++ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
++ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *******************************************************************************/
++package dev.jorel.commandapi.exceptions;
++
++import java.io.PrintStream;
++import java.io.PrintWriter;
++
++import com.mojang.brigadier.Message;
++import com.mojang.brigadier.exceptions.CommandExceptionType;
++import com.mojang.brigadier.exceptions.CommandSyntaxException;
++
++/**
++ * A wrapper for the CommandSyntaxException so other developers don't have to
++ * import Mojang's brigadier
++ */
++public class WrapperCommandSyntaxException extends RuntimeException { // Lumina - Exception -> RuntimeException
++
++    /**
++     * The Brigadier CommandSyntaxException that this class wraps
++     */
++    private final CommandSyntaxException exception;
++
++    /**
++     * Creates a WrapperCommandSyntaxException
++     *
++     * @param exception the exception to wrap
++     */
++    public WrapperCommandSyntaxException(CommandSyntaxException exception) {
++        this.exception = exception;
++    }
++
++    /**
++     * Returns the wrapped CommandSyntaxException
++     *
++     * @return the wrapped CommandSyntaxException
++     */
++    public CommandSyntaxException getException() {
++        return this.exception;
++    }
++
++    // Overrides. Because this exception is effectively a CommandSyntaxException, we
++    // pass all Exception-related methods to this.exception
++
++    /**
++     * Returns the message together with the position it occurred on and some
++     * context.
++     *
++     * @return the message together with the position it occurred on and some
++     *         context
++     */
++    @Override
++    public String getMessage() {
++        return this.exception.getMessage();
++    }
++
++    @Override
++    public synchronized Throwable getCause() {
++        return this.exception.getCause();
++    }
++
++    @Override
++    public StackTraceElement[] getStackTrace() {
++        return this.exception.getStackTrace();
++    }
++
++    @Override
++    public synchronized Throwable initCause(Throwable cause) {
++        return this.exception.initCause(cause);
++    }
++
++    @Override
++    public String getLocalizedMessage() {
++        return this.exception.getLocalizedMessage();
++    }
++
++    @Override
++    public void printStackTrace() {
++        this.exception.printStackTrace();
++    }
++
++    @Override
++    public void printStackTrace(PrintStream s) {
++        this.exception.printStackTrace(s);
++    }
++
++    @Override
++    public void printStackTrace(PrintWriter s) {
++        this.exception.printStackTrace(s);
++    }
++
++    @Override
++    public void setStackTrace(StackTraceElement[] stackTrace) {
++        this.exception.setStackTrace(stackTrace);
++    }
++
++    // CommandSyntaxException implemented methods
++
++    /**
++     * Returns the raw message, not including positional information
++     *
++     * @return the raw message without any formatting or positional information
++     */
++    public Message getRawMessage() {
++        return this.exception.getRawMessage();
++    }
++
++    /**
++     * Returns some contextual information about where the error occurred.
++     * <p>
++     * This is done by returning a few characters
++     * ({@value CommandSyntaxException#CONTEXT_AMOUNT}) of the faulty
++     * {@link #getInput()} and a pointer to where the exception happened.
++     *
++     * @return some contextual information about where the error occurred or null if
++     *         {@link #getInput()} or {@link #getCursor()} are null/0.
++     */
++    public String getContext() {
++        return this.exception.getContext();
++    }
++
++    /**
++     * Returns the type of the exception.
++     *
++     * @return the type of the exception
++     */
++    public CommandExceptionType getType() {
++        return this.exception.getType();
++    }
++
++    /**
++     * Returns the input that caused the CommandSyntaxException.
++     *
++     * @return the input that caused the CommandSyntaxException or null if not set
++     */
++    public String getInput() {
++        return this.exception.getInput();
++    }
++
++    /**
++     * Returns the cursor position.
++     *
++     * @return the cursor position or -1 if not set
++     */
++    public int getCursor() {
++        return this.exception.getCursor();
++    }
++
++}
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_20_R4.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..2e625f0345d79a8c8fe709b083f43460badc82bc
@@ -1773,58 +1930,6 @@ index 0000000000000000000000000000000000000000..d9d2f5a111f1fac23de7f87e224c7511
 +    public abstract CommandRegistrationStrategy<CommandSourceStack> createCommandRegistrationStrategy();
 +}
 \ No newline at end of file
-diff --git a/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java b/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
-index 9af388a8e56806ab44f8c3ef4f97086ce38ef3b4..7956046156b8e382fb377ebbc63fe8738d38b4ca 100644
---- a/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
-+++ b/src/main/java/io/papermc/paper/plugin/entrypoint/strategy/modern/ModernPluginLoadingStrategy.java
-@@ -75,6 +75,7 @@ public class ModernPluginLoadingStrategy<T> implements ProviderLoadingStrategy<T
- 
-             // Populate missing dependencies to capture if there are multiple missing ones.
-             List<String> missingDependencies = provider.validateDependencies(dependencyTree);
-+            if(missingDependencies.contains("CommandAPI")) missingDependencies.remove("CommandAPI"); // Lumina - CommandAPI support
- 
-             if (missingDependencies.isEmpty()) {
-                 validatedProviders.add(provider);
-diff --git a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
-index d78ad5eccd18d89050a486a0c40090a09683bd16..17351285d16956d22eca0d5dce336699b485e42f 100644
---- a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
-+++ b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelector.java
-@@ -53,6 +53,7 @@ public class EntitySelector {
-     @Nullable
-     private final UUID entityUUID;
-     private final EntityTypeTest<Entity, ?> type;
-+    @org.leavesmc.lumina.utils.ReflectTargetField // Lumina - Command API
-     private final boolean usesSelector;
- 
-     public EntitySelector(int count, boolean includesNonPlayers, boolean localWorldOnly, Predicate<Entity> basePredicate, MinMaxBounds.Doubles distance, Function<Vec3, Vec3> positionOffset, @Nullable AABB box, BiConsumer<Vec3, List<? extends Entity>> sorter, boolean senderOnly, @Nullable String playerName, @Nullable UUID uuid, @Nullable EntityType<?> type, boolean usesAt) {
-diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index cc40d3e69a3635ca7895876159f2821091c14a9a..43cb38e765a4650df6f8840de0481e2bf9ac3550 100644
---- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-+++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -91,6 +91,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-     private RemoteSampleLogger tickTimeLogger;
-     @Nullable
-     private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
-+    private org.bukkit.plugin.java.JavaPlugin commandAPIPlugin; // Lumina - CommandAPI
- 
-     // CraftBukkit start - Signature changed
-     public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
-@@ -281,6 +282,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-             return false;
-         }
- 
-+        // Lumina start - enable CommandAPI
-+        commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
-+        dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
-+                .shouldHookPaperReload(false)
-+                .skipReloadDatapacks(true)
-+                .silentLogs(true)
-+        );
-+        dev.jorel.commandapi.CommandAPI.onEnable();
-+        // Lumina end - enable CommandAPI
-         // CraftBukkit start
-         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
-         this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..4deb7ca3c09a03faf0ddf2b49d0a0581a9682c75
