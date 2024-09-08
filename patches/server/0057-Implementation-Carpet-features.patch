@@ -511,14 +511,14 @@ index af9b3ea74379d52f2ff08cb81e87a0a61062097a..e972df9e5d83eb6cf7a66e0e29086e5c
                          worldserver.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND);
                      }
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 0edfd864d7517aea82da24253c51f18d1fa1bd92..f521e0bf33dd21fa840315fd0268612cd1be6b8f 100644
+index 0edfd864d7517aea82da24253c51f18d1fa1bd92..2d34f1829a4fbe752133e013bfffa856799eceda 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
              return false;
          }
  
-+        org.leavesmc.lumina.carpet.CarpetServer.onGameStarted(); // Lumina - Porting Carpet's features
++        org.leavesmc.lumina.carpet.CarpetServer.onGameStarted(); // Lumina - Implementation Carpet features
          // Lumina start - enable CommandAPI
          commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
          dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
@@ -3598,10 +3598,10 @@ index 0000000000000000000000000000000000000000..d3aa030299ec3fa8170b7fc39b5f23e7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3ada01b185
+index 0000000000000000000000000000000000000000..804839b994c708b6cc37371b879e2d2261cdfa77
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,154 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
@@ -3611,6 +3611,7 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +import org.leavesmc.leaves.protocol.CarpetServerProtocol;
 +import org.leavesmc.lumina.carpet.utils.ConfigIdentifier;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
++import org.leavesmc.lumina.config.LuminaConfigModule;
 +import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
@@ -3619,6 +3620,7 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 +import org.spongepowered.configurate.objectmapping.ObjectMapper;
 +import org.spongepowered.configurate.objectmapping.meta.Comment;
++import org.spongepowered.configurate.serialize.SerializationException;
 +
 +import java.lang.annotation.Annotation;
 +import java.nio.file.Paths;
@@ -3632,7 +3634,7 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +public class CarpetConfig {
 +    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
 +    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
-+    public static CarpetConfigModule configModule;
++    public static CarpetConfigModule configModule, fileModule, tempModule;
 +    public static Block structureBlockIgnoredBlock;
 +    private static HoconConfigurationLoader loader;
 +    private static CommentedConfigurationNode node;
@@ -3653,10 +3655,26 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +
 +        loadConfig();
 +        saveConfig();
++    }
 +
++    private static void generateNodeInfos() {
 +        try {
-+            ConfigUtils.generateNodeInfos(nodeInfos, CarpetConfigModule.class, null, configModule);
++            ConfigUtils.generateNodeInfos(nodeInfos, CarpetConfigModule.class, null, configModule, fileModule, tempModule);
 +        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static void mergeConfig() {
++        try {
++            node.set(fileModule);
++            if (tempModule == null) {
++                tempModule = loader.createNode().get(CarpetConfigModule.class);
++            }
++            node.from(loader.createNode().set(LuminaConfigModule.class, tempModule));
++            configModule = node.get(CarpetConfigModule.class);
++            generateNodeInfos();
++        } catch (SerializationException e) {
 +            throw new RuntimeException(e);
 +        }
 +    }
@@ -3672,7 +3690,7 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +                v = value.toString();
 +            }
 +            NodePath path = node.path();
-+            String name = convertHyphenToCamelCase(path.get(path.size() - 1).toString());
++            String name = ConfigUtils.toCamel(path.get(path.size() - 1).toString());
 +            Rule rule = RULE_CACHE.computeIfAbsent(name, k -> new Rule());
 +            rule.name = name;
 +            rule.value = v;
@@ -3691,6 +3709,9 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +        try {
 +            node = loader.load();
 +            configModule = node.get(CarpetConfigModule.class);
++            fileModule = node.get(CarpetConfigModule.class);
++            tempModule = loader.createNode().get(CarpetConfigModule.class);
++            generateNodeInfos();
 +            RULE_CACHE.forEach((name, rule) -> rule.register());
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
@@ -3704,7 +3725,7 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +
 +    private static void saveConfig() {
 +        try {
-+            node.set(CarpetConfigModule.class, configModule);
++            node.set(CarpetConfigModule.class, fileModule);
 +            loader.save(node);
 +            RULE_CACHE.forEach((name, rule) -> rule.register());
 +        } catch (ConfigurateException e) {
@@ -3734,21 +3755,6 @@ index 0000000000000000000000000000000000000000..3c26e8257c9ad4a3258d5eb17cd4fa3a
 +            CarpetServerProtocol.CarpetRules.register(new CarpetServerProtocol.CarpetRule(identifier, name, value));
 +        }
 +    }
-+
-+    public static @NotNull String convertHyphenToCamelCase(@NotNull String input) {
-+        String[] words = input.split("-");
-+        StringBuilder camelCaseString = new StringBuilder();
-+
-+        for (String word : words) {
-+            if (!word.isEmpty()) {
-+                camelCaseString.append(Character.toUpperCase(word.charAt(0)))
-+                        .append(word.substring(1).toLowerCase());
-+            }
-+        }
-+
-+        return camelCaseString.toString();
-+    }
-+
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
@@ -4252,10 +4258,10 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4eda4c0ae
+index 0000000000000000000000000000000000000000..99c3b9ec6258d73b55161c338489906ce008e35b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,144 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -4293,6 +4299,7 @@ index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4
 +
 +    public static void onGameStarted() {
 +        CarpetConfig.setup();
++        CarpetServer.registerCarpetCommands();
 +        // settingsManager = new carpet.settings.SettingsManager(CarpetSettings.carpetVersion, "carpet", "Carpet Mod");
 +        // settingsManager.parseSettingsClass(CarpetSettings.class);
 +        // extensions.forEach(CarpetExtension::onGameStarted); // TODO
@@ -4350,6 +4357,7 @@ index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4
 +        if (CarpetConfig.configModule.hopperCounters) {
 +            CounterCommand.register();
 +        }
++        CarpetCommand.register();
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
@@ -4397,6 +4405,26 @@ index 0000000000000000000000000000000000000000..88dbe8f9cef8c45e8b93006f52c042f4
 +    //                 %s is providing a SettingsManager from an outdated method in CarpetExtension!
 +    //                 This behaviour will not work in later Carpet versions and the manager won't be registered!""".formatted(ext.getClass().getName()));
 +    // } // TODO
++}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5b2372ef995267600f81e0a05c4a3a5bf9e7dd05
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
+@@ -0,0 +1,14 @@
++package org.leavesmc.lumina.carpet.command;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.LiteralArgument;
++
++public class CarpetCommand {
++    public static void register() {
++        new CommandAPICommand("carpet").withArguments(new LiteralArgument("""
++                command /carpet <rule> <value> is deprecated.
++                Please use /lumina carpet config <set/get> <node> [value] (for saved changes)
++                and /lumina carpet config temp <set/get> <node> [value] (for temp changes)
++                """));
++    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
 new file mode 100644

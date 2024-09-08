@@ -26,21 +26,18 @@ index a96e3bfc7f937debf285755652dc17acef3ea977..4a1a542cadde702253a9fccefc31fc74
          this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dca3a12178dc25433251d854d19cfdeb3d5f6cfa
+index 0000000000000000000000000000000000000000..aa829f4b6233f656584c7971db34ef20cbd58814
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,225 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
 +import dev.jorel.commandapi.CommandAPICommand;
 +import dev.jorel.commandapi.arguments.*;
-+import net.kyori.adventure.text.Component;
-+import net.kyori.adventure.text.format.NamedTextColor;
-+import net.kyori.adventure.text.format.TextColor;
++import dev.jorel.commandapi.executors.CommandArguments;
 +import org.bukkit.command.CommandSender;
 +import org.bukkit.command.ConsoleCommandSender;
-+import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.lumina.carpet.CarpetServer;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
 +import org.leavesmc.lumina.config.LuminaConfig;
@@ -61,134 +58,14 @@ index 0000000000000000000000000000000000000000..dca3a12178dc25433251d854d19cfdeb
 +
 +    public void registerCommands() {
 +        registerLuminaCommand();
-+        CarpetServer.registerCarpetCommands(); // TODO: move to CarpetServer later
 +    }
 +
 +    private void registerLuminaCommand() {
 +        String[] configNodes = LuminaConfig.nodeInfos.keySet().toArray(new String[0]);
 +        new CommandAPICommand("lumina")
 +                .withSubcommand(new CommandAPICommand("config")
-+                        .withSubcommand(new CommandAPICommand("set")
-+                                .withPermission("lumina.config.set")
-+                                .withArguments(new StringArgument("node")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
-+                                ).withArguments(new GreedyStringArgument("value")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
-+                                            String node = (String) info.previousArgs().get("node");
-+                                            ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                                            if (node == null || node.isEmpty() || nodeInfo == null) {
-+                                                return new String[]{};
-+                                            }
-+                                            return nodeInfo.suggestions();
-+                                        }))
-+                                ).executes((sender, args) -> {
-+                                    String node = (String) args.get("node");
-+                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                                    if (node == null || nodeInfo == null) {
-+                                        sender.sendMessage(text("No config node specified.").color(RED));
-+                                        return;
-+                                    }
-+                                    String value = (String) args.get("value");
-+                                    Class<?> type = nodeInfo.type();
-+                                    Object parent = nodeInfo.parent();
-+                                    if (value == null || value.isEmpty()) {
-+                                        sender.sendMessage(text("No value specified, expected: " + type.getSimpleName()).color(RED));
-+                                        return;
-+                                    }
-+                                    try {
-+                                        boolean save = LuminaConfig.configModule.misc.saveConfigAfterSet;
-+                                        if (type.isEnum()) {
-+                                            @SuppressWarnings({"unchecked", "rawtypes"})
-+                                            Class<? extends Enum> enumType = (Class<? extends Enum>) type;
-+                                            try {
-+                                                @SuppressWarnings("unchecked")
-+                                                Object enumValue = Enum.valueOf(enumType, value);
-+                                                nodeInfo.field().set(parent, enumValue);
-+                                            } catch (IllegalArgumentException ignored) {
-+                                                sender.sendMessage(text("Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value).color(RED));
-+                                            }
-+                                        } else {
-+                                            switch (type.getSimpleName()) {
-+                                                case "boolean" -> {
-+                                                    boolean newValue;
-+                                                    if ("true".equals(value)) {
-+                                                        newValue = true;
-+                                                    } else if ("false".equals(value)) {
-+                                                        newValue = false;
-+                                                    } else {
-+                                                        sender.sendMessage(text("Expected boolean, but entered: " + value).color(RED));
-+                                                        return;
-+                                                    }
-+                                                    Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
-+                                                    if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                        sender.sendMessage(text(result.message()).color(RED));
-+                                                        return;
-+                                                    }
-+                                                    nodeInfo.field().setBoolean(parent, newValue);
-+                                                }
-+                                                case "int" -> {
-+                                                    try {
-+                                                        int newValue = Integer.parseInt(value);
-+                                                        Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
-+                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sender.sendMessage(text(result.message()).color(RED));
-+                                                            return;
-+                                                        }
-+                                                        nodeInfo.field().setInt(parent, newValue);
-+                                                    } catch (NumberFormatException ignored) {
-+                                                        sender.sendMessage(text("Expected int, but entered: " + value).color(RED));
-+                                                    }
-+                                                }
-+                                                case "long" -> {
-+                                                    try {
-+                                                        long newValue = Long.parseLong(value);
-+                                                        Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
-+                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sender.sendMessage(text(result.message()).color(RED));
-+                                                            return;
-+                                                        }
-+                                                        nodeInfo.field().setLong(parent, newValue);
-+                                                    } catch (NumberFormatException ignored) {
-+                                                        sender.sendMessage(text("Expected long, but entered: " + value).color(RED));
-+                                                    }
-+                                                }
-+                                                case "double" -> {
-+                                                    try {
-+                                                        double newValue = Double.parseDouble(value);
-+                                                        Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
-+                                                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                            sender.sendMessage(text(result.message()).color(RED));
-+                                                            return;
-+                                                        }
-+                                                        nodeInfo.field().setDouble(parent, newValue);
-+                                                    } catch (NumberFormatException ignored) {
-+                                                        sender.sendMessage(text("Expected double, but entered: " + value).color(RED));
-+                                                    }
-+                                                }
-+                                                case "String" -> {
-+                                                    Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
-+                                                    if (result.type() != Validator.ValidationResultType.PASS) {
-+                                                        sender.sendMessage(text(result.message()).color(RED));
-+                                                        return;
-+                                                    }
-+                                                    nodeInfo.field().set(parent, value);
-+                                                }
-+                                                default ->
-+                                                        throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
-+                                            }
-+                                        }
-+                                        sender.sendMessage(text("Set " + node + " to " + value).color(DARK_GREEN));
-+                                        if (save) {
-+                                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
-+                                                LOGGER.info("Saved Lumina config after setting {} to {}", node, value);
-+                                                return null;
-+                                            });
-+                                        }
-+                                    } catch (IllegalAccessException e) {
-+                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
-+                                    }
-+                                })
-+                        ).withSubcommand(new CommandAPICommand("get")
++                        .withSubcommand(generateSetSubCommand(false, configNodes))
++                        .withSubcommand(new CommandAPICommand("get")
 +                                .withPermission("lumina.config.get")
 +                                .withArguments(new StringArgument("node")
 +                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
@@ -220,31 +97,171 @@ index 0000000000000000000000000000000000000000..dca3a12178dc25433251d854d19cfdeb
 +                                        return null;
 +                                    });
 +                                })
-+                        ).withSubcommand(new CommandAPICommand("save"))
-+                        .withPermission("lumina.config.set") // Cause `set` also called save, so use the same permission node
-+                        .executes((sender, args) -> {
-+                            sender.sendMessage(text("Saving Lumina config...").color(DARK_GREEN));
-+                            if (!(sender instanceof ConsoleCommandSender)) {
-+                                LOGGER.info("Saving Lumina config...");
-+                            }
-+                            LuminaConfig.saveAsync().thenApply((Void ignored) -> {
-+                                sender.sendMessage(text("Lumina config saved.").color(DARK_GREEN));
-+                                if (!(sender instanceof ConsoleCommandSender)) {
-+                                    LOGGER.info("Lumina config saved.");
-+                                }
-+                                return null;
-+                            });
-+                        })
++                        ).withSubcommand(new CommandAPICommand("save")
++                                .withPermission("lumina.config.set") // Cause `set` also called save, so use the same permission node
++                                .executes((sender, args) -> {
++                                    sender.sendMessage(text("Saving Lumina config...").color(DARK_GREEN));
++                                    if (!(sender instanceof ConsoleCommandSender)) {
++                                        LOGGER.info("Saving Lumina config...");
++                                    }
++                                    LuminaConfig.saveAsync().thenApply((Void ignored) -> {
++                                        sender.sendMessage(text("Lumina config saved.").color(DARK_GREEN));
++                                        if (!(sender instanceof ConsoleCommandSender)) {
++                                            LOGGER.info("Lumina config saved.");
++                                        }
++                                        return null;
++                                    });
++                                })
++                        ).withSubcommand(new CommandAPICommand("temp")
++                                .withSubcommand(generateSetSubCommand(true, configNodes))
++                                .withSubcommand(new CommandAPICommand("clear")
++                                        .withPermission("lumina.config.set")
++                                )
++                        )
 +                ).register();
++    }
++
++    private CommandAPICommand generateSetSubCommand(boolean temp, String[] configNodes) {
++        return new CommandAPICommand("set")
++                .withPermission("lumina.config.set")
++                .withArguments(new StringArgument("node")
++                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
++                ).withArguments(new GreedyStringArgument("value")
++                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
++                            String node = (String) info.previousArgs().get("node");
++                            ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                            if (node == null || node.isEmpty() || nodeInfo == null) {
++                                return new String[]{};
++                            }
++                            return nodeInfo.suggestions();
++                        }))
++                ).executes((sender, args) -> {
++                    String node = (String) args.get("node");
++                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
++                    setValueInternal(node, nodeInfo, sender, args, temp);
++                });
++    }
++
++    private void setValueInternal(String node, ConfigNodeInfo nodeInfo, CommandSender sender, CommandArguments args, boolean temp) {
++        if (node == null || nodeInfo == null) {
++            sender.sendMessage(text("No config node specified.").color(RED));
++            return;
++        }
++        String value = (String) args.get("value");
++        Class<?> type = nodeInfo.type();
++        Object fileParent = nodeInfo.fileParent();
++        Object tempParent = nodeInfo.tempParent();
++        if (value == null || value.isEmpty()) {
++            sender.sendMessage(text("No value specified, expected: " + type.getSimpleName()).color(RED));
++            return;
++        }
++        try {
++            if (type.isEnum()) {
++                @SuppressWarnings({"unchecked", "rawtypes"})
++                Class<? extends Enum> enumType = (Class<? extends Enum>) type;
++                try {
++                    @SuppressWarnings("unchecked")
++                    Object enumValue = Enum.valueOf(enumType, value);
++                    nodeInfo.field().set(tempParent, enumValue);
++                    if (!temp) nodeInfo.field().set(fileParent, enumValue);
++                } catch (IllegalArgumentException ignored) {
++                    sender.sendMessage(text("Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value).color(RED));
++                }
++            } else {
++                switch (type.getSimpleName()) {
++                    case "boolean" -> {
++                        boolean newValue;
++                        if ("true".equals(value)) {
++                            newValue = true;
++                        } else if ("false".equals(value)) {
++                            newValue = false;
++                        } else {
++                            sender.sendMessage(text("Expected boolean, but entered: " + value).color(RED));
++                            return;
++                        }
++                        Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
++                        if (result.type() != Validator.ValidationResultType.PASS) {
++                            sender.sendMessage(text(result.message()).color(RED));
++                            return;
++                        }
++                        nodeInfo.field().setBoolean(tempParent, newValue);
++                        if (!temp) nodeInfo.field().setBoolean(fileParent, newValue);
++                    }
++                    case "int" -> {
++                        try {
++                            int newValue = Integer.parseInt(value);
++                            Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setInt(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setInt(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected int, but entered: " + value).color(RED));
++                        }
++                    }
++                    case "long" -> {
++                        try {
++                            long newValue = Long.parseLong(value);
++                            Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setLong(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setLong(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected long, but entered: " + value).color(RED));
++                        }
++                    }
++                    case "double" -> {
++                        try {
++                            double newValue = Double.parseDouble(value);
++                            Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setDouble(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setDouble(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected double, but entered: " + value).color(RED));
++                        }
++                    }
++                    case "String" -> {
++                        Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
++                        if (result.type() != Validator.ValidationResultType.PASS) {
++                            sender.sendMessage(text(result.message()).color(RED));
++                            return;
++                        }
++                        nodeInfo.field().set(tempParent, value);
++                        if (!temp) nodeInfo.field().set(fileParent, value);
++                    }
++                    default ->
++                            throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                }
++            }
++            LuminaConfig.mergeConfig();
++            sender.sendMessage(text("Set " + node + " to " + value + (temp ? " temporary" : "")).color(DARK_GREEN));
++            if (!temp && LuminaConfig.configModule.misc.saveConfigAfterSet) {
++                LuminaConfig.saveAsync().thenApply((Void ignored) -> {
++                    LOGGER.info("Saved Lumina config after setting {} to {}", node, value);
++                    return null;
++                });
++            }
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException("Please report this to Lumina developers: " + e);
++        }
 +    }
 +}
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java b/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5f7f258f8ddcde9f050691371662e18cb5f305a5
+index 0000000000000000000000000000000000000000..82aaa736e5e502b18d6cc758a9be4369493db295
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,11 @@
 +package org.leavesmc.lumina.config;
 +
 +import java.lang.reflect.Field;
@@ -252,25 +269,28 @@ index 0000000000000000000000000000000000000000..5f7f258f8ddcde9f050691371662e18c
 +public record ConfigNodeInfo(
 +        String[] suggestions,
 +        Class<?> type,
-+        Field field, Object parent,
++        Field field,
++        Object parent, Object fileParent, Object tempParent,
 +        Validator<?> validator) {
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf1893adfa
+index 0000000000000000000000000000000000000000..dd8a160950415d50d3865794c34cfe27eb1c5450
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,112 @@
 +package org.leavesmc.lumina.config;
 +
 +import io.papermc.paper.threadedregions.RegionizedServer;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetConfigModule;
 +import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
 +import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 +import org.spongepowered.configurate.loader.ConfigurationLoader;
++import org.spongepowered.configurate.serialize.SerializationException;
 +import org.spongepowered.configurate.yaml.NodeStyle;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
@@ -280,7 +300,7 @@ index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf
 +import java.util.concurrent.CompletableFuture;
 +
 +public class LuminaConfig {
-+    public static LuminaConfigModule configModule;
++    public static LuminaConfigModule configModule, fileModule, tempModule;
 +    private static ConfigurationLoader<CommentedConfigurationNode> loader;
 +    private static CommentedConfigurationNode node;
 +    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
@@ -306,10 +326,26 @@ index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf
 +
 +        loadConfig();
 +        saveConfig();
++    }
 +
++    private static void generateNodeInfos() {
 +        try {
-+            ConfigUtils.generateNodeInfos(nodeInfos, LuminaConfigModule.class, null, LuminaConfig.configModule);
++            ConfigUtils.generateNodeInfos(nodeInfos, LuminaConfigModule.class, null, configModule, fileModule, tempModule);
 +        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static void mergeConfig() {
++        try {
++            node.set(fileModule);
++            if (tempModule == null) {
++                tempModule = loader.createNode().get(LuminaConfigModule.class);
++            }
++            node.from(loader.createNode().set(LuminaConfigModule.class, tempModule));
++            configModule = node.get(LuminaConfigModule.class);
++            generateNodeInfos();
++        } catch (SerializationException e) {
 +            throw new RuntimeException(e);
 +        }
 +    }
@@ -323,6 +359,9 @@ index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf
 +        try {
 +            node = loader.load();
 +            configModule = node.get(LuminaConfigModule.class);
++            fileModule = node.get(LuminaConfigModule.class);
++            tempModule = loader.createNode().get(LuminaConfigModule.class);
++            generateNodeInfos();
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
 +        }
@@ -335,7 +374,7 @@ index 0000000000000000000000000000000000000000..98cc31e31cbc0223bbf9714d4913bbaf
 +
 +    private static void saveConfig() {
 +        try {
-+            node.set(LuminaConfigModule.class, configModule);
++            node.set(LuminaConfigModule.class, fileModule);
 +            loader.save(node);
 +        } catch (ConfigurateException e) {
 +            throw new RuntimeException(e);
@@ -810,10 +849,10 @@ index 0000000000000000000000000000000000000000..119b50c12f08c548e7a56dd983805324
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb1160ccf5e4
+index 0000000000000000000000000000000000000000..43f8e44ce868f98cb6c7efa1484878691b09140b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,107 @@
 +package org.leavesmc.lumina.utils;
 +
 +import org.bukkit.Bukkit;
@@ -821,10 +860,13 @@ index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb11
 +import org.bukkit.plugin.java.InternalJavaPluginFactory;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetConfigModule;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
 +import org.leavesmc.lumina.config.Validator;
 +import org.leavesmc.lumina.config.annotations.Suggestion;
 +import org.leavesmc.lumina.config.annotations.Validate;
++import org.spongepowered.configurate.loader.AbstractConfigurationLoader;
++import org.spongepowered.configurate.serialize.SerializationException;
 +
 +import java.lang.annotation.Annotation;
 +import java.lang.reflect.Field;
@@ -849,7 +891,7 @@ index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb11
 +        return CompletableFuture.runAsync(runnable, task -> Bukkit.getGlobalRegionScheduler().run(ConfigUtils.INTERNAL_PLUGIN, scheduled -> task.run()));
 +    }
 +
-+    public static void generateNodeInfos(Map<String, ConfigNodeInfo> nodeInfoMap, @NotNull Class<?> clazz, String parentKey, @NotNull Object parent) throws IllegalAccessException {
++    public static void generateNodeInfos(Map<String, ConfigNodeInfo> nodeInfoMap, @NotNull Class<?> clazz, String parentKey, @NotNull Object parent, @NotNull Object fileParent, @NotNull Object tempParent) throws IllegalAccessException {
 +        for (Field field : clazz.getFields()) {
 +            String fieldName = field.getName();
 +            Class<?> fieldType = field.getType();
@@ -882,9 +924,9 @@ index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb11
 +                }
 +            }
 +            if (haveSuggestions) {
-+                nodeInfoMap.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, validator));
++                nodeInfoMap.put(key, new ConfigNodeInfo(suggestions, fieldType, field, parent, fileParent, tempParent, validator));
 +            } else {
-+                generateNodeInfos(nodeInfoMap, fieldType, key, field.get(parent));
++                generateNodeInfos(nodeInfoMap, fieldType, key, field.get(parent), field.get(fileParent), field.get(tempParent));
 +            }
 +        }
 +    }
@@ -902,5 +944,19 @@ index 0000000000000000000000000000000000000000..737b6be25265b8f4c4bdb50f7e61fb11
 +            sb.append(Character.toLowerCase(ch));
 +        }
 +        return sb.toString();
++    }
++
++    public static @NotNull String toCamel(@NotNull String input) {
++        String[] words = input.split("-");
++        StringBuilder camelCaseString = new StringBuilder();
++
++        for (String word : words) {
++            if (!word.isEmpty()) {
++                camelCaseString.append(Character.toUpperCase(word.charAt(0)))
++                        .append(word.substring(1).toLowerCase());
++            }
++        }
++
++        return camelCaseString.toString();
 +    }
 +}
