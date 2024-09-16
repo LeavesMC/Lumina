@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
-index 83b09feec13a00c35e6f8d4f0ccdae1c8da9c0e5..55479b520f90b1cbee1016a37ec9098152106155 100644
+index 83b09feec13a00c35e6f8d4f0ccdae1c8da9c0e5..e4ef0f6f3b219dc4e22b5134ba086245543427f0 100644
 --- a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
 @@ -173,7 +173,7 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
@@ -36,7 +36,7 @@ index 83b09feec13a00c35e6f8d4f0ccdae1c8da9c0e5..55479b520f90b1cbee1016a37ec90981
          if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode()
              && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.performUsernameValidation
 -            && !this.iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation) {
-+            && !this.iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation  && org.leavesmc.lumina.config.LuminaConfig.configModule.misc.checkUsername) { // Luminol - Add config for username check
++            && !this.iKnowThisMayNotBeTheBestIdeaButPleaseDisableUsernameValidation  && org.leavesmc.lumina.config.LuminaConfig.configModule().misc.checkUsername) { // Luminol - Add config for username check
              Validate.validState(StringUtil.isReasonablePlayerName(packet.name()), "Invalid characters in username", new Object[0]);
          }
          // Paper end - Validate usernames

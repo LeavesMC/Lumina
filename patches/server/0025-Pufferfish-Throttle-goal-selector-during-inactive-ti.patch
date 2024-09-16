@@ -7,7 +7,7 @@ This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
 License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
-index 9e418d614df14719c1d7826fdf7827492ab05c66..136aaca7798ce4ffe902bb349887530e8f5ad981 100644
+index d55ff79f67b4a1656df8662cb313900abbee9eb5..b1a85420729e899318e335caab2717e9059e0c27 100644
 --- a/src/main/java/net/minecraft/world/entity/Mob.java
 +++ b/src/main/java/net/minecraft/world/entity/Mob.java
 @@ -245,11 +245,13 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Targeti
@@ -20,7 +20,7 @@ index 9e418d614df14719c1d7826fdf7827492ab05c66..136aaca7798ce4ffe902bb349887530e
      public void inactiveTick() {
          super.inactiveTick();
 -        if (this.goalSelector.inactiveTick()) {
-+        boolean isThrottled = org.leavesmc.lumina.config.LuminaConfig.configModule.performance.entityGoalSelectorInactiveTick && _pufferfish_inactiveTickDisableCounter++ % 20 != 0; // Pufferfish - throttle inactive goal selector ticking
++        boolean isThrottled = org.leavesmc.lumina.config.LuminaConfig.configModule().performance.entityGoalSelectorInactiveTick && _pufferfish_inactiveTickDisableCounter++ % 20 != 0; // Pufferfish - throttle inactive goal selector ticking
 +        if (this.goalSelector.inactiveTick() && !isThrottled) { // Pufferfish - pass activated priroity // Pufferfish - throttle inactive goal selector ticking
              this.goalSelector.tick();
          }

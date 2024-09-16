@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java b/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
-index 479e6e2aa88a22ef7f8fccb06add6806f5b71d9d..83fbd13646be16a0672af9a9f307ad151ccdacc9 100644
+index 479e6e2aa88a22ef7f8fccb06add6806f5b71d9d..f4fcaaf917cdc5a87e48376c112071d689fe3e94 100644
 --- a/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
 +++ b/src/main/java/net/minecraft/commands/arguments/ArgumentSignatures.java
 @@ -14,8 +14,14 @@ public record ArgumentSignatures(List<ArgumentSignatures.Entry> entries) {
@@ -41,14 +41,14 @@ index 479e6e2aa88a22ef7f8fccb06add6806f5b71d9d..83fbd13646be16a0672af9a9f307ad15
 +    // Luminol start - Add config for chat sign
 +    private static List<ArgumentSignatures.Entry> readSign(FriendlyByteBuf buf) {
 +        var entries = buf.readCollection(FriendlyByteBuf.limitValue(ArrayList::new, 8), Entry::new);
-+        return org.leavesmc.lumina.config.LuminaConfig.configModule.misc.mojangChatSign ? List.of() : entries;
++        return org.leavesmc.lumina.config.LuminaConfig.configModule().misc.mojangChatSign ? List.of() : entries;
 +    }
 +    // Luminol end
  
      public void write(FriendlyByteBuf buf) {
          buf.writeCollection(this.entries, (buf2, entry) -> entry.write(buf2));
 diff --git a/src/main/java/net/minecraft/network/FriendlyByteBuf.java b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
-index aafeb9c61ddba6a8671f0238eda47b227619f1af..69c13463ac59d02544a0e4acd52aa615d23876b1 100644
+index aafeb9c61ddba6a8671f0238eda47b227619f1af..6d77ed5436ba1cf68a69d133f06447228febdb94 100644
 --- a/src/main/java/net/minecraft/network/FriendlyByteBuf.java
 +++ b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
 @@ -129,6 +129,16 @@ public class FriendlyByteBuf extends ByteBuf {
@@ -58,7 +58,7 @@ index aafeb9c61ddba6a8671f0238eda47b227619f1af..69c13463ac59d02544a0e4acd52aa615
 +        //Luminol start - Add config for chat sign
 +        if (codec == net.minecraft.network.protocol.status.ServerStatus.CODEC) {
 +            JsonElement element = dataresult.getOrThrow( string -> new EncoderException("Failed to encode: " + string + " " + value));
-+            element.getAsJsonObject().addProperty("preventsChatReports", !org.leavesmc.lumina.config.LuminaConfig.configModule.misc.mojangChatSign);
++            element.getAsJsonObject().addProperty("preventsChatReports", !org.leavesmc.lumina.config.LuminaConfig.configModule().misc.mojangChatSign);
 +
 +            this.writeUtf(GSON.toJson(element));
 +            return;

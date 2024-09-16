@@ -1930,6 +1930,43 @@ index 0000000000000000000000000000000000000000..d9d2f5a111f1fac23de7f87e224c7511
 +    public abstract CommandRegistrationStrategy<CommandSourceStack> createCommandRegistrationStrategy();
 +}
 \ No newline at end of file
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index cc40d3e69a3635ca7895876159f2821091c14a9a..358b5ca5b392ab8b635ebded4c687e5ffea020c2 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -63,7 +63,6 @@ import org.apache.logging.log4j.Level;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.io.IoBuilder;
+ import org.bukkit.command.CommandSender;
+-import co.aikar.timings.MinecraftTimings; // Paper
+ import org.bukkit.craftbukkit.util.TerminalCompletionHandler;
+ import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
+ import org.bukkit.event.server.ServerCommandEvent;
+@@ -91,6 +90,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+     private RemoteSampleLogger tickTimeLogger;
+     @Nullable
+     private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
++    private org.bukkit.plugin.java.JavaPlugin commandAPIPlugin; // Lumina - CommandAPI
+ 
+     // CraftBukkit start - Signature changed
+     public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
+@@ -281,6 +281,16 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             return false;
+         }
+ 
++        // Lumina start - enable CommandAPI
++        commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
++        dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
++                .shouldHookPaperReload(false)
++                .skipReloadDatapacks(true)
++                .silentLogs(true)
++        );
++        dev.jorel.commandapi.CommandAPI.onEnable();
++        // Lumina end - enable CommandAPI
++        org.leavesmc.lumina.LuminaCommand.INSTANCE.registerCommands(); // Lumina - register commands
+         // CraftBukkit start
+         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
+         this.server.loadPlugins();
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java b/src/main/java/org/leavesmc/lumina/utils/ReflectTargetField.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..4deb7ca3c09a03faf0ddf2b49d0a0581a9682c75

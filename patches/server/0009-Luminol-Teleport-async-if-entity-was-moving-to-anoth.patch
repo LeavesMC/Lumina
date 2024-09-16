@@ -29,7 +29,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index fad6a7185e8e9ea160b47ec9da56d08af9df8396..faad27212cebae30095fc2b472fea960592d5ba7 100644
+index fad6a7185e8e9ea160b47ec9da56d08af9df8396..a476490983eab8e13718454c164d41edd90655b7 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1127,6 +1127,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -48,7 +48,7 @@ index fad6a7185e8e9ea160b47ec9da56d08af9df8396..faad27212cebae30095fc2b472fea960
              this.moveVector = movement;
          }
 +        //Luminol start - Fix high position moving
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
 +            var finalPosition = movement.add(this.position);
 +            if (this.preventMoving || Double.isNaN(finalPosition.x) || Double.isNaN(finalPosition.y) || Double.isNaN(finalPosition.z)){
 +                return;
@@ -66,7 +66,7 @@ index fad6a7185e8e9ea160b47ec9da56d08af9df8396..faad27212cebae30095fc2b472fea960
 +                            this.preventMoving = false;
 +                        }
 +                );
-+                if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaEntityMoving.warnOnDetected){
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.warnOnDetected){
 +                    MinecraftServer.LOGGER.warn("Entity {} with entityId {} has tried moving to another region!",this.type.getCategory().getName(),this.getId());
 +                }
 +                return;

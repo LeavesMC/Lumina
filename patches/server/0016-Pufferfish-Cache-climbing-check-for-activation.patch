@@ -6,21 +6,6 @@ Subject: [PATCH] Pufferfish Cache climbing check for activation
 This patch is Powered by Pufferfish(https://github.com/pufferfish-gg/Pufferfish)
 License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/pufferfish-gg/Pufferfish?tab=GPL-3.0-1-ov-file)
 
-diff --git a/build.gradle.kts b/build.gradle.kts
-index e8f78fc0a8310a9428da2378f831795a0c047a4b..364f93c5cd4b5d1a0cd0c3026c3e1809491fb3e9 100644
---- a/build.gradle.kts
-+++ b/build.gradle.kts
-@@ -39,8 +39,8 @@ dependencies {
-     implementation("org.spongepowered:configurate-yaml:4.2.0-SNAPSHOT") // Paper - config files
-     implementation("org.spongepowered:configurate-hocon:4.2.0-SNAPSHOT") // Lumina - config files
-     // Lumina start - Command API
--    compileOnly("dev.jorel:commandapi-preprocessor:9.5.1")
--    implementation("dev.jorel:commandapi-bukkit-core:9.5.1")
-+    compileOnly("dev.jorel:commandapi-preprocessor:9.5.3")
-+    implementation("dev.jorel:commandapi-bukkit-core:9.5.3")
-     // Lumina end - Command API
-     implementation("commons-lang:commons-lang:2.6")
-     runtimeOnly("org.xerial:sqlite-jdbc:3.45.3.0")
 diff --git a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java b/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
 index 2096e57c025858519e7c46788993b9aac1ec60e8..9c8a3749c09ca4f5389cc9d240f713f0a12badee 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/io/RegionFileIOThread.java
@@ -441,89 +426,6 @@ index 355c8408da189a4805e206db0932c41f940930f0..fb753f5a73d33e00d7029e01ab6e53c9
  
          this.profiler.popPush("send chunks");
          iterator = this.playerList.getPlayers().iterator();
-diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index cc40d3e69a3635ca7895876159f2821091c14a9a..4a1a542cadde702253a9fccefc31fc7457df266c 100644
---- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-+++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -63,7 +63,6 @@ import org.apache.logging.log4j.Level;
- import org.apache.logging.log4j.LogManager;
- import org.apache.logging.log4j.io.IoBuilder;
- import org.bukkit.command.CommandSender;
--import co.aikar.timings.MinecraftTimings; // Paper
- import org.bukkit.craftbukkit.util.TerminalCompletionHandler;
- import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
- import org.bukkit.event.server.ServerCommandEvent;
-@@ -91,6 +90,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-     private RemoteSampleLogger tickTimeLogger;
-     @Nullable
-     private DebugSampleSubscriptionTracker debugSampleSubscriptionTracker;
-+    private org.bukkit.plugin.java.JavaPlugin commandAPIPlugin; // Lumina - CommandAPI
- 
-     // CraftBukkit start - Signature changed
-     public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
-@@ -222,6 +222,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
-         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
-         // Paper end - initialize global and world-defaults configuration
-+        org.leavesmc.lumina.config.LuminaConfig.setup(); //Lumina - load config file
-         // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
-         if (this.convertOldUsers()) {
-             this.getProfileCache().save(false); // Paper
-@@ -281,6 +282,16 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-             return false;
-         }
- 
-+        // Lumina start - enable CommandAPI
-+        commandAPIPlugin = org.bukkit.plugin.java.InternalJavaPluginFactory.create("CommandAPI");
-+        dev.jorel.commandapi.CommandAPI.onLoad(new dev.jorel.commandapi.CommandAPIBukkitConfig(commandAPIPlugin)
-+                .shouldHookPaperReload(false)
-+                .skipReloadDatapacks(true)
-+                .silentLogs(true)
-+        );
-+        dev.jorel.commandapi.CommandAPI.onEnable();
-+        // Lumina end - enable CommandAPI
-+        org.leavesmc.lumina.LuminaCommand.INSTANCE.registerCommands(); // Lumina - register commands
-         // CraftBukkit start
-         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
-         this.server.loadPlugins();
-@@ -505,7 +516,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-     }
- 
-     public void handleConsoleInputs() {
--        MinecraftTimings.serverCommandTimer.startTiming(); // Spigot
-         // Paper start - Perf: use proper queue
-         ConsoleInput servercommand;
-         while ((servercommand = this.serverCommandQueue.poll()) != null) {
-@@ -522,7 +532,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-             // CraftBukkit end
-         }
- 
--        MinecraftTimings.serverCommandTimer.stopTiming(); // Spigot
-     }
- 
-     @Override
-@@ -796,21 +805,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-             }
-             // Paper start
-             command.set(event.getCommand());
--            if (event.getCommand().toLowerCase(java.util.Locale.ROOT).startsWith("timings") && event.getCommand().toLowerCase(java.util.Locale.ROOT).matches("timings (report|paste|get|merged|seperate)")) {
--                org.bukkit.command.BufferedCommandSender sender = new org.bukkit.command.BufferedCommandSender();
--                Waitable<String> waitable = new Waitable<>() {
--                    @Override
--                    protected String evaluate() {
--                        return sender.getBuffer();
--                    }
--                };
--                waitableArray[0] = waitable;
--                co.aikar.timings.Timings.generateReport(new co.aikar.timings.TimingsReportListener(sender, waitable));
--            } else {
-             // Paper end
-             ConsoleInput serverCommand = new ConsoleInput(event.getCommand(), wrapper);
-             this.server.dispatchServerCommand(event.getSender(), serverCommand);
--            } // Paper
-         }; // Folia start - region threading
-         java.util.concurrent.CompletableFuture
-             .runAsync(sync, io.papermc.paper.threadedregions.RegionizedServer.getInstance()::addTask)
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
 index c547d51eebd965f2be7ac45bc0981626c0515ef1..c868a09cf07ee98e474a660debc2176276bce736 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
@@ -1004,7 +906,7 @@ index 954d468459fe167ede0e7fca5b9f99da565d59e1..71e1b030d226315bf4b4d79532130d39
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2a1ed00a5adaac8602df18a9a1845c4e4c2d8032..6f000c5a68364ea3dff5fe2af800a265ca4a3a69 100644
+index 2d640206df7d8984e3988055263613d90dc5e07e..88ebf0fa0a52ef25c58f39ad17738109148ffa09 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -311,7 +311,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -1353,7 +1255,7 @@ index 1362a47943cf1a51a185a15094b1f74c94bf40ef..340b9d9fdfa54b7bef05b8ca47b8f3c2
          try (DataInputStream out = new DataInputStream(new java.io.BufferedInputStream(new InflaterInputStream(Files.newInputStream(file))))) {
              return NbtIo.read((java.io.DataInput) out);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileStorage.java b/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-index 1090b7e36e3c1c105bc36135b82751c651f237d4..1ffca48b2185325700332cdab21d156889138392 100644
+index 1090b7e36e3c1c105bc36135b82751c651f237d4..5c59ecea133b5772d59f2a000b4f2ac2da2bcec0 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 @@ -21,7 +21,7 @@ public class RegionFileStorage implements AutoCloseable {
@@ -1436,7 +1338,7 @@ index 1090b7e36e3c1c105bc36135b82751c651f237d4..1ffca48b2185325700332cdab21d1568
 +                    return null; // CraftBukkit
 +                }
              } else {
-+                String extension = org.leavesmc.lumina.config.LuminaConfig.configModule.misc.regionFormat.format.getExtensionName();
++                String extension = org.leavesmc.lumina.config.LuminaConfig.configModule().misc.regionFormat.format.getExtensionName();
 +                path1 = path.resolve("r." + j + "." + chunkcoordintpair.getRegionZ() + extension);
 +                // LinearPaper end
                  this.createRegionFile(regionPos);

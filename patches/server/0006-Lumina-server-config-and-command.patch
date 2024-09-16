@@ -6,28 +6,17 @@ Subject: [PATCH] Lumina server config and command
 
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa829f4b6233f656584c7971db34ef20cbd58814
+index 0000000000000000000000000000000000000000..872c620b9fd90e41f1c012c9462ab90f8c8b1dd1
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,27 @@
 +package org.leavesmc.lumina;
 +
 +import com.mojang.logging.LogUtils;
 +import dev.jorel.commandapi.CommandAPICommand;
-+import dev.jorel.commandapi.arguments.*;
-+import dev.jorel.commandapi.executors.CommandArguments;
-+import org.bukkit.command.CommandSender;
-+import org.bukkit.command.ConsoleCommandSender;
-+import org.leavesmc.lumina.carpet.CarpetServer;
-+import org.leavesmc.lumina.config.ConfigNodeInfo;
++import org.leavesmc.lumina.carpet.CarpetConfig;
 +import org.leavesmc.lumina.config.LuminaConfig;
-+import org.leavesmc.lumina.config.Validator;
 +import org.slf4j.Logger;
-+
-+import java.util.Arrays;
-+
-+import static net.kyori.adventure.text.Component.*;
-+import static net.kyori.adventure.text.format.NamedTextColor.*;
 +
 +public class LuminaCommand {
 +    private LuminaCommand() {
@@ -41,285 +30,61 @@ index 0000000000000000000000000000000000000000..aa829f4b6233f656584c7971db34ef20
 +    }
 +
 +    private void registerLuminaCommand() {
-+        String[] configNodes = LuminaConfig.nodeInfos.keySet().toArray(new String[0]);
 +        new CommandAPICommand("lumina")
-+                .withSubcommand(new CommandAPICommand("config")
-+                        .withSubcommand(generateSetSubCommand(false, configNodes))
-+                        .withSubcommand(new CommandAPICommand("get")
-+                                .withPermission("lumina.config.get")
-+                                .withArguments(new StringArgument("node")
-+                                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
-+                                ).executes((sender, args) -> {
-+                                    String node = (String) args.get("node");
-+                                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                                    if (node == null || nodeInfo == null) {
-+                                        sender.sendMessage(text("No config node specified.").color(RED));
-+                                        return;
-+                                    }
-+                                    try {
-+                                        sender.sendMessage(text("The value of " + node + " is " + nodeInfo.field().get(nodeInfo.parent())));
-+                                    } catch (IllegalAccessException e) {
-+                                        throw new RuntimeException("Please report this to Lumina developers: " + e);
-+                                    }
-+                                })
-+                        ).withSubcommand(new CommandAPICommand("reload")
-+                                .withPermission("lumina.config.reload")
-+                                .executes((sender, args) -> {
-+                                    sender.sendMessage(text("Reloading Lumina config...").color(DARK_GREEN));
-+                                    if (!(sender instanceof ConsoleCommandSender)) {
-+                                        LOGGER.info("Reloading Lumina config...");
-+                                    }
-+                                    LuminaConfig.reloadAsync().thenApply((Void ignored) -> {
-+                                        sender.sendMessage(text("Lumina config reloaded.").color(DARK_GREEN));
-+                                        if (!(sender instanceof ConsoleCommandSender)) {
-+                                            LOGGER.info("Lumina config reloaded.");
-+                                        }
-+                                        return null;
-+                                    });
-+                                })
-+                        ).withSubcommand(new CommandAPICommand("save")
-+                                .withPermission("lumina.config.set") // Cause `set` also called save, so use the same permission node
-+                                .executes((sender, args) -> {
-+                                    sender.sendMessage(text("Saving Lumina config...").color(DARK_GREEN));
-+                                    if (!(sender instanceof ConsoleCommandSender)) {
-+                                        LOGGER.info("Saving Lumina config...");
-+                                    }
-+                                    LuminaConfig.saveAsync().thenApply((Void ignored) -> {
-+                                        sender.sendMessage(text("Lumina config saved.").color(DARK_GREEN));
-+                                        if (!(sender instanceof ConsoleCommandSender)) {
-+                                            LOGGER.info("Lumina config saved.");
-+                                        }
-+                                        return null;
-+                                    });
-+                                })
-+                        ).withSubcommand(new CommandAPICommand("temp")
-+                                .withSubcommand(generateSetSubCommand(true, configNodes))
-+                                .withSubcommand(new CommandAPICommand("clear")
-+                                        .withPermission("lumina.config.set")
-+                                )
-+                        )
-+                ).register();
-+    }
-+
-+    private CommandAPICommand generateSetSubCommand(boolean temp, String[] configNodes) {
-+        return new CommandAPICommand("set")
-+                .withPermission("lumina.config.set")
-+                .withArguments(new StringArgument("node")
-+                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
-+                ).withArguments(new GreedyStringArgument("value")
-+                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
-+                            String node = (String) info.previousArgs().get("node");
-+                            ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                            if (node == null || node.isEmpty() || nodeInfo == null) {
-+                                return new String[]{};
-+                            }
-+                            return nodeInfo.suggestions();
-+                        }))
-+                ).executes((sender, args) -> {
-+                    String node = (String) args.get("node");
-+                    ConfigNodeInfo nodeInfo = LuminaConfig.nodeInfos.getOrDefault(node, null);
-+                    setValueInternal(node, nodeInfo, sender, args, temp);
-+                });
-+    }
-+
-+    private void setValueInternal(String node, ConfigNodeInfo nodeInfo, CommandSender sender, CommandArguments args, boolean temp) {
-+        if (node == null || nodeInfo == null) {
-+            sender.sendMessage(text("No config node specified.").color(RED));
-+            return;
-+        }
-+        String value = (String) args.get("value");
-+        Class<?> type = nodeInfo.type();
-+        Object fileParent = nodeInfo.fileParent();
-+        Object tempParent = nodeInfo.tempParent();
-+        if (value == null || value.isEmpty()) {
-+            sender.sendMessage(text("No value specified, expected: " + type.getSimpleName()).color(RED));
-+            return;
-+        }
-+        try {
-+            if (type.isEnum()) {
-+                @SuppressWarnings({"unchecked", "rawtypes"})
-+                Class<? extends Enum> enumType = (Class<? extends Enum>) type;
-+                try {
-+                    @SuppressWarnings("unchecked")
-+                    Object enumValue = Enum.valueOf(enumType, value);
-+                    nodeInfo.field().set(tempParent, enumValue);
-+                    if (!temp) nodeInfo.field().set(fileParent, enumValue);
-+                } catch (IllegalArgumentException ignored) {
-+                    sender.sendMessage(text("Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value).color(RED));
-+                }
-+            } else {
-+                switch (type.getSimpleName()) {
-+                    case "boolean" -> {
-+                        boolean newValue;
-+                        if ("true".equals(value)) {
-+                            newValue = true;
-+                        } else if ("false".equals(value)) {
-+                            newValue = false;
-+                        } else {
-+                            sender.sendMessage(text("Expected boolean, but entered: " + value).color(RED));
-+                            return;
-+                        }
-+                        Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
-+                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                            sender.sendMessage(text(result.message()).color(RED));
-+                            return;
-+                        }
-+                        nodeInfo.field().setBoolean(tempParent, newValue);
-+                        if (!temp) nodeInfo.field().setBoolean(fileParent, newValue);
-+                    }
-+                    case "int" -> {
-+                        try {
-+                            int newValue = Integer.parseInt(value);
-+                            Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
-+                            if (result.type() != Validator.ValidationResultType.PASS) {
-+                                sender.sendMessage(text(result.message()).color(RED));
-+                                return;
-+                            }
-+                            nodeInfo.field().setInt(tempParent, newValue);
-+                            if (!temp) nodeInfo.field().setInt(fileParent, newValue);
-+                        } catch (NumberFormatException ignored) {
-+                            sender.sendMessage(text("Expected int, but entered: " + value).color(RED));
-+                        }
-+                    }
-+                    case "long" -> {
-+                        try {
-+                            long newValue = Long.parseLong(value);
-+                            Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
-+                            if (result.type() != Validator.ValidationResultType.PASS) {
-+                                sender.sendMessage(text(result.message()).color(RED));
-+                                return;
-+                            }
-+                            nodeInfo.field().setLong(tempParent, newValue);
-+                            if (!temp) nodeInfo.field().setLong(fileParent, newValue);
-+                        } catch (NumberFormatException ignored) {
-+                            sender.sendMessage(text("Expected long, but entered: " + value).color(RED));
-+                        }
-+                    }
-+                    case "double" -> {
-+                        try {
-+                            double newValue = Double.parseDouble(value);
-+                            Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
-+                            if (result.type() != Validator.ValidationResultType.PASS) {
-+                                sender.sendMessage(text(result.message()).color(RED));
-+                                return;
-+                            }
-+                            nodeInfo.field().setDouble(tempParent, newValue);
-+                            if (!temp) nodeInfo.field().setDouble(fileParent, newValue);
-+                        } catch (NumberFormatException ignored) {
-+                            sender.sendMessage(text("Expected double, but entered: " + value).color(RED));
-+                        }
-+                    }
-+                    case "String" -> {
-+                        Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
-+                        if (result.type() != Validator.ValidationResultType.PASS) {
-+                            sender.sendMessage(text(result.message()).color(RED));
-+                            return;
-+                        }
-+                        nodeInfo.field().set(tempParent, value);
-+                        if (!temp) nodeInfo.field().set(fileParent, value);
-+                    }
-+                    default ->
-+                            throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
-+                }
-+            }
-+            LuminaConfig.mergeConfig();
-+            sender.sendMessage(text("Set " + node + " to " + value + (temp ? " temporary" : "")).color(DARK_GREEN));
-+            if (!temp && LuminaConfig.configModule.misc.saveConfigAfterSet) {
-+                LuminaConfig.saveAsync().thenApply((Void ignored) -> {
-+                    LOGGER.info("Saved Lumina config after setting {} to {}", node, value);
-+                    return null;
-+                });
-+            }
-+        } catch (IllegalAccessException e) {
-+            throw new RuntimeException("Please report this to Lumina developers: " + e);
-+        }
++                .withSubcommand(LuminaConfig.INSTANCE.generateConfigCommand())
++                .withSubcommand(new CommandAPICommand("carpet")
++                        .withSubcommand(CarpetConfig.INSTANCE.generateConfigCommand()))
++                .register();
 +    }
 +}
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..804839b994c708b6cc37371b879e2d2261cdfa77
+index 0000000000000000000000000000000000000000..228b90a23058ac9035684dc708376f87ae6c11cc
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfig.java
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,109 @@
 +package org.leavesmc.lumina.carpet;
 +
-+import io.papermc.paper.threadedregions.RegionizedServer;
 +import net.minecraft.world.level.block.Block;
-+import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.leaves.protocol.CarpetServerProtocol;
 +import org.leavesmc.lumina.carpet.utils.ConfigIdentifier;
-+import org.leavesmc.lumina.config.ConfigNodeInfo;
-+import org.leavesmc.lumina.config.LuminaConfigModule;
++import org.leavesmc.lumina.config.AbstractConfig;
 +import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
-+import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.ConfigurationNode;
 +import org.spongepowered.configurate.NodePath;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
++import org.spongepowered.configurate.loader.ConfigurationLoader;
 +import org.spongepowered.configurate.objectmapping.ObjectMapper;
 +import org.spongepowered.configurate.objectmapping.meta.Comment;
-+import org.spongepowered.configurate.serialize.SerializationException;
 +
 +import java.lang.annotation.Annotation;
 +import java.nio.file.Paths;
-+import java.util.HashMap;
 +import java.util.Locale;
-+import java.util.Map;
-+import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.ConcurrentMap;
 +
-+public class CarpetConfig {
-+    public static final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
-+    public static final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
-+    public static CarpetConfigModule configModule, fileModule, tempModule;
-+    public static Block structureBlockIgnoredBlock;
-+    private static HoconConfigurationLoader loader;
-+    private static CommentedConfigurationNode node;
-+    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
-+    private static final ConcurrentMap<String, Rule> RULE_CACHE = new ConcurrentHashMap<>();
++public class CarpetConfig extends AbstractConfig<CarpetConfigModule, CommentedConfigurationNode> {
++    public static final CarpetConfig INSTANCE = new CarpetConfig();
 +
-+    public static void setup() {
-+        final ObjectMapper.Factory customFactory = ObjectMapper.factoryBuilder()
-+                .addProcessor(Comment.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
-+                .addProcessor(ConfigIdentifier.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
-+                .build();
-+        loader = HoconConfigurationLoader.builder()
-+                .emitComments(true)
-+                .prettyPrinting(true)
-+                .defaultOptions(opts -> opts.serializers(build -> build.registerAnnotatedObjects(customFactory)))
-+                .path(Paths.get("carpet.conf"))
-+                .build();
-+
-+        loadConfig();
-+        saveConfig();
++    public static CarpetConfigModule configModule() {
++        return INSTANCE.getConfigModule();
 +    }
 +
-+    private static void generateNodeInfos() {
-+        try {
-+            ConfigUtils.generateNodeInfos(nodeInfos, CarpetConfigModule.class, null, configModule, fileModule, tempModule);
-+        } catch (IllegalAccessException e) {
-+            throw new RuntimeException(e);
-+        }
++    public final ThreadLocal<Boolean> IMPENDING_FILL_SKIP_UPDATES = ThreadLocal.withInitial(() -> false);
++    public final ThreadLocal<Boolean> SKIP_GENERATION_CHECKS = ThreadLocal.withInitial(() -> false);
++    public Block structureBlockIgnoredBlock;
++    private ConcurrentMap<String, Rule> RULE_CACHE;
++
++    @Override
++    protected void init() {
++        RULE_CACHE = new ConcurrentHashMap<>();
++        super.init();
 +    }
 +
-+    public static void mergeConfig() {
-+        try {
-+            node.set(fileModule);
-+            if (tempModule == null) {
-+                tempModule = loader.createNode().get(CarpetConfigModule.class);
-+            }
-+            node.from(loader.createNode().set(LuminaConfigModule.class, tempModule));
-+            configModule = node.get(CarpetConfigModule.class);
-+            generateNodeInfos();
-+        } catch (SerializationException e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
-+
-+    private static void setRuleCache(ConfigurationNode node, Object value, Annotation annotation) {
++    private void setRuleCache(ConfigurationNode node, Object value, Annotation annotation) {
 +        if (value != null) {
 +            String v;
 +            if (value instanceof Enum<?> e) {
@@ -330,7 +95,7 @@ index 0000000000000000000000000000000000000000..804839b994c708b6cc37371b879e2d22
 +                v = value.toString();
 +            }
 +            NodePath path = node.path();
-+            String name = ConfigUtils.toCamel(path.get(path.size() - 1).toString());
++            String name = ConfigUtils.toCamelCase(path.get(path.size() - 1).toString());
 +            Rule rule = RULE_CACHE.computeIfAbsent(name, k -> new Rule());
 +            rule.name = name;
 +            rule.value = v;
@@ -340,47 +105,39 @@ index 0000000000000000000000000000000000000000..804839b994c708b6cc37371b879e2d22
 +        }
 +    }
 +
-+    public static void reload() {
-+        RegionizedServer.ensureGlobalTickThread("Reload carpet config off global region thread!");
-+        loadConfig();
++    @Override
++    protected ConfigurationLoader<@NotNull CommentedConfigurationNode> getConfigLoader() {
++        final ObjectMapper.Factory customFactory = ObjectMapper.factoryBuilder()
++                .addProcessor(Comment.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
++                .addProcessor(ConfigIdentifier.class, (data, fieldType) -> (value, destination) -> setRuleCache(destination, value, data))
++                .build();
++        return HoconConfigurationLoader.builder()
++                .emitComments(true)
++                .prettyPrinting(true)
++                .defaultOptions(opts -> opts.serializers(build -> build.registerAnnotatedObjects(customFactory)))
++                .path(Paths.get("carpet.conf"))
++                .build();
 +    }
 +
-+    private static void loadConfig() {
-+        try {
-+            node = loader.load();
-+            configModule = node.get(CarpetConfigModule.class);
-+            fileModule = node.get(CarpetConfigModule.class);
-+            tempModule = loader.createNode().get(CarpetConfigModule.class);
-+            generateNodeInfos();
-+            RULE_CACHE.forEach((name, rule) -> rule.register());
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
++    @Override
++    public void loadConfig() {
++        super.loadConfig();
++        RULE_CACHE.values().forEach(Rule::register);
 +    }
 +
-+    public static void save() {
-+        RegionizedServer.ensureGlobalTickThread("Reload carpet config off global region thread!");
-+        saveConfig();
++    @Override
++    protected Class<CarpetConfigModule> getConfigModuleClass() {
++        return CarpetConfigModule.class;
 +    }
 +
-+    private static void saveConfig() {
-+        try {
-+            node.set(CarpetConfigModule.class, fileModule);
-+            loader.save(node);
-+            RULE_CACHE.forEach((name, rule) -> rule.register());
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
++    @Override
++    protected String getName() {
++        return "Carpet";
 +    }
 +
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> reloadAsync() {
-+        return ConfigUtils.runAsync(CarpetConfig::reload);
-+    }
-+
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> saveAsync() {
-+        return ConfigUtils.runAsync(CarpetConfig::save);
++    @Override
++    protected String getPermissionParent() {
++        return "carpet";
 +    }
 +
 +    private static class Rule {
@@ -398,7 +155,7 @@ index 0000000000000000000000000000000000000000..804839b994c708b6cc37371b879e2d22
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f917673be
+index 0000000000000000000000000000000000000000..8d6de4b557dfb5fdef7d246f15872b9f2d7bdc60
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
 @@ -0,0 +1,493 @@
@@ -833,7 +590,7 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 +            if (ignoredBlock.isEmpty()) {
 +                return false;
 +            }
-+            CarpetConfig.structureBlockIgnoredBlock = ignoredBlock.get();
++            CarpetConfig.INSTANCE.structureBlockIgnoredBlock = ignoredBlock.get();
 +            return true;
 +        }
 +
@@ -860,7 +617,7 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 +        public boolean validate(@NotNull Boolean newValue, @NotNull Boolean oldValue) {
 +            if (oldValue.booleanValue() != newValue.booleanValue()) {
 +                // Needed for the update
-+                CarpetConfig.configModule.tickSyncedWorldBorders = newValue;
++                CarpetConfig.configModule().tickSyncedWorldBorders = newValue;
 +                for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
 +                    WorldBorder worldBorder = level.getWorldBorder();
 +                    if (worldBorder.getStatus() != BorderStatus.STATIONARY) {
@@ -898,22 +655,30 @@ index 0000000000000000000000000000000000000000..0d5758fd377dc834e3824a1e6dfcbc1f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5b2372ef995267600f81e0a05c4a3a5bf9e7dd05
+index 0000000000000000000000000000000000000000..acb85b85be72d0b27fe2b8b192dac8d1d7fe1921
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,22 @@
 +package org.leavesmc.lumina.carpet.command;
 +
 +import dev.jorel.commandapi.CommandAPICommand;
-+import dev.jorel.commandapi.arguments.LiteralArgument;
++import dev.jorel.commandapi.arguments.ArgumentSuggestions;
++import dev.jorel.commandapi.arguments.GreedyStringArgument;
 +
 +public class CarpetCommand {
++    private static final String DEPRECATED_TEXT = """
++                                        command /carpet <rule> <value> is deprecated.
++                                        Please use /lumina carpet config <set/get> <node> [value] (for saved changes)
++                                        and /lumina carpet config temp <set/get> <node> [value] (for temp changes)
++                                        """;
 +    public static void register() {
-+        new CommandAPICommand("carpet").withArguments(new LiteralArgument("""
-+                command /carpet <rule> <value> is deprecated.
-+                Please use /lumina carpet config <set/get> <node> [value] (for saved changes)
-+                and /lumina carpet config temp <set/get> <node> [value] (for temp changes)
-+                """));
++        new CommandAPICommand("carpet")
++                .withArguments(
++                        new GreedyStringArgument("deprecated").replaceSuggestions(
++                                ArgumentSuggestions.strings(DEPRECATED_TEXT)))
++                .executes((sender, args) -> {
++                    sender.sendMessage(DEPRECATED_TEXT);
++                }).register("carpet");
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CounterCommand.java
@@ -1451,7 +1216,7 @@ index 0000000000000000000000000000000000000000..f673832378af9529a2eb6fe18c25cda7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9b947732094ffccad603ad1dcc066766e72ed12b
+index 0000000000000000000000000000000000000000..c788178e2bc8ee5376496e2c753acfdd3f86b800
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 @@ -0,0 +1,466 @@
@@ -1692,7 +1457,7 @@ index 0000000000000000000000000000000000000000..9b947732094ffccad603ad1dcc066766
 +            }
 +            @SuppressWarnings("DataFlowIssue") GameProfile profile = server.getProfileCache().get(playerName).orElse(null);
 +            if (profile == null) {
-+                if (!CarpetConfig.configModule.allowSpawningOfflinePlayers) {
++                if (!CarpetConfig.configModule().allowSpawningOfflinePlayers) {
 +                    sender.sendMessage(text("Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.").color(RED));
 +                    return false;
 +                } else {
@@ -1904,8 +1669,8 @@ index 0000000000000000000000000000000000000000..9b947732094ffccad603ad1dcc066766
 +        if (playerName == null) {
 +            throw CommandAPIBukkit.failWithAdventureComponent(text("Require player name").color(RED));
 +        }
-+        String prefix = CarpetConfig.configModule.fakePlayerNamePrefix;
-+        String suffix = CarpetConfig.configModule.fakePlayerNameSuffix;
++        String prefix = CarpetConfig.configModule().fakePlayerNamePrefix;
++        String suffix = CarpetConfig.configModule().fakePlayerNameSuffix;
 +        if ("#none".equals(prefix)) {
 +            prefix = "";
 +        }
@@ -2090,6 +1855,330 @@ index 0000000000000000000000000000000000000000..3ae1870a9e6b19cfc750b93feb189c18
 +            EntityType.VILLAGER, Set.of("breeding", "iron_golem_spawning")
 +    );
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/AbstractConfig.java b/src/main/java/org/leavesmc/lumina/config/AbstractConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adc447520bd6f77147dfd980eff5180a63c6e264
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/AbstractConfig.java
+@@ -0,0 +1,317 @@
++package org.leavesmc.lumina.config;
++
++import dev.jorel.commandapi.CommandAPICommand;
++import dev.jorel.commandapi.arguments.ArgumentSuggestions;
++import dev.jorel.commandapi.arguments.GreedyStringArgument;
++import dev.jorel.commandapi.arguments.StringArgument;
++import dev.jorel.commandapi.executors.CommandArguments;
++import org.bukkit.command.CommandSender;
++import org.bukkit.command.ConsoleCommandSender;
++import org.jetbrains.annotations.Contract;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.utils.ConfigUtils;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.spongepowered.configurate.ConfigurateException;
++import org.spongepowered.configurate.ConfigurationNode;
++import org.spongepowered.configurate.loader.ConfigurationLoader;
++import org.spongepowered.configurate.serialize.SerializationException;
++
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.Map;
++import java.util.concurrent.CompletableFuture;
++
++import static net.kyori.adventure.text.Component.text;
++import static net.kyori.adventure.text.format.NamedTextColor.DARK_GREEN;
++import static net.kyori.adventure.text.format.NamedTextColor.RED;
++
++public abstract class AbstractConfig<M, N extends ConfigurationNode> {
++    private final Logger logger;
++    protected volatile M configModule, fileModule, tempModule;
++    public Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
++    private N node;
++    private final ConfigurationLoader<@NotNull N> loader;
++    private final Class<M> moduleClass;
++    private final String name, permissionParent;
++
++    protected AbstractConfig() {
++        this.moduleClass = getConfigModuleClass();
++        this.loader = getConfigLoader();
++        this.name = getName();
++        this.permissionParent = getPermissionParent();
++        this.logger = LoggerFactory.getLogger(name + "Config");
++        init();
++    }
++
++    protected void init() {
++        loadConfig();
++        saveConfig();
++    }
++
++    protected abstract ConfigurationLoader<@NotNull N> getConfigLoader();
++
++    protected abstract Class<M> getConfigModuleClass();
++
++    protected abstract String getName();
++
++    protected abstract String getPermissionParent();
++
++    public CommandAPICommand generateConfigCommand() {
++        String[] configNodes = nodeInfos.keySet().toArray(new String[0]);
++        return new CommandAPICommand("config")
++                .withSubcommand(generateSetSubCommand(false, configNodes))
++                .withSubcommand(new CommandAPICommand("get")
++                        .withPermission(permissionParent + ".config.get")
++                        .withArguments(new StringArgument("node")
++                                .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
++                        ).executes((sender, args) -> {
++                            String node = (String) args.get("node");
++                            ConfigNodeInfo nodeInfo = nodeInfos.getOrDefault(node, null);
++                            if (node == null || nodeInfo == null) {
++                                sender.sendMessage(text("No config node specified.").color(RED));
++                                return;
++                            }
++                            try {
++                                sender.sendMessage(text("The value of " + node + " is " + nodeInfo.field().get(nodeInfo.parent())));
++                            } catch (IllegalAccessException e) {
++                                throw new RuntimeException("Please report this to Lumina developers: " + e);
++                            }
++                        })
++                ).withSubcommand(new CommandAPICommand("reload")
++                        .withPermission(permissionParent + ".config.reload")
++                        .executes((sender, args) -> {
++                            sender.sendMessage(text("Reloading " + name + " config...").color(DARK_GREEN));
++                            if (!(sender instanceof ConsoleCommandSender)) {
++                                logger.info("Reloading {} config...", name);
++                            }
++                            loadConfigAsync().thenApply((Void ignored) -> {
++                                sender.sendMessage(text(name + " config reloaded.").color(DARK_GREEN));
++                                if (!(sender instanceof ConsoleCommandSender)) {
++                                    logger.info("{} config reloaded.", name);
++                                }
++                                return null;
++                            });
++                        })
++                ).withSubcommand(new CommandAPICommand("save")
++                        .withPermission(permissionParent + ".config.set") // Cause `set` also called save, so use the same permission node
++                        .executes((sender, args) -> {
++                            sender.sendMessage(text("Saving " + name + " config...").color(DARK_GREEN));
++                            if (!(sender instanceof ConsoleCommandSender)) {
++                                logger.info("Saving {} config...", name);
++                            }
++                            saveConfigAsync().thenApply((Void ignored) -> {
++                                sender.sendMessage(text(name + " config saved.").color(DARK_GREEN));
++                                if (!(sender instanceof ConsoleCommandSender)) {
++                                    logger.info("{} config saved.", name);
++                                }
++                                return null;
++                            });
++                        })
++                ).withSubcommand(new CommandAPICommand("temp")
++                        .withSubcommand(generateSetSubCommand(true, configNodes))
++                        .withSubcommand(new CommandAPICommand("clear")
++                                .withPermission(permissionParent + ".config.set")
++                        )
++                );
++    }
++
++    private CommandAPICommand generateSetSubCommand(boolean temp, String[] configNodes) {
++        return new CommandAPICommand("set")
++                .withPermission(permissionParent + ".config.set")
++                .withArguments(new StringArgument("node")
++                        .replaceSuggestions(ArgumentSuggestions.strings(configNodes))
++                ).withArguments(new GreedyStringArgument("value")
++                        .replaceSuggestions(ArgumentSuggestions.strings(info -> {
++                            String node = (String) info.previousArgs().get("node");
++                            ConfigNodeInfo nodeInfo = nodeInfos.getOrDefault(node, null);
++                            if (node == null || node.isEmpty() || nodeInfo == null) {
++                                return new String[]{};
++                            }
++                            return nodeInfo.suggestions();
++                        }))
++                ).executes((sender, args) -> {
++                    String node = (String) args.get("node");
++                    ConfigNodeInfo nodeInfo = nodeInfos.getOrDefault(node, null);
++                    setValueInternal(node, nodeInfo, sender, args, temp);
++                });
++    }
++
++    protected void generateNodeInfos() {
++        try {
++            ConfigUtils.generateNodeInfos(nodeInfos, moduleClass, null, configModule, fileModule, tempModule);
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public M getConfigModule() {
++        return configModule;
++    }
++
++    public M getFileModule() {
++        return fileModule;
++    }
++
++    public M getTempModule() {
++        return tempModule;
++    }
++
++    public void mergeConfig() {
++        try {
++            node.set(fileModule);
++            node.from(loader.createNode().set(moduleClass, tempModule));
++            configModule = node.get(moduleClass);
++            generateNodeInfos();
++        } catch (SerializationException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public void loadConfig() {
++        try {
++            node = loader.load();
++            configModule = node.get(moduleClass);
++            fileModule = node.get(moduleClass);
++            tempModule = loader.createNode().get(moduleClass);
++            generateNodeInfos();
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public void saveConfig() {
++        try {
++            node.set(moduleClass, fileModule);
++            loader.save(node);
++        } catch (ConfigurateException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    @Contract(" -> new")
++    public @NotNull CompletableFuture<Void> loadConfigAsync() {
++        return ConfigUtils.runAsync(this::loadConfig);
++    }
++
++    @Contract(" -> new")
++    public @NotNull CompletableFuture<Void> saveConfigAsync() {
++        return ConfigUtils.runAsync(this::saveConfig);
++    }
++
++    private void setValueInternal(String node, ConfigNodeInfo nodeInfo, CommandSender sender, CommandArguments args, boolean temp) {
++        if (node == null || nodeInfo == null) {
++            sender.sendMessage(text("No config node specified.").color(RED));
++            return;
++        }
++        String value = (String) args.get("value");
++        Class<?> type = nodeInfo.type();
++        Object fileParent = nodeInfo.fileParent();
++        Object tempParent = nodeInfo.tempParent();
++        if (value == null || value.isEmpty()) {
++            sender.sendMessage(text("No value specified, expected: " + type.getSimpleName()).color(RED));
++            return;
++        }
++        try {
++            if (type.isEnum()) {
++                @SuppressWarnings({"unchecked", "rawtypes"})
++                Class<? extends Enum> enumType = (Class<? extends Enum>) type;
++                try {
++                    @SuppressWarnings("unchecked")
++                    Object enumValue = Enum.valueOf(enumType, value);
++                    nodeInfo.field().set(tempParent, enumValue);
++                    if (!temp) nodeInfo.field().set(fileParent, enumValue);
++                } catch (IllegalArgumentException ignored) {
++                    sender.sendMessage(text("Expected enum " + Arrays.toString(nodeInfo.suggestions()) + ", but entered: " + value).color(RED));
++                    return;
++                }
++            } else {
++                switch (type.getSimpleName()) {
++                    case "boolean" -> {
++                        boolean newValue;
++                        if ("true".equals(value)) {
++                            newValue = true;
++                        } else if ("false".equals(value)) {
++                            newValue = false;
++                        } else {
++                            sender.sendMessage(text("Expected boolean, but entered: " + value).color(RED));
++                            return;
++                        }
++                        Validator.ValidationResult result = Validator.validateBoolean(nodeInfo, newValue);
++                        if (result.type() != Validator.ValidationResultType.PASS) {
++                            sender.sendMessage(text(result.message()).color(RED));
++                            return;
++                        }
++                        nodeInfo.field().setBoolean(tempParent, newValue);
++                        if (!temp) nodeInfo.field().setBoolean(fileParent, newValue);
++                    }
++                    case "int" -> {
++                        try {
++                            int newValue = Integer.parseInt(value);
++                            Validator.ValidationResult result = Validator.validateInteger(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setInt(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setInt(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected int, but entered: " + value).color(RED));
++                            return;
++                        }
++                    }
++                    case "long" -> {
++                        try {
++                            long newValue = Long.parseLong(value);
++                            Validator.ValidationResult result = Validator.validateLong(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setLong(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setLong(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected long, but entered: " + value).color(RED));
++                            return;
++                        }
++                    }
++                    case "double" -> {
++                        try {
++                            double newValue = Double.parseDouble(value);
++                            Validator.ValidationResult result = Validator.validateDouble(nodeInfo, newValue);
++                            if (result.type() != Validator.ValidationResultType.PASS) {
++                                sender.sendMessage(text(result.message()).color(RED));
++                                return;
++                            }
++                            nodeInfo.field().setDouble(tempParent, newValue);
++                            if (!temp) nodeInfo.field().setDouble(fileParent, newValue);
++                        } catch (NumberFormatException ignored) {
++                            sender.sendMessage(text("Expected double, but entered: " + value).color(RED));
++                            return;
++                        }
++                    }
++                    case "String" -> {
++                        Validator.ValidationResult result = Validator.validateString(nodeInfo, value);
++                        if (result.type() != Validator.ValidationResultType.PASS) {
++                            sender.sendMessage(text(result.message()).color(RED));
++                            return;
++                        }
++                        nodeInfo.field().set(tempParent, value);
++                        if (!temp) nodeInfo.field().set(fileParent, value);
++                    }
++                    default -> throw new IllegalStateException("Please report this to Lumina developers: unexpected config field type " + type.getName());
++                }
++            }
++            mergeConfig();
++            sender.sendMessage(text("Set " + node + " to " + value + (temp ? " temporary" : "")).color(DARK_GREEN));
++            if (!temp && LuminaConfig.configModule().misc.saveConfigAfterSet) {
++                saveConfigAsync().thenApply((Void ignored) -> {
++                    logger.info("Saved {} config after setting {} to {}", name, node, value);
++                    return null;
++                });
++            }
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException("Please report this to Lumina developers: " + e);
++        }
++    }
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java b/src/main/java/org/leavesmc/lumina/config/ConfigNodeInfo.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..82aaa736e5e502b18d6cc758a9be4369493db295
@@ -2109,120 +2198,63 @@ index 0000000000000000000000000000000000000000..82aaa736e5e502b18d6cc758a9be4369
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dd8a160950415d50d3865794c34cfe27eb1c5450
+index 0000000000000000000000000000000000000000..c1fe628ebb2c71c84a0fe5a385f98f7a214426b9
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/LuminaConfig.java
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,55 @@
 +package org.leavesmc.lumina.config;
 +
-+import io.papermc.paper.threadedregions.RegionizedServer;
-+import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.CarpetConfigModule;
-+import org.leavesmc.lumina.utils.ConfigUtils;
 +import org.spongepowered.configurate.CommentedConfigurationNode;
-+import org.spongepowered.configurate.ConfigurateException;
 +import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 +import org.spongepowered.configurate.loader.ConfigurationLoader;
-+import org.spongepowered.configurate.serialize.SerializationException;
 +import org.spongepowered.configurate.yaml.NodeStyle;
 +import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 +
 +import java.nio.file.Files;
 +import java.nio.file.Path;
-+import java.util.*;
-+import java.util.concurrent.CompletableFuture;
 +
-+public class LuminaConfig {
-+    public static LuminaConfigModule configModule, fileModule, tempModule;
-+    private static ConfigurationLoader<CommentedConfigurationNode> loader;
-+    private static CommentedConfigurationNode node;
-+    public static Map<String, ConfigNodeInfo> nodeInfos = new HashMap<>();
++public class LuminaConfig extends AbstractConfig<LuminaConfigModule, CommentedConfigurationNode> {
++    public static final LuminaConfig INSTANCE = new LuminaConfig();
 +
-+    public static void setup() {
++    public static LuminaConfigModule configModule() {
++        return INSTANCE.getConfigModule();
++    }
++
++    @Override
++    protected ConfigurationLoader<@NotNull CommentedConfigurationNode> getConfigLoader() {
 +        Path hoconConfigPath = Path.of("lumina.conf");
 +        boolean useHocon = Boolean.getBoolean("lumina.config.style.hocon") || Files.exists(hoconConfigPath);
 +        boolean jsonStyle = Boolean.getBoolean("lumina.config.style.json");
 +        if (useHocon || jsonStyle) {
-+            loader = HoconConfigurationLoader.builder()
++            return HoconConfigurationLoader.builder()
 +                    .emitComments(true)
 +                    .emitJsonCompatible(jsonStyle)
 +                    .prettyPrinting(true)
 +                    .path(hoconConfigPath)
 +                    .build();
 +        } else {
-+            loader = YamlConfigurationLoader.builder()
++            return YamlConfigurationLoader.builder()
 +                    .nodeStyle(NodeStyle.BLOCK)
 +                    .indent(2)
 +                    .path(Path.of("lumina.yml"))
 +                    .build();
 +        }
-+
-+        loadConfig();
-+        saveConfig();
 +    }
 +
-+    private static void generateNodeInfos() {
-+        try {
-+            ConfigUtils.generateNodeInfos(nodeInfos, LuminaConfigModule.class, null, configModule, fileModule, tempModule);
-+        } catch (IllegalAccessException e) {
-+            throw new RuntimeException(e);
-+        }
++    @Override
++    protected Class<LuminaConfigModule> getConfigModuleClass() {
++        return LuminaConfigModule.class;
 +    }
 +
-+    public static void mergeConfig() {
-+        try {
-+            node.set(fileModule);
-+            if (tempModule == null) {
-+                tempModule = loader.createNode().get(LuminaConfigModule.class);
-+            }
-+            node.from(loader.createNode().set(LuminaConfigModule.class, tempModule));
-+            configModule = node.get(LuminaConfigModule.class);
-+            generateNodeInfos();
-+        } catch (SerializationException e) {
-+            throw new RuntimeException(e);
-+        }
++    @Override
++    protected String getName() {
++        return "Lumina";
 +    }
 +
-+    public static void reload() {
-+        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
-+        loadConfig();
-+    }
-+
-+    private static void loadConfig() {
-+        try {
-+            node = loader.load();
-+            configModule = node.get(LuminaConfigModule.class);
-+            fileModule = node.get(LuminaConfigModule.class);
-+            tempModule = loader.createNode().get(LuminaConfigModule.class);
-+            generateNodeInfos();
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
-+
-+    public static void save() {
-+        RegionizedServer.ensureGlobalTickThread("Reload lumina config off global region thread!");
-+        saveConfig();
-+    }
-+
-+    private static void saveConfig() {
-+        try {
-+            node.set(LuminaConfigModule.class, fileModule);
-+            loader.save(node);
-+        } catch (ConfigurateException e) {
-+            throw new RuntimeException(e);
-+        }
-+    }
-+
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> reloadAsync() {
-+        return ConfigUtils.runAsync(LuminaConfig::reload);
-+    }
-+
-+    @Contract(" -> new")
-+    public static @NotNull CompletableFuture<Void> saveAsync() {
-+        return ConfigUtils.runAsync(LuminaConfig::save);
++    @Override
++    protected String getPermissionParent() {
++        return "lumina";
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/LuminaConfigModule.java b/src/main/java/org/leavesmc/lumina/config/LuminaConfigModule.java
@@ -2703,10 +2735,10 @@ index 0000000000000000000000000000000000000000..028e817aa724f643f730d4edb91f5e6e
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..43f8e44ce868f98cb6c7efa1484878691b09140b
+index 0000000000000000000000000000000000000000..93686ee85bfd508a80c119050ab04d8c09179fe6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/ConfigUtils.java
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,104 @@
 +package org.leavesmc.lumina.utils;
 +
 +import org.bukkit.Bukkit;
@@ -2714,13 +2746,10 @@ index 0000000000000000000000000000000000000000..43f8e44ce868f98cb6c7efa148487869
 +import org.bukkit.plugin.java.InternalJavaPluginFactory;
 +import org.jetbrains.annotations.Contract;
 +import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.CarpetConfigModule;
 +import org.leavesmc.lumina.config.ConfigNodeInfo;
 +import org.leavesmc.lumina.config.Validator;
 +import org.leavesmc.lumina.config.annotations.Suggestion;
 +import org.leavesmc.lumina.config.annotations.Validate;
-+import org.spongepowered.configurate.loader.AbstractConfigurationLoader;
-+import org.spongepowered.configurate.serialize.SerializationException;
 +
 +import java.lang.annotation.Annotation;
 +import java.lang.reflect.Field;
@@ -2800,7 +2829,7 @@ index 0000000000000000000000000000000000000000..43f8e44ce868f98cb6c7efa148487869
 +        return sb.toString();
 +    }
 +
-+    public static @NotNull String toCamel(@NotNull String input) {
++    public static @NotNull String toCamelCase(@NotNull String input) {
 +        String[] words = input.split("-");
 +        StringBuilder camelCaseString = new StringBuilder();
 +

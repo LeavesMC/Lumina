@@ -9,7 +9,7 @@ License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com
 This patch is Powered by plusls-carpet-addition(https://github.com/plusls/plusls-carpet-addition)
 
 diff --git a/src/main/java/net/minecraft/world/entity/animal/horse/AbstractHorse.java b/src/main/java/net/minecraft/world/entity/animal/horse/AbstractHorse.java
-index 9357cf0179d19fbdfe76413e909a99b924c85780..17c1d19c290ddcc25369ef215eb8109aa9711d34 100644
+index 9357cf0179d19fbdfe76413e909a99b924c85780..9d5f56af4bea2fe7dd6b9b19a7d18305af22e44e 100644
 --- a/src/main/java/net/minecraft/world/entity/animal/horse/AbstractHorse.java
 +++ b/src/main/java/net/minecraft/world/entity/animal/horse/AbstractHorse.java
 @@ -435,6 +435,11 @@ public abstract class AbstractHorse extends Animal implements ContainerListener,
@@ -17,7 +17,7 @@ index 9357cf0179d19fbdfe76413e909a99b924c85780..17c1d19c290ddcc25369ef215eb8109a
      @Override
      public void containerChanged(Container sender) {
 +        // Leaves start - pca
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncEntityToClient(this);
 +        }
 +        // Leaves end - pca
@@ -25,7 +25,7 @@ index 9357cf0179d19fbdfe76413e909a99b924c85780..17c1d19c290ddcc25369ef215eb8109a
  
          this.syncSaddleToClients();
 diff --git a/src/main/java/net/minecraft/world/entity/npc/AbstractVillager.java b/src/main/java/net/minecraft/world/entity/npc/AbstractVillager.java
-index 57355dfc6c52e038ef92b7bf7cf7af5b5672704a..0e03331ae27e00abfbdb563ddad0851bba2b69af 100644
+index 57355dfc6c52e038ef92b7bf7cf7af5b5672704a..7126c23352cc345e6bc85a5485e0d2238cb05020 100644
 --- a/src/main/java/net/minecraft/world/entity/npc/AbstractVillager.java
 +++ b/src/main/java/net/minecraft/world/entity/npc/AbstractVillager.java
 @@ -71,6 +71,15 @@ public abstract class AbstractVillager extends AgeableMob implements InventoryCa
@@ -35,7 +35,7 @@ index 57355dfc6c52e038ef92b7bf7cf7af5b5672704a..0e03331ae27e00abfbdb563ddad0851b
 +        // Leaves start - pca
 +        if (!this.level().isClientSide()) {
 +            this.inventory.addListener(inventory -> {
-+                if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +                    org.leavesmc.leaves.protocol.PcaSyncProtocol.syncEntityToClient(this);
 +                }
 +            });
@@ -45,7 +45,7 @@ index 57355dfc6c52e038ef92b7bf7cf7af5b5672704a..0e03331ae27e00abfbdb563ddad0851b
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
-index 2cd8ac8840c2c0346fbf209c5ae3bb67eb3905e8..d146a0aa42ba3f817ff53a43f7cd880c6e5b883a 100644
+index 2cd8ac8840c2c0346fbf209c5ae3bb67eb3905e8..98c6b5854220019cfd0273c36b64fe0e93bbf434 100644
 --- a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
 +++ b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
 @@ -135,7 +135,13 @@ public abstract class AbstractMinecartContainer extends AbstractMinecart impleme
@@ -55,7 +55,7 @@ index 2cd8ac8840c2c0346fbf209c5ae3bb67eb3905e8..d146a0aa42ba3f817ff53a43f7cd880c
 -    public void setChanged() {}
 +    public void setChanged() {
 +        // Leaves start - pca
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncEntityToClient(this);
 +        }
 +        // Leaves end - pca
@@ -64,7 +64,7 @@ index 2cd8ac8840c2c0346fbf209c5ae3bb67eb3905e8..d146a0aa42ba3f817ff53a43f7cd880c
      @Override
      public boolean stillValid(Player player) {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-index a99fe191c429bb528209dd0f31b509acf9cccbb5..ed61a1a90f139d0f07442b19a2c547e87a6eff9a 100644
+index a99fe191c429bb528209dd0f31b509acf9cccbb5..cdf6683dc123bb1ee9c8203c0eb1758ed4fd8f17 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 @@ -555,6 +555,16 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
@@ -75,7 +75,7 @@ index a99fe191c429bb528209dd0f31b509acf9cccbb5..ed61a1a90f139d0f07442b19a2c547e8
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -85,7 +85,7 @@ index a99fe191c429bb528209dd0f31b509acf9cccbb5..ed61a1a90f139d0f07442b19a2c547e8
      public boolean canPlaceItem(int slot, ItemStack stack) {
          if (slot == 2) {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BarrelBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BarrelBlockEntity.java
-index 6186e55014bbb9d5bedaa0e9d196879c55339d42..9ca7531086b95865e332e880162e98f938522235 100644
+index 6186e55014bbb9d5bedaa0e9d196879c55339d42..4d2b988c7bb3ac4cbe1fcf29df3b69f417ff1bf6 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BarrelBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BarrelBlockEntity.java
 @@ -132,6 +132,16 @@ public class BarrelBlockEntity extends RandomizableContainerBlockEntity {
@@ -96,7 +96,7 @@ index 6186e55014bbb9d5bedaa0e9d196879c55339d42..9ca7531086b95865e332e880162e98f9
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -106,7 +106,7 @@ index 6186e55014bbb9d5bedaa0e9d196879c55339d42..9ca7531086b95865e332e880162e98f9
      protected Component getDefaultName() {
          return Component.translatable("container.barrel");
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
-index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e87391342e0d9d9d 100644
+index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..263addfe091e1ef7f3e5477e702693370130b058 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BeehiveBlockEntity.java
 @@ -143,6 +143,11 @@ public class BeehiveBlockEntity extends BlockEntity {
@@ -114,7 +114,7 @@ index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e8739134
          }
  
 +        // Leaves start - pca
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +        // Leaves end - pca
@@ -126,7 +126,7 @@ index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e8739134
              }
  
 +            // Leaves start - pca
-+            if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++            if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +                org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +            }
 +            // Leaves end - pca
@@ -139,7 +139,7 @@ index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e8739134
                      flag = true;
                      iterator.remove();
 +                    // Leaves start - pca
-+                    if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++                    if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +                        org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(Objects.requireNonNull(world.getBlockEntity(pos)));
 +                    }
 +                    // Leaves end - pca
@@ -151,7 +151,7 @@ index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e8739134
          }
          // CraftBukkit end
 +        // Leaves start - pca
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +        // Leaves end - pca
@@ -159,7 +159,7 @@ index 7b263fab4f0014400b3b8e7e33db32f9a125f6ba..0693f0b972be1529edb60d35e8739134
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-index a1cd6dcabe480c1714bdc15d53aadc828e041f6d..cf6a6f6b351f5b33fee830ea5e085ea5f1f36cd9 100644
+index a1cd6dcabe480c1714bdc15d53aadc828e041f6d..fdf30995e1dda0754244f6a904a2ac33a28edc6c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 @@ -329,6 +329,16 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
@@ -170,7 +170,7 @@ index a1cd6dcabe480c1714bdc15d53aadc828e041f6d..cf6a6f6b351f5b33fee830ea5e085ea5
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -180,7 +180,7 @@ index a1cd6dcabe480c1714bdc15d53aadc828e041f6d..cf6a6f6b351f5b33fee830ea5e085ea5
      public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction dir) {
          return slot == 3 ? stack.is(Items.GLASS_BOTTLE) : true;
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/ChestBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/ChestBlockEntity.java
-index 7b64c57795fe27d8397500bfa41f71f9d2103b20..337d4425a7317a4899e393c4c31f0e4c158de1dd 100644
+index 7b64c57795fe27d8397500bfa41f71f9d2103b20..8e2724683da4146efa272ce75f2a895828b33de5 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/ChestBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/ChestBlockEntity.java
 @@ -221,6 +221,16 @@ public class ChestBlockEntity extends RandomizableContainerBlockEntity implement
@@ -191,7 +191,7 @@ index 7b64c57795fe27d8397500bfa41f71f9d2103b20..337d4425a7317a4899e393c4c31f0e4c
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -201,7 +201,7 @@ index 7b64c57795fe27d8397500bfa41f71f9d2103b20..337d4425a7317a4899e393c4c31f0e4c
      public float getOpenNess(float tickDelta) {
          return this.chestLidController.getOpenness(tickDelta);
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/ComparatorBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/ComparatorBlockEntity.java
-index 7ea490a61321830c41dfa1bbd5480217dc62f478..b6a64a434f2fa28c814ca8c3ae5ed8eac789dc85 100644
+index 7ea490a61321830c41dfa1bbd5480217dc62f478..b0ef87a92a37fff9debc28215f1ca6b1249bf688 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/ComparatorBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/ComparatorBlockEntity.java
 @@ -24,6 +24,16 @@ public class ComparatorBlockEntity extends BlockEntity {
@@ -212,7 +212,7 @@ index 7ea490a61321830c41dfa1bbd5480217dc62f478..b6a64a434f2fa28c814ca8c3ae5ed8ea
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -222,7 +222,7 @@ index 7ea490a61321830c41dfa1bbd5480217dc62f478..b6a64a434f2fa28c814ca8c3ae5ed8ea
          return this.output;
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
-index ab63a233f7db352e325fa4498dd35b125fa8fcea..1b388b5fef740fb540617e541a05d39a09bc8374 100644
+index ab63a233f7db352e325fa4498dd35b125fa8fcea..b8e94b989eb6a4fbad12348f670ffe61df580ba8 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/DispenserBlockEntity.java
 @@ -93,6 +93,16 @@ public class DispenserBlockEntity extends RandomizableContainerBlockEntity {
@@ -233,7 +233,7 @@ index ab63a233f7db352e325fa4498dd35b125fa8fcea..1b388b5fef740fb540617e541a05d39a
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -243,7 +243,7 @@ index ab63a233f7db352e325fa4498dd35b125fa8fcea..1b388b5fef740fb540617e541a05d39a
      protected Component getDefaultName() {
          return Component.translatable("container.dispenser");
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 957c217653a664bab26db476724d288b18d87102..5a51c11074f629f640374094b59fb986ac2b77e1 100644
+index 957c217653a664bab26db476724d288b18d87102..621085f4248b2d240546dd87a40ac7938aa1be83 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -170,6 +170,16 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
@@ -254,7 +254,7 @@ index 957c217653a664bab26db476724d288b18d87102..5a51c11074f629f640374094b59fb986
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -268,7 +268,7 @@ index 957c217653a664bab26db476724d288b18d87102..5a51c11074f629f640374094b59fb986
                      blockEntity.setCooldown(world.spigotConfig.hopperTransfer); // Spigot
                      setChanged(world, pos, state);
 +                    // Leaves start - pca
-+                    if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++                    if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +                        org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(blockEntity);
 +                    }
 +                    // Leaves end - pca
@@ -276,7 +276,7 @@ index 957c217653a664bab26db476724d288b18d87102..5a51c11074f629f640374094b59fb986
                  }
              }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
-index 0d68db20f5fbe5e834f12c1e8fd429099a44e4b6..4caceb37f0aec4a1d326fe45ff096e6473b64447 100644
+index 0d68db20f5fbe5e834f12c1e8fd429099a44e4b6..4d66596497fe2dc037889e46ab9efcf2b4a0eed7 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java
 @@ -270,6 +270,16 @@ public class ShulkerBoxBlockEntity extends RandomizableContainerBlockEntity impl
@@ -287,7 +287,7 @@ index 0d68db20f5fbe5e834f12c1e8fd429099a44e4b6..4caceb37f0aec4a1d326fe45ff096e64
 +    @Override
 +    public void setChanged() {
 +        super.setChanged();
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            org.leavesmc.leaves.protocol.PcaSyncProtocol.syncBlockEntityToClient(this);
 +        }
 +    }
@@ -298,7 +298,7 @@ index 0d68db20f5fbe5e834f12c1e8fd429099a44e4b6..4caceb37f0aec4a1d326fe45ff096e64
          return ShulkerBoxBlockEntity.SLOTS;
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843593d4c5f
+index 0000000000000000000000000000000000000000..25fed027ddb8fa2e11d7f37214868a92dc32c7fb
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java
 @@ -0,0 +1,390 @@
@@ -370,14 +370,14 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +
 +    @ProtocolHandler.PlayerJoin
 +    private static void onJoin(ServerPlayer player) {
-+        if (LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            enablePcaSyncProtocol(player);
 +        }
 +    }
 +
 +    @ProtocolHandler.ReloadServer
 +    private static void onServerReload() {
-+        if (LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            enablePcaSyncProtocolGlobal();
 +        } else {
 +            disablePcaSyncProtocolGlobal();
@@ -386,7 +386,7 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +
 +    @ProtocolHandler.PayloadReceiver(payload = EmptyPayload.class, payloadId = "cancel_sync_block_entity")
 +    private static void cancelSyncBlockEntityHandler(ServerPlayer player, EmptyPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (!LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            return;
 +        }
 +        PcaSyncProtocol.clearPlayerWatchBlock(player);
@@ -394,7 +394,7 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +
 +    @ProtocolHandler.PayloadReceiver(payload = EmptyPayload.class, payloadId = "cancel_sync_entity")
 +    private static void cancelSyncEntityHandler(ServerPlayer player, EmptyPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (!LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            return;
 +        }
 +        PcaSyncProtocol.clearPlayerWatchEntity(player);
@@ -402,7 +402,7 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +
 +    @ProtocolHandler.PayloadReceiver(payload = SyncBlockEntityPayload.class, payloadId = "sync_block_entity")
 +    private static void syncBlockEntityHandler(ServerPlayer player, SyncBlockEntityPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (!LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            return;
 +        }
 +        MinecraftServer server = MinecraftServer.getServer();
@@ -445,7 +445,7 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +
 +    @ProtocolHandler.PayloadReceiver(payload = SyncEntityPayload.class, payloadId = "sync_entity")
 +    private static void syncEntityHandler(ServerPlayer player, SyncEntityPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.pcaSyncProtocol.enabled) {
++        if (!LuminaConfig.configModule().protocol.pcaSyncProtocol.enabled) {
 +            return;
 +        }
 +        MinecraftServer server = MinecraftServer.getServer();
@@ -456,18 +456,18 @@ index 0000000000000000000000000000000000000000..714586827580f6f9bc00e1ebfc66e843
 +            if (entity != null) {
 +                clearPlayerWatchData(player);
 +                if (entity instanceof Player) {
-+                    if (LuminaConfig.configModule.protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.NOBODY) {
++                    if (LuminaConfig.configModule().protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.NOBODY) {
 +                        return;
-+                    } else if (LuminaConfig.configModule.protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.BOT) {
++                    } else if (LuminaConfig.configModule().protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.BOT) {
 +                        // if (!(entity instanceof ServerBot)) { // TODO
 +                        //     return;
 +                        // }
-+                    } else if (LuminaConfig.configModule.protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.OPS) {
++                    } else if (LuminaConfig.configModule().protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.OPS) {
 +                        // !(entity instanceof ServerBot) && // TODO
 +                        if (server.getProfilePermissions(player.getGameProfile()) < 2) {
 +                            return;
 +                        }
-+                    } else if (LuminaConfig.configModule.protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.OPS_AND_SELF) {
++                    } else if (LuminaConfig.configModule().protocol.pcaSyncProtocol.sync == PcaSyncProtocolConfig.SyncOption.OPS_AND_SELF) {
 +                        // !(entity instanceof ServerBot) && // TODO
 +                        if (server.getProfilePermissions(player.getGameProfile()) < 2 &&
 +                                entity != player) {

@@ -36,7 +36,7 @@ index b798dbb7d22ab06c8d47c64d2db47b3d9a8fe946..b1c86ba3010f67a3a0db34b92df459bc
      public Level getLevel() {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e909133414
+index 0000000000000000000000000000000000000000..a71bd73f23c68ffede651980bbfad8cef71ef9c6
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 @@ -0,0 +1,227 @@
@@ -92,7 +92,7 @@ index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e9
 +
 +    @ProtocolHandler.Ticker
 +    public static void tick() {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            for (var playerEntry : players.entrySet()) {
 +                sendBoundingToPlayer(playerEntry.getKey(), playerEntry.getValue());
 +            }
@@ -101,7 +101,7 @@ index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e9
 +
 +    @ProtocolHandler.ReloadServer
 +    public static void onServerReload() {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            initAllPlayer();
 +        } else {
 +            loggedOutAllPlayer();
@@ -110,7 +110,7 @@ index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e9
 +
 +    @ProtocolHandler.PlayerJoin
 +    public static void onPlayerLoggedIn(@NotNull ServerPlayer player) {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            ServerLevel overworld = MinecraftServer.getServer().overworld();
 +            ProtocolUtils.sendPayloadPacket(player, INITIALIZE_CLIENT, buf -> {
 +                buf.writeLong(overworld.getSeed());
@@ -123,7 +123,7 @@ index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e9
 +
 +    @ProtocolHandler.PlayerLeave
 +    public static void onPlayerLoggedOut(@NotNull ServerPlayer player) {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            players.remove(player.getId());
 +            playerBoundingBoxesCache.remove(player.getId());
 +        }
@@ -131,20 +131,20 @@ index 0000000000000000000000000000000000000000..0806e2a9d2d221ab01ba603df67117e9
 +
 +    @ProtocolHandler.PayloadReceiver(payload = EmptyPayload.class, payloadId = "subscribe")
 +    public static void onPlayerSubscribed(@NotNull ServerPlayer player, EmptyPayload payload) {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            players.put(player.getId(), player);
 +            sendBoundingToPlayer(player.getId(), player);
 +        }
 +    }
 +
 +    public static void onDataPackReload() {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            players.values().forEach(BBORProtocol::sendStructureList);
 +        }
 +    }
 +
 +    public static void onChunkLoaded(@NotNull LevelChunk chunk) {
-+        if (LuminaConfig.configModule.protocol.bborProtocol) {
++        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            Map<String, StructureStart> structures = new HashMap<>();
 +            final Registry<Structure> structureFeatureRegistry = chunk.getLevel().registryAccess().registryOrThrow(Registries.STRUCTURE);
 +            for (var es : chunk.getAllStarts().entrySet()) {

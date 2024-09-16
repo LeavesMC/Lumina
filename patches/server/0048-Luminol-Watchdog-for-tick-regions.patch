@@ -66,7 +66,7 @@ index 2ad25dd345ab42125d456f2b9cf67d8c4515c8b7..92c9488f3b0828a0da5502aa5f90d98a
              MinecraftServer.getServer().tickServer(startTime, scheduledEnd, TimeUnit.MILLISECONDS.toMillis(10L), this.region);
 diff --git a/src/main/java/me/earthme/luminol/utils/LuminolWatchDog.java b/src/main/java/me/earthme/luminol/utils/LuminolWatchDog.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a93954bfb579
+index 0000000000000000000000000000000000000000..1bd0be5903b1b3dc493d95f2cdb2b8d1b1694f10
 --- /dev/null
 +++ b/src/main/java/me/earthme/luminol/utils/LuminolWatchDog.java
 @@ -0,0 +1,162 @@
@@ -129,7 +129,7 @@ index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a939
 +
 +                    final long timeEscaped = currentTimeNano - lastTicked;
 +
-+                    if (timeEscaped >= LuminaConfig.configModule.misc.watchdog.warnPeriodTicks * 50 * 1000 * 1000){
++                    if (timeEscaped >= LuminaConfig.configModule().misc.watchdog.warnPeriodTicks * 50 * 1000 * 1000){
 +                        threadsToWarn.add(Pair.of(lastGlobalRegionThread,timeEscaped));
 +                    }
 +                }
@@ -144,11 +144,11 @@ index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a939
 +                        targetRegion = otherTickRegionKeepalive.get(targetThread).getLeft();
 +                    }
 +
-+                    if (tickCount % LuminaConfig.configModule.misc.watchdog.warnPeriodTicks == 0){
++                    if (tickCount % LuminaConfig.configModule().misc.watchdog.warnPeriodTicks == 0){
 +                        dumpSingleRegion(targetThread,targetRegion,timeEscaped);
 +                    }
 +
-+                    if (timeEscaped > LuminaConfig.configModule.misc.watchdog.timeOutTicks * 50 * 1000 * 1000){
++                    if (timeEscaped > LuminaConfig.configModule().misc.watchdog.timeOutTicks * 50 * 1000 * 1000){
 +                        shouldStopServer = true;
 +                        runScheduleNext = false;
 +                    }
@@ -192,7 +192,7 @@ index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a939
 +    }
 +
 +    public static void globalRegionHeartBeat(){
-+        if (!LuminaConfig.configModule.misc.watchdog.enabled){
++        if (!LuminaConfig.configModule().misc.watchdog.enabled){
 +            return;
 +        }
 +
@@ -202,7 +202,7 @@ index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a939
 +    }
 +
 +    public static void tickRegionHeartBeat(){
-+        if (!LuminaConfig.configModule.misc.watchdog.enabled){
++        if (!LuminaConfig.configModule().misc.watchdog.enabled){
 +            return;
 +        }
 +
@@ -223,7 +223,7 @@ index 0000000000000000000000000000000000000000..82f79b75721d8dda7d7a569c07d1a939
 +    }
 +
 +    public static void onRegionDeath(ThreadedRegionizer.ThreadedRegion<?,?> currentRegion){
-+        if (!LuminaConfig.configModule.misc.watchdog.enabled){
++        if (!LuminaConfig.configModule().misc.watchdog.enabled){
 +            return;
 +        }
 +

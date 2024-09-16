@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 8ee61c2415455f8d4ff1ae687753117a40eb687b..29f8946dc609056c28ed2cf819e25feb086b2d9a 100644
+index 8ee61c2415455f8d4ff1ae687753117a40eb687b..d1e2aa5ac021ee7c39aef44bbd5e172469e5ce2d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -892,6 +892,11 @@ public class ServerPlayer extends Player {
@@ -36,7 +36,7 @@ index 8ee61c2415455f8d4ff1ae687753117a40eb687b..29f8946dc609056c28ed2cf819e25feb
  
          Entity entity = this.getCamera();
 +        //Luminol start - Fix folia spector teleportation
-+        if (!io.papermc.paper.util.TickThread.isTickThreadFor(entity) && org.leavesmc.lumina.config.LuminaConfig.configModule.fix.fixFoliaSpectorTeleport){
++        if (!io.papermc.paper.util.TickThread.isTickThreadFor(entity) && org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaSpectorTeleport){
 +            this.setCamera(this);
 +        }
 +        //Luminol end

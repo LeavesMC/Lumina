@@ -29,7 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 657a0e0dc8350704d89ab9722a207a65f5f58455..854b7a7cec964720f926789bf09aaa881249a495 100644
+index b5cd8023d433e60d5ca0a91cd337e969b8cd0982..5b852fed33d1b5e9b36d0941d6f15040ef1a40f9 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -306,7 +306,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -46,7 +46,7 @@ index 657a0e0dc8350704d89ab9722a207a65f5f58455..854b7a7cec964720f926789bf09aaa88
      // Folia - region ticking
      // Paper end - optimise entity tracking
 +    // Airplane start
-+    public int activatedPriority = org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.maximumActivationPriority; // golf score
++    public int activatedPriority = org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.maximumActivationPriority; // golf score
 +    // Airplane end
      public float getBukkitYaw() {
          return this.yRot;
@@ -64,13 +64,13 @@ index b75b58c9f9bb31c4bf37d7a4fb2551ace6277fcb..dd5d309105e07902b1777361eb3466b3
      // Folia start - profiler
      public final int tickTimerId;
 diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
-index a5e4735c99afa5c225a0bc4629b37ce1784a9818..679a6a57c4806f6a9a99f9ffe090421c8740adcc 100644
+index a9380d3207dbc0f2b21e9ebdd4c72b09cd3c30e0..11339314b0a9acb7b5818573a033b79ade80dd5f 100644
 --- a/src/main/java/net/minecraft/world/entity/Mob.java
 +++ b/src/main/java/net/minecraft/world/entity/Mob.java
 @@ -251,10 +251,10 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Targeti
      public void inactiveTick() {
          super.inactiveTick();
-         boolean isThrottled = org.leavesmc.lumina.config.LuminaConfig.configModule.performance.entityGoalSelectorInactiveTick && _pufferfish_inactiveTickDisableCounter++ % 20 != 0; // Pufferfish - throttle inactive goal selector ticking
+         boolean isThrottled = org.leavesmc.lumina.config.LuminaConfig.configModule().performance.entityGoalSelectorInactiveTick && _pufferfish_inactiveTickDisableCounter++ % 20 != 0; // Pufferfish - throttle inactive goal selector ticking
 -        if (this.goalSelector.inactiveTick() && !isThrottled) { // Pufferfish - pass activated priroity // Pufferfish - throttle inactive goal selector ticking
 +        if (this.goalSelector.inactiveTick(this.activatedPriority, true) && !isThrottled) { // Airplane - pass activated priroity // Pufferfish - pass activated priroity // Pufferfish - throttle inactive goal selector ticking
              this.goalSelector.tick();
@@ -102,7 +102,7 @@ index a5e4735c99afa5c225a0bc4629b37ce1784a9818..679a6a57c4806f6a9a99f9ffe090421c
              gameprofilerfiller.pop();
          }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/GoalSelector.java b/src/main/java/net/minecraft/world/entity/ai/goal/GoalSelector.java
-index 74d4f653d5c7f1923c59019effd78337402f7025..0874369df7f14fe96b89d547b4c3c90b5913ddc9 100644
+index 74d4f653d5c7f1923c59019effd78337402f7025..1f9c5fdd7bca190a7e7ddfedf3ce1b93a0d98874 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/goal/GoalSelector.java
 @@ -43,9 +43,12 @@ public class GoalSelector {
@@ -111,7 +111,7 @@ index 74d4f653d5c7f1923c59019effd78337402f7025..0874369df7f14fe96b89d547b4c3c90b
      // Paper start
 -    public boolean inactiveTick() {
 +    public boolean inactiveTick(int tickRate, boolean inactive) { // Airplane start
-+        if (inactive && !org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.enabled) tickRate = 4; // reset to Paper's
++        if (inactive && !org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.enabled) tickRate = 4; // reset to Paper's
 +        tickRate = Math.min(tickRate, 3);
          this.curRate++;
 -        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
@@ -219,7 +219,7 @@ index 6339967b154af1ca9632c7b8b315d612f4b80ea2..697129db4d1d5bb904742116df2df96b
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
 diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
-index 5dffcce9ab20c2ef9864b254d780eab403caa437..71b97b90e4b533d6ffd62d2350fc6f44c4ea8f26 100644
+index 5dffcce9ab20c2ef9864b254d780eab403caa437..e088a0fb96517d39940e82912640d23cbd3841d0 100644
 --- a/src/main/java/org/spigotmc/ActivationRange.java
 +++ b/src/main/java/org/spigotmc/ActivationRange.java
 @@ -37,6 +37,10 @@ import net.minecraft.world.entity.raid.Raider;
@@ -239,13 +239,13 @@ index 5dffcce9ab20c2ef9864b254d780eab403caa437..71b97b90e4b533d6ffd62d2350fc6f44
                  ActivationRange.activateEntity(entity, bbByType); // Folia - threaded regions
 +
 +                // Airplane start
-+                if (org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.enabled && entity.getType().dabEnabled) {
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.enabled && entity.getType().dabEnabled) {
 +                    Vec3 playerVec = player.position();
 +                    Vec3 entityVec = entity.position();
 +                    double diffX = playerVec.x - entityVec.x, diffY = playerVec.y - entityVec.y, diffZ = playerVec.z - entityVec.z;
 +                    int squaredDistance = (int) (diffX * diffX + diffY * diffY + diffZ * diffZ);
-+                    entity.activatedPriority = squaredDistance > org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.startDistanceSquared ?
-+                            Math.max(1, Math.min(squaredDistance >> org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.activationDistanceMod, org.leavesmc.lumina.config.LuminaConfig.configModule.performance.dynamicEntityActivationRange.maximumActivationPriority)) :
++                    entity.activatedPriority = squaredDistance > org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.startDistanceSquared ?
++                            Math.max(1, Math.min(squaredDistance >> org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.activationDistanceMod, org.leavesmc.lumina.config.LuminaConfig.configModule().performance.dynamicEntityActivationRange.maximumActivationPriority)) :
 +                            1;
 +                } else {
 +                    entity.activatedPriority = 1;

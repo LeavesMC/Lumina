@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/network/chat/SignedMessageChain.java b/src/main/java/net/minecraft/network/chat/SignedMessageChain.java
-index 300929a406905f5ff1ede664d5b99fb0938d4d2e..27ebf26ecdd1556e0eba04a2a2a16149e4edc890 100644
+index 300929a406905f5ff1ede664d5b99fb0938d4d2e..71d6d96a6e28b962f1cdd0bee362b8b8093c76c2 100644
 --- a/src/main/java/net/minecraft/network/chat/SignedMessageChain.java
 +++ b/src/main/java/net/minecraft/network/chat/SignedMessageChain.java
 @@ -45,7 +45,7 @@ public class SignedMessageChain {
@@ -36,7 +36,7 @@ index 300929a406905f5ff1ede664d5b99fb0938d4d2e..27ebf26ecdd1556e0eba04a2a2a16149
                      if (signedMessageLink == null) {
                          throw new SignedMessageChain.DecodeException(SignedMessageChain.DecodeException.CHAIN_BROKEN);
 -                    } else if (body.timeStamp().isBefore(SignedMessageChain.this.lastTimeStamp)) {
-+                    } else if (org.leavesmc.lumina.config.LuminaConfig.configModule.misc.allowInorderChat && body.timeStamp().isBefore(SignedMessageChain.this.lastTimeStamp)) { // Luminol - Add config for out-of-order chat checks
++                    } else if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.allowInorderChat && body.timeStamp().isBefore(SignedMessageChain.this.lastTimeStamp)) { // Luminol - Add config for out-of-order chat checks
                          this.setChainBroken();
                          throw new SignedMessageChain.DecodeException(SignedMessageChain.DecodeException.OUT_OF_ORDER_CHAT, org.bukkit.event.player.PlayerKickEvent.Cause.OUT_OF_ORDER_CHAT); // Paper - kick event causes
                      } else {

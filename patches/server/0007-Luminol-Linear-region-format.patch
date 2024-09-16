@@ -65,7 +65,7 @@ index 0000000000000000000000000000000000000000..1325ac1d603bc65224860170b5ffad3f
 +}
 diff --git a/src/main/java/org/stupidcraft/linearpaper/region/AbstractRegionFileFactory.java b/src/main/java/org/stupidcraft/linearpaper/region/AbstractRegionFileFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1a5a6ced77fea28c2d0bee99115d34ec1f16d58f
+index 0000000000000000000000000000000000000000..ddc8391108cff4fd90b046087d519409c00f8bf8
 --- /dev/null
 +++ b/src/main/java/org/stupidcraft/linearpaper/region/AbstractRegionFileFactory.java
 @@ -0,0 +1,40 @@
@@ -104,7 +104,7 @@ index 0000000000000000000000000000000000000000..1a5a6ced77fea28c2d0bee99115d34ec
 +        final String[] fullNameSplit = fullFileName.split("\\.");
 +        final String extensionName = fullNameSplit[fullNameSplit.length - 1];
 +        if (Objects.requireNonNull(EnumRegionFileExtension.fromExtension(extensionName)) == EnumRegionFileExtension.LINEAR) {
-+            return new LinearRegionFile(path, LuminaConfig.configModule.misc.regionFormat.linearCompressionLevel);
++            return new LinearRegionFile(path, LuminaConfig.configModule().misc.regionFormat.linearCompressionLevel);
 +        }
 +        return new RegionFile(storageKey, path, directory, compressionFormat, dsync, canRecalcHeader);
 +    }
@@ -172,7 +172,7 @@ index 0000000000000000000000000000000000000000..d51ec3faeb6a78992d440a7996739f4a
 +}
 diff --git a/src/main/java/org/stupidcraft/linearpaper/region/LinearRegionFile.java b/src/main/java/org/stupidcraft/linearpaper/region/LinearRegionFile.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7f37db5f4abe5e84dfcd9f60cd2e57d758d92ce7
+index 0000000000000000000000000000000000000000..db954f52f8dd39119669742b2c5dd23af846e920
 --- /dev/null
 +++ b/src/main/java/org/stupidcraft/linearpaper/region/LinearRegionFile.java
 @@ -0,0 +1,317 @@
@@ -411,7 +411,7 @@ index 0000000000000000000000000000000000000000..7f37db5f4abe5e84dfcd9f60cd2e57d7
 +            LOGGER.error("Chunk write IOException " + e + " " + this.path);
 +        }
 +
-+        if ((System.nanoTime() - this.lastFlushed) >= TimeUnit.NANOSECONDS.toSeconds(LuminaConfig.configModule.misc.regionFormat.linearFlushFrequency)){
++        if ((System.nanoTime() - this.lastFlushed) >= TimeUnit.NANOSECONDS.toSeconds(LuminaConfig.configModule().misc.regionFormat.linearFlushFrequency)){
 +            this.flushWrapper();
 +        }
 +    }

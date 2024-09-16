@@ -5,7 +5,7 @@ Subject: [PATCH] Rebrand to Lumina and build changes
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index eb2f9941b24af591f1e56339b97f5284a765cf81..e8f78fc0a8310a9428da2378f831795a0c047a4b 100644
+index eb2f9941b24af591f1e56339b97f5284a765cf81..364f93c5cd4b5d1a0cd0c3026c3e1809491fb3e9 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -13,7 +13,7 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
@@ -30,8 +30,8 @@ index eb2f9941b24af591f1e56339b97f5284a765cf81..e8f78fc0a8310a9428da2378f831795a
      implementation("org.spongepowered:configurate-yaml:4.2.0-SNAPSHOT") // Paper - config files
 +    implementation("org.spongepowered:configurate-hocon:4.2.0-SNAPSHOT") // Lumina - config files
 +    // Lumina start - Command API
-+    compileOnly("dev.jorel:commandapi-preprocessor:9.5.1")
-+    implementation("dev.jorel:commandapi-bukkit-core:9.5.1")
++    compileOnly("dev.jorel:commandapi-preprocessor:9.5.3")
++    implementation("dev.jorel:commandapi-bukkit-core:9.5.3")
 +    // Lumina end - Command API
      implementation("commons-lang:commons-lang:2.6")
      runtimeOnly("org.xerial:sqlite-jdbc:3.45.3.0")

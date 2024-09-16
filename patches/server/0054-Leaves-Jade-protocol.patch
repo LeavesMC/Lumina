@@ -127,7 +127,7 @@ index 3df389bd7703a59ce3c862570867125f17259b2a..eebe61df39a8129f9fd4d81393004358
      protected CompositeLootItemCondition(List<LootItemCondition> terms, Predicate<LootContext> predicate) {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..999273c739e449e0a8d39f88bc68a651ad61f3b6
+index 0000000000000000000000000000000000000000..1cd839012f381db2984d9aead0ecb4bbb713c507
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
 @@ -0,0 +1,397 @@
@@ -322,14 +322,14 @@ index 0000000000000000000000000000000000000000..999273c739e449e0a8d39f88bc68a651
 +
 +    @ProtocolHandler.PlayerJoin
 +    public static void onPlayerJoin(ServerPlayer player) {
-+        if (LuminaConfig.configModule.protocol.jadeProtocol) {
++        if (LuminaConfig.configModule().protocol.jadeProtocol) {
 +            ProtocolUtils.sendPayloadPacket(player, new ServerPingPayload("", shearableBlocks));
 +        }
 +    }
 +
 +    @ProtocolHandler.PayloadReceiver(payload = RequestEntityPayload.class, payloadId = "request_entity")
 +    public static void requestEntityData(ServerPlayer player, RequestEntityPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.jadeProtocol) {
++        if (!LuminaConfig.configModule().protocol.jadeProtocol) {
 +            return;
 +        }
 +
@@ -372,7 +372,7 @@ index 0000000000000000000000000000000000000000..999273c739e449e0a8d39f88bc68a651
 +
 +    @ProtocolHandler.PayloadReceiver(payload = RequestBlockPayload.class, payloadId = "request_block")
 +    public static void requestBlockData(ServerPlayer player, RequestBlockPayload payload) {
-+        if (!LuminaConfig.configModule.protocol.jadeProtocol) {
++        if (!LuminaConfig.configModule().protocol.jadeProtocol) {
 +            return;
 +        }
 +
@@ -425,7 +425,7 @@ index 0000000000000000000000000000000000000000..999273c739e449e0a8d39f88bc68a651
 +
 +    @ProtocolHandler.ReloadServer
 +    public static void onServerReload() {
-+        if (LuminaConfig.configModule.protocol.jadeProtocol) {
++        if (LuminaConfig.configModule().protocol.jadeProtocol) {
 +            enableAllPlayer();
 +        }
 +    }

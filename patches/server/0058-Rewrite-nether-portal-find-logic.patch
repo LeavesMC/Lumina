@@ -91,7 +91,7 @@ index fe3577e533fb829c85fd4881b1bcca3b70aaf1a5..409e7d3b2a6b02871346cafd0ede1890
          return new SectionPos(x, y, z);
      }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..5ebdcca24e8bee4e154fd5fbb10638d0b83ba405 100644
+index c3410a88ad9257030d9c1638f4dbd1d54a754dd9..c5dd259e88f49461d98e84e3dabf2009eb16e0b0 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -203,6 +203,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -111,7 +111,7 @@ index a33389dbc9c80d0ff0c962218ea9f05f27de62bb..5ebdcca24e8bee4e154fd5fbb10638d0
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 38c6403c780e276910cb0c30cb12b066249be81e..45eb414e4771ddff644d0231d819cb35b1130ca9 100644
+index 7722bed26ac01ec01b16f1c31979b95862694414..a51f8c2713ed1c604954626356c2f2b29b8badb7 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4389,12 +4389,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -165,7 +165,7 @@ index 4ee7d75c56d9f9ff3607276857dde84410ba3f2a..3f2f4ae25de3ecf559bd3650290fe27d
          this.records.put(s, poi);
          this.byType.computeIfAbsent(holder, type -> Sets.newHashSet()).add(poi);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..72d71c4ad3a4a16352fd425e1203a7ce56bc1091 100644
+index 571ce6a8c6cb3a4b37cf95e734b02e31c6eb12bc..05caa309ad2aaf3ac9dd51ac5e15524a3bd111bd 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -57,6 +57,7 @@ import net.minecraft.world.level.block.Blocks;
@@ -177,7 +177,7 @@ index 7fb23c02dc91ed3af27eb4420ce920ab22bdb359..72d71c4ad3a4a16352fd425e1203a7ce
  import net.minecraft.world.level.border.WorldBorder;
  import net.minecraft.world.level.chunk.ChunkAccess;
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 1e96806c974a9fdb574f851daea2fb67cb9ac409..146f50d0a56cd6031b74c0c770a68dc73e54a3e3 100644
+index c46211593bd8d4d0e3c34d451de35b5236316d5a..a88aefb46190834710414833249808ff79723c75 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -39,6 +39,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -216,7 +216,7 @@ index 4739bdb828be18d9bec7ae2d6c6b332de879acee..8cb99bc8719165824e434023fbff8be1
  }
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d84938e6299ac
+index 0000000000000000000000000000000000000000..d6e5264025c4d0a6899ec39ffdcaca76821398a2
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/LevelNetherPortalPoiManager.java
 @@ -0,0 +1,223 @@
@@ -287,7 +287,7 @@ index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d8493
 +    }
 +
 +    private void addInternal(@NotNull BlockPos pos, @NotNull SectionPos subChunkPos, @NotNull FoundRectangle foundRectangle) {
-+        if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
++        if (LuminaConfig.configModule().performance.cacheNetherPortalFind) {
 +            Set<FoundRectangle> affectSet = affectCache.getOrDefault(subChunkPos, Set.of());
 +            affectCache.remove(subChunkPos);
 +            for (FoundRectangle affect : affectSet) {
@@ -307,7 +307,7 @@ index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d8493
 +    public void removePoi(BlockPos pos) {
 +        ConcurrentMap<BlockPos, FoundRectangle> set = poiData.get(SectionPos.of(pos));
 +        if (set != null) {
-+            if (LuminaConfig.configModule.performance.cacheNetherPortalFind) {
++            if (LuminaConfig.configModule().performance.cacheNetherPortalFind) {
 +                FoundRectangle foundRectangle = set.get(pos);
 +                if (foundRectangle != null) {
 +                    Set<SectionPos> affectSet = reserveAffectCache.getOrDefault(foundRectangle, Set.of());
@@ -328,7 +328,7 @@ index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d8493
 +    }
 +
 +    public @Nullable FoundRectangle findClosestPortal(BlockPos center, WorldBorder worldborder) {
-+        if (LuminaConfig.configModule.performance.cacheNetherPortalFind && cache.containsKey(center)) {
++        if (LuminaConfig.configModule().performance.cacheNetherPortalFind && cache.containsKey(center)) {
 +            return cache.get(center);
 +        }
 +        SectionPos centerSubChunk = SectionPos.of(center);
@@ -385,7 +385,7 @@ index 0000000000000000000000000000000000000000..0ed751d463810ef24f5312d01a6d8493
 +                shouldContinue = false;
 +            }
 +        }
-+        if (LuminaConfig.configModule.performance.cacheNetherPortalFind && result != null) {
++        if (LuminaConfig.configModule().performance.cacheNetherPortalFind && result != null) {
 +            cache.put(center, result);
 +            reserveCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).add(center);
 +            reserveAffectCache.computeIfAbsent(result, (k) -> ConcurrentHashMap.newKeySet()).addAll(all);

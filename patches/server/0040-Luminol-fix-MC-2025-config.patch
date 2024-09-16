@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: HaHaWTH <fsjk947@gmail.com>
 Date: Fri, 15 Mar 2024 03:32:46 +0800
-Subject: [PATCH] Luminol Fix-MC-2025
+Subject: [PATCH] Luminol fix MC-2025 config
 
 This patch is Powered by Luminol(https://github.com/LuminolMC/Luminol)
 License:
@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f8daab8b7e56421aeabb36e571a9f63d75e4bb73..657a0e0dc8350704d89ab9722a207a65f5f58455 100644
+index 97b6af7517f15f48e10d70fadd52465d3dab3160..b5cd8023d433e60d5ca0a91cd337e969b8cd0982 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -2602,6 +2602,17 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -37,7 +37,7 @@ index f8daab8b7e56421aeabb36e571a9f63d75e4bb73..657a0e0dc8350704d89ab9722a207a65
              // Paper end
 +
 +            // Luminol start - Fix MC-2025
-+            if(!org.leavesmc.lumina.config.LuminaConfig.configModule.fix.mc2025) return nbttagcompound;
++            if(!org.leavesmc.lumina.config.LuminaConfig.configModule().fix.mc2025) return nbttagcompound;
 +            AABB boundingBox = getBoundingBox();
 +            ListTag boundingBoxList = new ListTag();
 +            for (double coord : new double[]{boundingBox.minX, boundingBox.minY, boundingBox.minZ, boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ}) {
@@ -54,7 +54,7 @@ index f8daab8b7e56421aeabb36e571a9f63d75e4bb73..657a0e0dc8350704d89ab9722a207a65
                      }
  
 +                    // Luminol start - Fix MC-2025
-+                    if (org.leavesmc.lumina.config.LuminaConfig.configModule.fix.mc2025 && nbt.contains("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_LIST)) {
++                    if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.mc2025 && nbt.contains("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_LIST)) {
 +                        ListTag boundingBoxList = nbt.getList("Luminol.BoundingBox", net.minecraft.nbt.Tag.TAG_DOUBLE);
 +                        setBoundingBox(new AABB(boundingBoxList.getDouble(0), boundingBoxList.getDouble(1), boundingBoxList.getDouble(2), boundingBoxList.getDouble(3), boundingBoxList.getDouble(4), boundingBoxList.getDouble(5)));
 +                    }

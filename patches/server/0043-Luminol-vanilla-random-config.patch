@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 854b7a7cec964720f926789bf09aaa881249a495..95ed0a02baef01be794d515b8e0346e4f4990c63 100644
+index 5b852fed33d1b5e9b36d0941d6f15040ef1a40f9..1c91f42b0cb9e21ecc0b3415996f49f340d3aa45 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -572,7 +572,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -36,7 +36,7 @@ index 854b7a7cec964720f926789bf09aaa881249a495..95ed0a02baef01be794d515b8e0346e4
          this.stuckSpeedMultiplier = Vec3.ZERO;
          this.nextStep = 1.0F;
 -        this.random = SHARED_RANDOM; // Paper - Share random for entities to make them more random
-+        this.random = org.leavesmc.lumina.config.LuminaConfig.configModule.fix.useVanillaRandomSourceForPlayers ? RandomSource.create() : SHARED_RANDOM;// Luminol - Add config for vanilla random SHARED_RANDOM // Paper - Share random for entities to make them more random
++        this.random = org.leavesmc.lumina.config.LuminaConfig.configModule().fix.useVanillaRandomSourceForPlayers ? RandomSource.create() : SHARED_RANDOM;// Luminol - Add config for vanilla random SHARED_RANDOM // Paper - Share random for entities to make them more random
          this.remainingFireTicks = -this.getFireImmuneTicks();
          this.fluidHeight = new Object2DoubleArrayMap(2);
          this.fluidOnEyes = new HashSet();
