@@ -1,22 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MC_XiaoHei <xiaohei.xor7@outlook.com>
-Date: Fri, 20 Sep 2024 11:31:21 +0800
+Date: Fri, 20 Sep 2024 15:15:02 +0800
 Subject: [PATCH] Carpet features
 
 
-diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376f812669c 100644
---- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-+++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-@@ -35,6 +35,8 @@ class PaperEventManager {
- 
-     // SimplePluginManager
-     public void callEvent(@NotNull Event event) {
-+        if (event instanceof org.bukkit.event.player.PlayerEvent playerEvent && ((org.bukkit.craftbukkit.entity.CraftPlayer)playerEvent.getPlayer()).getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) return; // Lumina - skip fake player events
-+        if (event instanceof org.bukkit.event.entity.EntityEvent entityEvent && ((org.bukkit.craftbukkit.entity.CraftEntity)entityEvent.getEntity()).getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) return; // Lumina - skip fake player events
-         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
-             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
-         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java b/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
 index 3f3fd8b1881106f893ffb677272e50d77cbb6626..b712f746f6ffde34b7d5958fd3f9e5c2a3bdf45b 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
@@ -395,38 +382,10 @@ index 494e32eb9304e1ecfb71eb5d59de40557c01c0de..2ecb97fc5ae11ee9c41a4ab325ac4919
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 94283bb3e99e718e3bc8038caced443447453de1..d9729f116270503c82715e09111c2810c437ba48 100644
+index 94283bb3e99e718e3bc8038caced443447453de1..0907dec90f9bfef326e900285965c53ffb4f9544 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -299,6 +299,19 @@ public class ServerPlayer extends Player {
-     public @Nullable String clientBrandName = null; // Paper - Brand support
-     public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
- 
-+    // Lumina start - Porting Carpet's features - action pack
-+    private boolean isInvalidReference = false;
-+    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack actionPack;
-+    public org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack getActionPack() {
-+        return actionPack;
-+    }
-+    public void invalidateEntityObjectReference() {
-+        isInvalidReference = true;
-+    }
-+    public boolean isInvalidEntityObject() {
-+        return isInvalidReference;
-+    }
-+    // Lumina end - Porting Carpet's features - action pack
-     // Paper start - replace player chunk loader
-     private final java.util.concurrent.atomic.AtomicReference<io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances> viewDistances = new java.util.concurrent.atomic.AtomicReference<>(new io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.ViewDistances(-1, -1, -1));
-     public io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
-@@ -450,6 +463,7 @@ public class ServerPlayer extends Player {
-         this.adventure$displayName = net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
-         this.bukkitPickUpLoot = true;
-         this.maxHealthCache = this.getMaxHealth();
-+        this.actionPack = new org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack(this); // Lumina - Porting Carpet's features - action pack
-     }
- 
-     // Use method to resend items in hands in case of client desync, because the item use got cancelled.
-@@ -872,6 +886,7 @@ public class ServerPlayer extends Player {
+@@ -872,6 +872,7 @@ public class ServerPlayer extends Player {
  
      @Override
      public void tick() {
@@ -448,7 +407,7 @@ index 2fec6e3594b5946077102ca4abded9c2fc301f89..49a0e23b0b91d28fb0f0ad82f0135927
                  if (iteminteractionresult.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, blockposition, itemstack1);
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index a38a2065adec531a17c9a279cced88745536243e..d7981dd0d50a583cbc0bb4672b54fa42ce62d9de 100644
+index a38a2065adec531a17c9a279cced88745536243e..4059dd625a392da10cb9f531e9abbe1d7e4eb320 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -119,6 +119,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -472,25 +431,12 @@ index a38a2065adec531a17c9a279cced88745536243e..d7981dd0d50a583cbc0bb4672b54fa42
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
          // Purpur start
-@@ -152,10 +159,10 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
- 
-             this.latency = (this.latency * 3 + i) / 4;
-             this.keepAlivePending = false;
--        } else if (!this.isSingleplayerOwner()) {
-+        } else if (!this.isSingleplayerOwner() && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
-             // Paper start - This needs to be handled on the main thread for plugins
-             // Folia - region threading - do not schedule to main anymore, there is no main
--                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
-+                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause // Lumina - fakeplayer no timeout
-             // Folia - region threading - do not schedule to main anymore, there is no main
-             // Paper end - This needs to be handled on the main thread for plugins
-         }
 @@ -282,11 +289,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          long elapsedTime = currentTime - this.keepAliveTime;
  
          // Purpur start
 -        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive) {
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
              if (elapsedTime >= 1000L) { // 1 second
                  if (this.keepAlivePending && !this.processedDisconnect && keepAlives.size() * 1000L >= KEEPALIVE_LIMIT) {
                      LOGGER.warn("{} was kicked due to keepalive timeout!", this.player.getScoreboardName());
@@ -504,7 +450,7 @@ index a38a2065adec531a17c9a279cced88745536243e..d7981dd0d50a583cbc0bb4672b54fa42
          } else {
  
 -        if (!this.isSingleplayerOwner() && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets
-+        if (!this.isSingleplayerOwner() && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets // Lumina - fakeplayer no timeout
++        if (!this.isSingleplayerOwner()){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets // Lumina - fakeplayer no timeout
              if (this.keepAlivePending && !this.processedDisconnect && elapsedTime >= KEEPALIVE_LIMIT) { // Paper - check keepalive limit, don't fire if already disconnected
                  this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
              } else if (this.checkIfClosed(currentTime)) { // Paper
@@ -513,7 +459,7 @@ index a38a2065adec531a17c9a279cced88745536243e..d7981dd0d50a583cbc0bb4672b54fa42
      private boolean checkIfClosed(long time) {
          if (this.closed) {
 -            if (time - this.closedListenerTime >= 15000L) {
-+            if (time - this.closedListenerTime >= 15000L && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - fakeplayer no timeout
++            if (time - this.closedListenerTime >= 15000L){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - fakeplayer no timeout
                  this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
              }
  
@@ -609,7 +555,7 @@ index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..9949f00c15b46001bbcf867e1e9e3870
                  // CraftBukkit start - Call click event
                  InventoryView inventory = this.player.inventoryMenu.getBukkitView();
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..149f608aad5e317beef2ded9270d11f3fd303328 100644
+index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -135,7 +135,7 @@ public abstract class PlayerList {
@@ -621,20 +567,7 @@ index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..149f608aad5e317beef2ded9270d11f3
      private final Map<UUID, ServerPlayer> playersByUUID = new java.util.concurrent.ConcurrentHashMap<>(); // Folia - region threading - change to CHM - Note: we do NOT expect concurrency PER KEY!
      private final UserBanList bans;
      private final IpBanList ipBans;
-@@ -375,7 +375,11 @@ public abstract class PlayerList {
-         LevelData worlddata = worldserver1.getLevelData();
- 
-         player.loadGameTypes((CompoundTag) optional.orElse(null)); // CraftBukkit - decompile error
--        ServerGamePacketListenerImpl playerconnection = new ServerGamePacketListenerImpl(this.server, connection, player, clientData);
-+        // Lumina start - Porting Carpet's features - fakeplayer
-+        ServerGamePacketListenerImpl playerconnection;
-+        if (player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake fake) playerconnection = new org.leavesmc.lumina.carpet.patches.NetHandlerPlayServerFake(this.server, connection, fake, clientData);
-+        else playerconnection = new ServerGamePacketListenerImpl(this.server, connection, player, clientData);
-+        // Lumina end - Porting Carpet's features - fakeplayer
-         // Folia start - rewrite login process
-         // only after setting the connection listener to game type, add the connection to this regions list
-         worldserver1.getCurrentWorldData().connections.add(connection);
-@@ -517,6 +521,7 @@ public abstract class PlayerList {
+@@ -517,6 +517,7 @@ public abstract class PlayerList {
              );
          }
          // Paper end - Send empty chunk
@@ -642,14 +575,6 @@ index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..149f608aad5e317beef2ded9270d11f3
      }
      private void mountSavedVehicle(ServerPlayer player, ServerLevel worldserver1, Optional<CompoundTag> optional) {
          // Paper end - Fire PlayerJoinEvent when Player is actually ready
-@@ -668,6 +673,7 @@ public abstract class PlayerList {
-         } else {
-             optional = this.playerIo.load(player);
-         }
-+        if (player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) ((org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) player).fixStartingPosition.run(); // Lumina - Porting Carpet's features - fakeplayer
- 
-         return optional;
-     }
 diff --git a/src/main/java/net/minecraft/world/Container.java b/src/main/java/net/minecraft/world/Container.java
 index 541cb29a10e2c87a8214ff5beadb71bc1922d353..add96448c9b9b722aba20bfecb3c107d06fc9398 100644
 --- a/src/main/java/net/minecraft/world/Container.java
@@ -1231,7 +1156,7 @@ index ca7fbe4f8c1e1d2fb90095aa35be4dda3029c23e..d1378c5be891e41b9d43765b2d307e0e
                      if (this.add(i, stack.split(j)) && notifiesClient && this.player instanceof ServerPlayer) {
                          ((ServerPlayer) this.player).connection.send(new ClientboundContainerSetSlotPacket(-2, 0, i, this.getItem(i)));
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index b0f2e614c90137c526de865bd64469f09b95c964..5955af30fef37004d19349467372415dd33d8d55 100644
+index b0f2e614c90137c526de865bd64469f09b95c964..7b1cf667fbbcb784e37e6c53e2125e2123e77054 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -251,7 +251,8 @@ public abstract class Player extends LivingEntity {
@@ -1341,16 +1266,15 @@ index b0f2e614c90137c526de865bd64469f09b95c964..5955af30fef37004d19349467372415d
      @Override
      protected void blockUsingShield(LivingEntity attacker) {
          super.blockUsingShield(attacker);
-@@ -1375,7 +1416,7 @@ public abstract class Player extends LivingEntity {
-                                 this.sweepAttack();
+@@ -1376,6 +1417,7 @@ public abstract class Player extends LivingEntity {
                              }
  
--                            if (target instanceof ServerPlayer && target.hurtMarked) {
-+                            if (target instanceof ServerPlayer && target.hurtMarked && !(target instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - Porting Carpet's features - fakepalyer
+                             if (target instanceof ServerPlayer && target.hurtMarked) {
++                            // && !(target instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - Porting Carpet's features - fakepalyer // TODO
                                  // CraftBukkit start - Add Velocity Event
                                  boolean cancelled = false;
                                  org.bukkit.entity.Player player = (org.bukkit.entity.Player) target.getBukkitEntity();
-@@ -1742,7 +1783,7 @@ public abstract class Player extends LivingEntity {
+@@ -1742,7 +1784,7 @@ public abstract class Player extends LivingEntity {
      }
  
      public boolean tryToStartFallFlying() {
@@ -1359,7 +1283,7 @@ index b0f2e614c90137c526de865bd64469f09b95c964..5955af30fef37004d19349467372415d
              ItemStack itemstack = this.getItemBySlot(EquipmentSlot.CHEST);
  
              if (itemstack.is(Items.ELYTRA) && ElytraItem.isFlyEnabled(itemstack)) {
-@@ -2435,12 +2476,22 @@ public abstract class Player extends LivingEntity {
+@@ -2435,12 +2477,22 @@ public abstract class Player extends LivingEntity {
      }
  
      public boolean canInteractWithEntity(AABB box, double additionalRange) {
@@ -1634,19 +1558,6 @@ index 9140fab07aab32065f7a3b5d13dd17d61dc6d646..210b88b5d87fad641188cf5907c54824
          if (this.isPaymentSlot(slot)) {
              this.updateSellItem();
          }
-diff --git a/src/main/java/net/minecraft/world/inventory/Slot.java b/src/main/java/net/minecraft/world/inventory/Slot.java
-index c39c773112fb8b534b926f2f2b47fe6fbb69fcb2..ae9338b8a5598e7a257b469adae72858fed95c39 100644
---- a/src/main/java/net/minecraft/world/inventory/Slot.java
-+++ b/src/main/java/net/minecraft/world/inventory/Slot.java
-@@ -76,7 +76,7 @@ public class Slot {
-     }
- 
-     public int getMaxStackSize(ItemStack stack) {
--        return Math.min(this.getMaxStackSize(), stack.getMaxStackSize());
-+        return Math.min(this.getMaxStackSize(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack)); // Leaves - stackable shulker boxes
-     }
- 
-     @Nullable
 diff --git a/src/main/java/net/minecraft/world/item/BlockItem.java b/src/main/java/net/minecraft/world/item/BlockItem.java
 index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..ad7117dbb480ae77b142b97d884718a6a62ed8e5 100644
 --- a/src/main/java/net/minecraft/world/item/BlockItem.java
@@ -2496,32 +2407,33 @@ index bf9a6f40998144ba7dbdfafc8dbdbb84168d1edb..5ed265b87c365550a055cca45210aceb
              Direction[] aenumdirection1 = Direction.values();
  
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-index 58b570cfdd52b414752b5a117946d59031eafe94..475bf2fa0c24ddb133e264fbb9528a4bdd603077 100644
+index 58b570cfdd52b414752b5a117946d59031eafe94..2b745cb309528027fd4ab082887bea738e36807a 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -136,6 +136,21 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -136,6 +136,22 @@ public class PistonMovingBlockEntity extends BlockEntity {
                          }
  
                          entity = (Entity)var12.next();
 +                        // Lumina start - Porting Carpet's features - creative no clip
-+                        if (entity instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake && blockEntity.getMovedState().is(Blocks.SLIME_BLOCK)) {
-+                            Vec3 vec3d = entity.getDeltaMovement();
-+                            double x = vec3d.x;
-+                            double y = vec3d.y;
-+                            double z = vec3d.z;
-+                            Direction di = blockEntity.getMovementDirection();
-+                            switch (di.getAxis()) {
-+                                case X -> x = di.getStepX();
-+                                case Y -> y = di.getStepY();
-+                                case Z -> z = di.getStepZ();
-+                            }
-+                            entity.setDeltaMovement(x, y, z);
-+                        }
++                        // TODO fakeplayer
++                        // if (entity instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake && blockEntity.getMovedState().is(Blocks.SLIME_BLOCK)) {
++                        //     Vec3 vec3d = entity.getDeltaMovement();
++                        //     double x = vec3d.x;
++                        //     double y = vec3d.y;
++                        //     double z = vec3d.z;
++                        //     Direction di = blockEntity.getMovementDirection();
++                        //     switch (di.getAxis()) {
++                        //         case X -> x = di.getStepX();
++                        //         case Y -> y = di.getStepY();
++                        //         case Z -> z = di.getStepZ();
++                        //     }
++                        //     entity.setDeltaMovement(x, y, z);
++                        // }
 +                        // Lumina end - Porting Carpet's features - creative no clip
                          if (entity.getPistonPushReaction() != PushReaction.IGNORE) {
                              if (!bl) {
                                  break;
-@@ -157,7 +172,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -157,7 +173,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
                                          h = (double)direction.getStepZ();
                                  }
  
@@ -2530,7 +2442,7 @@ index 58b570cfdd52b414752b5a117946d59031eafe94..475bf2fa0c24ddb133e264fbb9528a4b
                                  // Paper - EAR items stuck in in slime pushed by a piston
                                  entity.activatedTick = Math.max(entity.activatedTick, io.papermc.paper.threadedregions.RegionizedServer.getCurrentTick() + 10); // Folia - region threading
                                  entity.activatedImmunityTick = Math.max(entity.activatedImmunityTick, io.papermc.paper.threadedregions.RegionizedServer.getCurrentTick() + 10); // Folia - region threading
-@@ -193,6 +208,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
+@@ -193,6 +209,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
      }
  
      private static void moveEntityByPiston(Direction direction, Entity entity, double distance, Direction movementDirection) {
@@ -3056,24 +2968,6 @@ index b586912ec67ea6708e0df260adc7c949e87a2075..2be07f8c48a08ebe9d49d1110043eebe
      }
  
      @Override
-diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 843f24b0de5b9e80db420541699ddaf04dd56aa3..a5816f40bde921372dfdb2d6c7949dbdae884b02 100644
---- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -647,6 +647,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
- 
-     @Override
-     public void kickPlayer(String message) {
-+        // Lumina start - Porting Carpet's features - fakeplayer
-+        if (this.getHandle() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake fp) {
-+            // TODO fakeplayer kick event
-+            fp.kill(Component.literal(message));
-+            return;
-+        }
-+        // Lumina end - Porting Carpet's features - fakeplayer
-         //org.spigotmc.AsyncCatcher.catchOp("player kick"); // Spigot // Folia - thread-safe now, as it will simply delay the kick
-         if (this.getHandle().connection == null) return;
- 
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..0939faf78ea163984a7df2f77579a8c6dfe9ec04
@@ -3618,567 +3512,6 @@ index 0000000000000000000000000000000000000000..d0eb90b1f501d9d702d9d08e09ba7c0e
 +    public CarpetTaintedList(final List<E> list)
 +    {
 +        super(list);
-+    }
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..667fbdaee5ee4de49a54b536fdb92b7d43c7d16b
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/helpers/EntityPlayerActionPack.java
-@@ -0,0 +1,555 @@
-+package org.leavesmc.lumina.carpet.helpers;
-+
-+import java.util.EnumMap;
-+import java.util.HashMap;
-+import java.util.List;
-+import java.util.Map;
-+
-+import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
-+import net.minecraft.commands.arguments.EntityAnchorArgument;
-+import net.minecraft.core.BlockPos;
-+import net.minecraft.core.Direction;
-+import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
-+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.util.Mth;
-+import net.minecraft.world.InteractionHand;
-+import net.minecraft.world.InteractionResult;
-+import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.animal.horse.AbstractHorse;
-+import net.minecraft.world.entity.decoration.ItemFrame;
-+import net.minecraft.world.entity.player.Inventory;
-+import net.minecraft.world.entity.vehicle.Boat;
-+import net.minecraft.world.entity.vehicle.Minecart;
-+import net.minecraft.world.item.ItemStack;
-+import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.phys.BlockHitResult;
-+import net.minecraft.world.phys.EntityHitResult;
-+import net.minecraft.world.phys.HitResult;
-+import net.minecraft.world.phys.Vec2;
-+import net.minecraft.world.phys.Vec3;
-+import org.leavesmc.lumina.carpet.script.utils.Tracer;
-+
-+public class EntityPlayerActionPack {
-+    private final ServerPlayer player;
-+
-+    private final Map<ActionType, Action> actions = new EnumMap<>(ActionType.class);
-+
-+    private BlockPos currentBlock;
-+    private int blockHitDelay;
-+    private boolean isHittingBlock;
-+    private float curBlockDamageMP;
-+
-+    private boolean sneaking;
-+    private boolean sprinting;
-+    private float forward;
-+    private float strafing;
-+
-+    private int itemUseCooldown;
-+
-+    public EntityPlayerActionPack(ServerPlayer playerIn) {
-+        player = playerIn;
-+        stopAll();
-+    }
-+
-+    public void copyFrom(EntityPlayerActionPack other) {
-+        actions.putAll(other.actions);
-+        currentBlock = other.currentBlock;
-+        blockHitDelay = other.blockHitDelay;
-+        isHittingBlock = other.isHittingBlock;
-+        curBlockDamageMP = other.curBlockDamageMP;
-+
-+        sneaking = other.sneaking;
-+        sprinting = other.sprinting;
-+        forward = other.forward;
-+        strafing = other.strafing;
-+
-+        itemUseCooldown = other.itemUseCooldown;
-+    }
-+
-+    public EntityPlayerActionPack start(ActionType type, Action action) {
-+        Action previous = actions.remove(type);
-+        if (previous != null) type.stop(player, previous);
-+        if (action != null) {
-+            actions.put(type, action);
-+            type.start(player, action); // noop
-+        }
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack setSneaking(boolean doSneak) {
-+        sneaking = doSneak;
-+        player.setShiftKeyDown(doSneak);
-+        if (sprinting && sneaking)
-+            setSprinting(false);
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack setSprinting(boolean doSprint) {
-+        sprinting = doSprint;
-+        player.setSprinting(doSprint);
-+        if (sneaking && sprinting)
-+            setSneaking(false);
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack setForward(float value) {
-+        forward = value;
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack setStrafing(float value) {
-+        strafing = value;
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack look(Direction direction) {
-+        return switch (direction) {
-+            case NORTH -> look(180, 0);
-+            case SOUTH -> look(0, 0);
-+            case EAST -> look(-90, 0);
-+            case WEST -> look(90, 0);
-+            case UP -> look(player.getYRot(), -90);
-+            case DOWN -> look(player.getYRot(), 90);
-+        };
-+    }
-+
-+    public EntityPlayerActionPack look(Vec2 rotation) {
-+        return look(rotation.x, rotation.y);
-+    }
-+
-+    public EntityPlayerActionPack look(float yaw, float pitch) {
-+        player.setYRot(yaw % 360); // setYaw
-+        player.setXRot(Mth.clamp(pitch, -90, 90)); // setPitch
-+        // maybe player.moveTo(player.getX(), player.getY(), player.getZ(), yaw, Mth.clamp(pitch,-90.0F, 90.0F));
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack lookAt(Vec3 position) {
-+        player.lookAt(EntityAnchorArgument.Anchor.EYES, position);
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack turn(float yaw, float pitch) {
-+        return look(player.getYRot() + yaw, player.getXRot() + pitch);
-+    }
-+
-+    public EntityPlayerActionPack turn(Vec2 rotation) {
-+        return turn(rotation.x, rotation.y);
-+    }
-+
-+    public EntityPlayerActionPack stopMovement() {
-+        setSneaking(false);
-+        setSprinting(false);
-+        forward = 0.0F;
-+        strafing = 0.0F;
-+        return this;
-+    }
-+
-+
-+    public EntityPlayerActionPack stopAll() {
-+        for (ActionType type : actions.keySet()) type.stop(player, actions.get(type));
-+        actions.clear();
-+        return stopMovement();
-+    }
-+
-+    public EntityPlayerActionPack mount(boolean onlyRideables) {
-+        // test what happens
-+        List<Entity> entities;
-+        if (onlyRideables) {
-+            entities = player.level().getEntities(player, player.getBoundingBox().inflate(3.0D, 1.0D, 3.0D),
-+                    e -> e instanceof Minecart || e instanceof Boat || e instanceof AbstractHorse);
-+        } else {
-+            entities = player.level().getEntities(player, player.getBoundingBox().inflate(3.0D, 1.0D, 3.0D));
-+        }
-+        if (entities.isEmpty())
-+            return this;
-+        Entity closest = null;
-+        double distance = Double.POSITIVE_INFINITY;
-+        Entity currentVehicle = player.getVehicle();
-+        for (Entity e : entities) {
-+            if (e == player || (currentVehicle == e))
-+                continue;
-+            double dd = player.distanceToSqr(e);
-+            if (dd < distance) {
-+                distance = dd;
-+                closest = e;
-+            }
-+        }
-+        if (closest == null) return this;
-+        if (closest instanceof AbstractHorse && onlyRideables)
-+            ((AbstractHorse) closest).mobInteract(player, InteractionHand.MAIN_HAND);
-+        else
-+            player.startRiding(closest, true);
-+        return this;
-+    }
-+
-+    public EntityPlayerActionPack dismount() {
-+        player.stopRiding();
-+        return this;
-+    }
-+
-+    public void onUpdate() {
-+        Map<ActionType, Boolean> actionAttempts = new HashMap<>();
-+        actions.values().removeIf(e -> e.done);
-+        for (Map.Entry<ActionType, Action> e : actions.entrySet()) {
-+            ActionType type = e.getKey();
-+            Action action = e.getValue();
-+            // skipping attack if use was successful
-+            if (!(actionAttempts.getOrDefault(ActionType.USE, false) && type == ActionType.ATTACK)) {
-+                Boolean actionStatus = action.tick(this, type);
-+                if (actionStatus != null)
-+                    actionAttempts.put(type, actionStatus);
-+            }
-+            // optionally retrying use after successful attack and unsuccessful use
-+            if (type == ActionType.ATTACK
-+                    && actionAttempts.getOrDefault(ActionType.ATTACK, false)
-+                    && !actionAttempts.getOrDefault(ActionType.USE, true)) {
-+                // according to MinecraftClient.handleInputEvents
-+                Action using = actions.get(ActionType.USE);
-+                if (using != null) // this is always true - we know use worked, but just in case
-+                {
-+                    using.retry(this, ActionType.USE);
-+                }
-+            }
-+        }
-+        float vel = sneaking ? 0.3F : 1.0F;
-+        // The != 0.0F checks are needed given else real players can't control minecarts, however it works with fakes and else they don't stop immediately
-+        if (forward != 0.0F || player instanceof EntityPlayerMPFake) {
-+            player.zza = forward * vel;
-+        }
-+        if (strafing != 0.0F || player instanceof EntityPlayerMPFake) {
-+            player.xxa = strafing * vel;
-+        }
-+    }
-+
-+    static HitResult getTarget(ServerPlayer player) {
-+        double reach = player.gameMode.isCreative() ? 5 : 4.5f;
-+        return Tracer.rayTrace(player, 1, reach, false);
-+    }
-+
-+    private void dropItemFromSlot(int slot, boolean dropAll) {
-+        Inventory inv = player.getInventory(); // getInventory;
-+        if (!inv.getItem(slot).isEmpty())
-+            player.drop(inv.removeItem(slot,
-+                    dropAll ? inv.getItem(slot).getCount() : 1
-+            ), false, true); // scatter, keep owner
-+    }
-+
-+    public void drop(int selectedSlot, boolean dropAll) {
-+        Inventory inv = player.getInventory(); // getInventory;
-+        if (selectedSlot == -2) // all
-+        {
-+            for (int i = inv.getContainerSize(); i >= 0; i--)
-+                dropItemFromSlot(i, dropAll);
-+        } else // one slot
-+        {
-+            if (selectedSlot == -1)
-+                selectedSlot = inv.selected;
-+            dropItemFromSlot(selectedSlot, dropAll);
-+        }
-+    }
-+
-+    public void setSlot(int slot) {
-+        player.getInventory().selected = slot - 1;
-+        player.connection.send(new ClientboundSetCarriedItemPacket(slot - 1));
-+    }
-+
-+    public enum ActionType {
-+        USE(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                EntityPlayerActionPack ap = player.getActionPack();
-+                if (ap.itemUseCooldown > 0) {
-+                    ap.itemUseCooldown--;
-+                    return true;
-+                }
-+                if (player.isUsingItem()) {
-+                    return true;
-+                }
-+                HitResult hit = getTarget(player);
-+                for (InteractionHand hand : InteractionHand.values()) {
-+                    switch (hit.getType()) {
-+                        case BLOCK: {
-+                            player.resetLastActionTime();
-+                            ServerLevel world = player.serverLevel();
-+                            BlockHitResult blockHit = (BlockHitResult) hit;
-+                            BlockPos pos = blockHit.getBlockPos();
-+                            Direction side = blockHit.getDirection();
-+                            if (pos.getY() < player.level().getMaxBuildHeight() - (side == Direction.UP ? 1 : 0) && world.mayInteract(player, pos)) {
-+                                InteractionResult result = player.gameMode.useItemOn(player, world, player.getItemInHand(hand), hand, blockHit);
-+                                if (result.consumesAction()) {
-+                                    if (result.shouldSwing()) player.swing(hand);
-+                                    ap.itemUseCooldown = 3;
-+                                    return true;
-+                                }
-+                            }
-+                            break;
-+                        }
-+                        case ENTITY: {
-+                            player.resetLastActionTime();
-+                            EntityHitResult entityHit = (EntityHitResult) hit;
-+                            Entity entity = entityHit.getEntity();
-+                            boolean handWasEmpty = player.getItemInHand(hand).isEmpty();
-+                            boolean itemFrameEmpty = (entity instanceof ItemFrame) && ((ItemFrame) entity).getItem().isEmpty();
-+                            Vec3 relativeHitPos = entityHit.getLocation().subtract(entity.getX(), entity.getY(), entity.getZ());
-+                            if (entity.interactAt(player, relativeHitPos, hand).consumesAction()) {
-+                                ap.itemUseCooldown = 3;
-+                                return true;
-+                            }
-+                            // fix for SS itemframe always returns CONSUME even if no action is performed
-+                            if (player.interactOn(entity, hand).consumesAction() && !(handWasEmpty && itemFrameEmpty)) {
-+                                ap.itemUseCooldown = 3;
-+                                return true;
-+                            }
-+                            break;
-+                        }
-+                    }
-+                    ItemStack handItem = player.getItemInHand(hand);
-+                    if (player.gameMode.useItem(player, player.level(), handItem, hand).consumesAction()) {
-+                        ap.itemUseCooldown = 3;
-+                        return true;
-+                    }
-+                }
-+                return false;
-+            }
-+
-+            @Override
-+            void inactiveTick(ServerPlayer player, Action action) {
-+                EntityPlayerActionPack ap = player.getActionPack();
-+                ap.itemUseCooldown = 0;
-+                player.releaseUsingItem();
-+            }
-+        },
-+        ATTACK(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                HitResult hit = getTarget(player);
-+                switch (hit.getType()) {
-+                    case ENTITY: {
-+                        EntityHitResult entityHit = (EntityHitResult) hit;
-+                        if (!action.isContinuous) {
-+                            player.attack(entityHit.getEntity());
-+                            player.swing(InteractionHand.MAIN_HAND);
-+                        }
-+                        player.resetAttackStrengthTicker();
-+                        player.resetLastActionTime();
-+                        return true;
-+                    }
-+                    case BLOCK: {
-+                        EntityPlayerActionPack ap = player.getActionPack();
-+                        if (ap.blockHitDelay > 0) {
-+                            ap.blockHitDelay--;
-+                            return false;
-+                        }
-+                        BlockHitResult blockHit = (BlockHitResult) hit;
-+                        BlockPos pos = blockHit.getBlockPos();
-+                        Direction side = blockHit.getDirection();
-+                        if (player.blockActionRestricted(player.level(), pos, player.gameMode.getGameModeForPlayer()))
-+                            return false;
-+                        if (ap.currentBlock != null && player.level().getBlockState(ap.currentBlock).isAir()) {
-+                            ap.currentBlock = null;
-+                            return false;
-+                        }
-+                        BlockState state = player.level().getBlockState(pos);
-+                        boolean blockBroken = false;
-+                        if (player.gameMode.getGameModeForPlayer().isCreative()) {
-+                            player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
-+                            ap.blockHitDelay = 5;
-+                            blockBroken = true;
-+                        } else if (ap.currentBlock == null || !ap.currentBlock.equals(pos)) {
-+                            if (ap.currentBlock != null) {
-+                                player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
-+                            }
-+                            player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
-+                            boolean notAir = !state.isAir();
-+                            if (notAir && ap.curBlockDamageMP == 0) {
-+                                state.attack(player.level(), pos, player);
-+                            }
-+                            if (notAir && state.getDestroyProgress(player, player.level(), pos) >= 1) {
-+                                ap.currentBlock = null;
-+                                // instamine??
-+                                blockBroken = true;
-+                            } else {
-+                                ap.currentBlock = pos;
-+                                ap.curBlockDamageMP = 0;
-+                            }
-+                        } else {
-+                            ap.curBlockDamageMP += state.getDestroyProgress(player, player.level(), pos);
-+                            if (ap.curBlockDamageMP >= 1) {
-+                                player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, side, player.level().getMaxBuildHeight(), -1);
-+                                ap.currentBlock = null;
-+                                ap.blockHitDelay = 5;
-+                                blockBroken = true;
-+                            }
-+                            player.level().destroyBlockProgress(-1, pos, (int) (ap.curBlockDamageMP * 10));
-+
-+                        }
-+                        player.resetLastActionTime();
-+                        player.swing(InteractionHand.MAIN_HAND);
-+                        return blockBroken;
-+                    }
-+                }
-+                return false;
-+            }
-+
-+            @Override
-+            void inactiveTick(ServerPlayer player, Action action) {
-+                EntityPlayerActionPack ap = player.getActionPack();
-+                if (ap.currentBlock == null) return;
-+                player.level().destroyBlockProgress(-1, ap.currentBlock, -1);
-+                player.gameMode.handleBlockBreakAction(ap.currentBlock, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.DOWN, player.level().getMaxBuildHeight(), -1);
-+                ap.currentBlock = null;
-+            }
-+        },
-+        JUMP(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                if (action.limit == 1) {
-+                    if (player.onGround()) player.jumpFromGround(); // onGround
-+                } else {
-+                    player.setJumping(true);
-+                }
-+                return false;
-+            }
-+
-+            @Override
-+            void inactiveTick(ServerPlayer player, Action action) {
-+                player.setJumping(false);
-+            }
-+        },
-+        DROP_ITEM(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                player.resetLastActionTime();
-+                player.drop(false); // dropSelectedItem
-+                return false;
-+            }
-+        },
-+        DROP_STACK(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                player.resetLastActionTime();
-+                player.drop(true); // dropSelectedItem
-+                return false;
-+            }
-+        },
-+        SWAP_HANDS(true) {
-+            @Override
-+            boolean execute(ServerPlayer player, Action action) {
-+                player.resetLastActionTime();
-+                ItemStack itemStack_1 = player.getItemInHand(InteractionHand.OFF_HAND);
-+                player.setItemInHand(InteractionHand.OFF_HAND, player.getItemInHand(InteractionHand.MAIN_HAND));
-+                player.setItemInHand(InteractionHand.MAIN_HAND, itemStack_1);
-+                return false;
-+            }
-+        };
-+
-+        public final boolean preventSpectator;
-+
-+        ActionType(boolean preventSpectator) {
-+            this.preventSpectator = preventSpectator;
-+        }
-+
-+        void start(ServerPlayer player, Action action) {
-+        }
-+
-+        abstract boolean execute(ServerPlayer player, Action action);
-+
-+        void inactiveTick(ServerPlayer player, Action action) {
-+        }
-+
-+        void stop(ServerPlayer player, Action action) {
-+            inactiveTick(player, action);
-+        }
-+
-+        public static ActionType fromAPI(org.leavesmc.lumina.entity.FakePlayer.@NotNull ActionType type) {
-+            return switch (type) {
-+                case USE -> USE;
-+                case ATTACK -> ATTACK;
-+                case JUMP -> JUMP;
-+                case DROP_ITEM -> DROP_ITEM;
-+                case DROP_STACK -> DROP_STACK;
-+                case SWAP_HANDS -> SWAP_HANDS;
-+            };
-+        }
-+    }
-+
-+    public static class Action {
-+        public boolean done = false;
-+        public final int limit;
-+        public final int interval;
-+        public final int offset;
-+        private int count;
-+        private int next;
-+        private final boolean isContinuous;
-+
-+        public Action(int limit, int interval, int offset, boolean continuous) {
-+            this.limit = limit;
-+            this.interval = interval;
-+            this.offset = offset;
-+            next = interval + offset;
-+            isContinuous = continuous;
-+        }
-+
-+        public static Action once() {
-+            return new Action(1, 1, 0, false);
-+        }
-+
-+        public static Action continuous() {
-+            return new Action(-1, 1, 0, true);
-+        }
-+
-+        public static Action interval(int interval) {
-+            return new Action(-1, interval, 0, false);
-+        }
-+
-+        public static Action interval(int interval, int offset) {
-+            return new Action(-1, interval, offset, false);
-+        }
-+
-+        Boolean tick(EntityPlayerActionPack actionPack, ActionType type) {
-+            next--;
-+            Boolean cancel = null;
-+            if (next <= 0) {
-+                if (interval == 1 && !isContinuous) {
-+                    // need to allow entity to tick, otherwise won't have effect (bow)
-+                    // actions are 20 tps, so need to clear status mid tick, allowing entities process it till next time
-+                    if (!type.preventSpectator || !actionPack.player.isSpectator()) {
-+                        type.inactiveTick(actionPack.player, this);
-+                    }
-+                }
-+
-+                if (!type.preventSpectator || !actionPack.player.isSpectator()) {
-+                    cancel = type.execute(actionPack.player, this);
-+                }
-+                count++;
-+                if (count == limit) {
-+                    type.stop(actionPack.player, null);
-+                    done = true;
-+                    return cancel;
-+                }
-+                next = interval;
-+            } else {
-+                if (!type.preventSpectator || !actionPack.player.isSpectator()) {
-+                    type.inactiveTick(actionPack.player, this);
-+                }
-+            }
-+            return cancel;
-+        }
-+
-+        void retry(EntityPlayerActionPack actionPack, ActionType type) {
-+            // assuming action run but was unsuccesful that tick, but opportunity emerged to retry it, lets retry it.
-+            if (!type.preventSpectator || !actionPack.player.isSpectator()) {
-+                type.execute(actionPack.player, this);
-+            }
-+            count++;
-+            if (count == limit) {
-+                type.stop(actionPack.player, null);
-+                done = true;
-+            }
-+        }
 +    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/helpers/FertilizableCoral.java b/src/main/java/org/leavesmc/lumina/carpet/helpers/FertilizableCoral.java
@@ -7798,3 +7131,31 @@ index 0000000000000000000000000000000000000000..f8f59c96589643fb054bb1640a2439a3
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+index 9c320400105d4433d83e1d06fc9d19dcf42284f8..1e268b84f4ffd7bed1aaa79574e9116d07811bb8 100644
+--- a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
++++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+@@ -2,7 +2,6 @@ package org.leavesmc.lumina.utils;
+ 
+ import net.minecraft.server.level.ServerPlayer;
+ import org.jetbrains.annotations.NotNull;
+-import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
+ 
+ import java.util.Collection;
+ import java.util.HashMap;
+@@ -75,10 +74,11 @@ public class DividedPlayerList extends CopyOnWriteArrayList<ServerPlayer> {
+ 
+     public PlayerType getType(ServerPlayer player) {
+         // TODO Ghost player check
+-        if (player instanceof EntityPlayerMPFake) {
+-            return FAKE;
+-        } else {
++        // TODO Fakeplayer
++        // if (player instanceof EntityPlayerMPFake) {
++        //     return FAKE;
++        // } else {
+             return REAL;
+-        }
++        // }
+     }
+ }

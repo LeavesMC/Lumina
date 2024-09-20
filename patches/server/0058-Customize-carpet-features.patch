@@ -59,6 +59,19 @@ index ac41a73dbc0ae72dc686bafbc381ef9a93cd36c2..2c710c7af8310952dcab88fc48c6ba5e
          ItemStack itemstack = this.getItem();
          ItemStack itemstack1 = other.getItem();
  
+diff --git a/src/main/java/net/minecraft/world/inventory/Slot.java b/src/main/java/net/minecraft/world/inventory/Slot.java
+index c39c773112fb8b534b926f2f2b47fe6fbb69fcb2..ae9338b8a5598e7a257b469adae72858fed95c39 100644
+--- a/src/main/java/net/minecraft/world/inventory/Slot.java
++++ b/src/main/java/net/minecraft/world/inventory/Slot.java
+@@ -76,7 +76,7 @@ public class Slot {
+     }
+ 
+     public int getMaxStackSize(ItemStack stack) {
+-        return Math.min(this.getMaxStackSize(), stack.getMaxStackSize());
++        return Math.min(this.getMaxStackSize(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack)); // Leaves - stackable shulker boxes
+     }
+ 
+     @Nullable
 diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
 index 20f2b575c8131621edea0e75fbf38a9fe20a36c4..94a3796bed43acea4346ad09dd122330320c9b50 100644
 --- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
