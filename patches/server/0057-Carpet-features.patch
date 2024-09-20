@@ -3,6 +3,10 @@ From: MC_XiaoHei <xiaohei.xor7@outlook.com>
 Date: Fri, 20 Sep 2024 15:15:02 +0800
 Subject: [PATCH] Carpet features
 
+This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves) and fabric-carpet(https://github.com/gnembon/fabric-carpet)
+Licenses:
+- GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
+- MIT license (https://github.com/gnembon/fabric-carpet?tab=MIT-1-ov-file#readme)
 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java b/src/main/java/io/papermc/paper/threadedregions/RegionShutdownThread.java
 index 3f3fd8b1881106f893ffb677272e50d77cbb6626..b712f746f6ffde34b7d5958fd3f9e5c2a3bdf45b 100644
