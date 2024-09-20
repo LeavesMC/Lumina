@@ -1,38 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: MC_XiaoHei <xiaohei.xor7@outlook.com>
-Date: Fri, 26 Jul 2024 01:09:46 +0800
-Subject: [PATCH] Implementation Carpet features
+Date: Fri, 20 Sep 2024 11:31:21 +0800
+Subject: [PATCH] Carpet features
 
-This patch is Powered by:
-* fabric-carpet(https://github.com/gnembon/fabric-carpet)
-* plusls-carpet-addition(https://github.com/plusls/plusls-carpet-addition)
-* Leaves(https://github.com/LeavesMC/Leaves)
-Leaves License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
-
-fabric-carpet License:
-MIT License
-
-Copyright (c) 2020 gnembon
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-plusls-carpet-addition License: CC0-1.0 License (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file)
 
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..8329f0fc9dcae12b3b91b311825a0376f812669c 100644
@@ -898,31 +868,10 @@ index d504d10fbe45dfe3f2f3d08d2473df6cd18f6dcf..2aeacaca3c1f62e067fef9c82e9f261c
              this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index 4b59206a342e7fc4174439df6842d0c677be2c4c..52de14dd6e81cfbfe70aa2c795b0c0e5fa17e448 100644
+index 4b59206a342e7fc4174439df6842d0c677be2c4c..ac41a73dbc0ae72dc686bafbc381ef9a93cd36c2 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-@@ -22,10 +22,12 @@ import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.MoverType;
- import net.minecraft.world.entity.SlotAccess;
- import net.minecraft.world.entity.TraceableEntity;
-+import net.minecraft.world.item.BlockItem;
- import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
- import net.minecraft.world.level.Level;
-+import net.minecraft.world.level.block.ShulkerBoxBlock;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.phys.Vec3;
- // CraftBukkit start
-@@ -35,6 +37,7 @@ import net.minecraft.sounds.SoundSource;
- import net.minecraft.stats.Stats;
- import org.bukkit.craftbukkit.event.CraftEventFactory;
- import org.bukkit.entity.Player;
-+import org.bukkit.block.ShulkerBox;
- import org.bukkit.event.entity.EntityPickupItemEvent;
- import org.bukkit.event.entity.EntityRemoveEvent;
- import org.bukkit.event.player.PlayerPickupItemEvent;
-@@ -96,6 +99,22 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -96,6 +96,22 @@ public class ItemEntity extends Entity implements TraceableEntity {
          this.bobOffs = entity.bobOffs;
      }
  
@@ -945,57 +894,6 @@ index 4b59206a342e7fc4174439df6842d0c677be2c4c..52de14dd6e81cfbfe70aa2c795b0c0e5
      @Override
      public boolean dampensVibrations() {
          return this.getItem().is(ItemTags.DAMPENS_VIBRATIONS);
-@@ -313,10 +332,49 @@ public class ItemEntity extends Entity implements TraceableEntity {
-     private boolean isMergable() {
-         ItemStack itemstack = this.getItem();
- 
--        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < itemstack.getMaxStackSize(); // Paper - Alternative item-despawn-rate
-+        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack); // Paper - Alternative item-despawn-rate // Leaves - stackable shulker boxes
-+    }
-+
-+    // Leaves end - stackable shulker boxes
-+    private boolean tryStackShulkerBoxes(ItemEntity other) {
-+        ItemStack selfStack = this.getItem();
-+        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize == 1 || !(selfStack.getItem() instanceof BlockItem bi) || !(bi.getBlock() instanceof ShulkerBoxBlock)) {
-+            return false;
-+        }
-+
-+        ItemStack otherStack = other.getItem();
-+        if (selfStack.getItem() == otherStack.getItem()
-+            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(selfStack)
-+            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(otherStack)
-+            && Objects.equals(selfStack.getComponents(), otherStack.getComponents()) // empty block entity tags are cleaned up when spawning
-+            && selfStack.getCount() != org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize) {
-+            int amount = Math.min(otherStack.getCount(), org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize - selfStack.getCount());
-+
-+            selfStack.grow(amount);
-+            this.setItem(selfStack);
-+
-+            this.pickupDelay = Math.max(other.pickupDelay, this.pickupDelay);
-+            this.age = Math.min(other.getAge(), this.age);
-+
-+            otherStack.shrink(amount);
-+            if (otherStack.isEmpty()) {
-+                other.discard();
-+            }
-+            else {
-+                other.setItem(otherStack);
-+            }
-+            return true;
-+        }
-+        return false;
-     }
-+    // Leaves end - stackable shulker boxes
- 
-     private void tryToMerge(ItemEntity other) {
-+        // Leaves start - stackable shulker boxes
-+        if (tryStackShulkerBoxes(other)) {
-+            return;
-+        }
-+        // Leaves end - stackable shulker boxes
-         ItemStack itemstack = this.getItem();
-         ItemStack itemstack1 = other.getItem();
- 
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 index f11a701b3434b95342a6e8e89f5dea0d0080eff0..f5da67ba5461360b35c87097f411ae61436f3e29 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
@@ -2043,39 +1941,6 @@ index a0b61c77b23abec531b0b8f9b576fb4501067163..571ce6a8c6cb3a4b37cf95e734b02e31
                  int k = i & -34;
  
                  // CraftBukkit start
-diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
-index 20f2b575c8131621edea0e75fbf38a9fe20a36c4..41835d0ee9b27e1974a9552e91a61f8a3e63689e 100644
---- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
-+++ b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
-@@ -58,9 +58,27 @@ public abstract class AbstractCauldronBlock extends Block {
-         ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
-     ) {
-         CauldronInteraction cauldronInteraction = this.interactions.map().get(stack.getItem());
--        return cauldronInteraction.interact(state, world, pos, player, hand, stack);
-+        return wrapInteractor(cauldronInteraction, state, world, pos, player, hand, stack);
-     }
- 
-+    // Leaves start - stackable shulker boxes
-+    private ItemInteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack) {
-+        int count = -1;
-+        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize > 1 && itemStack.getItem() instanceof net.minecraft.world.item.BlockItem bi &&
-+            bi.getBlock() instanceof ShulkerBoxBlock) {
-+            count = itemStack.getCount();
-+        }
-+        ItemInteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack);
-+        if (count > 0 && result.consumesAction()) {
-+            ItemStack current = playerEntity.getItemInHand(hand);
-+            if (current.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof ShulkerBoxBlock) {
-+                current.setCount(count);
-+            }
-+        }
-+        return result;
-+    }
-+    // Leaves end - stackable shulker boxes
-+
-     @Override
-     protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-         return SHAPE;
 diff --git a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java b/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
 index f114299226082d5c2a306d211c498b12a15d2ddb..3d3dbbfcc8b1f5c04a73cdf489126fa212cd7e0c 100644
 --- a/src/main/java/net/minecraft/world/level/block/BarrierBlock.java
@@ -3342,46 +3207,90 @@ index 0000000000000000000000000000000000000000..0939faf78ea163984a7df2f77579a8c6
 +        }
 +    }
 +}
-diff --git a/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..4636c881a27db9e1d0b338cd08dc5faa0dba69b7
---- /dev/null
-+++ b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
-@@ -0,0 +1,28 @@
-+package org.leavesmc.leaves.util;
-+
-+import net.minecraft.core.component.DataComponents;
-+import net.minecraft.world.item.BlockItem;
-+import net.minecraft.world.item.ItemStack;
-+import net.minecraft.world.item.component.ItemContainerContents;
-+import net.minecraft.world.level.block.ShulkerBoxBlock;
-+import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.CarpetConfig;
-+
-+public class ShulkerBoxUtils {
-+
-+    public static boolean shulkerBoxNoItem(@NotNull ItemStack stack) {
-+        return stack.getComponents().getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().findAny().isEmpty();
-+    }
-+
-+    public static int getItemStackMaxCount(ItemStack stack) {
-+        if (CarpetConfig.configModule().shulkerBoxStackSize > 1 && stack.getItem() instanceof BlockItem bi &&
-+                bi.getBlock() instanceof ShulkerBoxBlock && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(stack)) {
-+            return CarpetConfig.configModule().shulkerBoxStackSize;
-+        }
-+        return stack.getMaxStackSize();
-+    }
-+
-+    public static boolean isStackable(ItemStack itemStack) {
-+        return getItemStackMaxCount(itemStack) > 1 && (!itemStack.isDamageableItem() || !itemStack.isDamaged());
-+    }
-+}
+diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
+index 8d6de4b557dfb5fdef7d246f15872b9f2d7bdc60..7b2e0c207b9b61b779c415376f02a6d6794ae3f1 100644
+--- a/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
++++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetConfigModule.java
+@@ -36,6 +36,7 @@ public class CarpetConfigModule {
+     @Comment("Players absorb XP instantly, without delay")
+     public boolean xpNoCooldown = false;
+ 
++    // Customize
+     @Validate(ShulkerBoxValidator.class)
+     @Comment("""
+             When set more than 1, empty shulker boxes can stack when thrown on the ground,
+@@ -155,27 +156,6 @@ public class CarpetConfigModule {
+             that scans the area around the block for potential spawnable spots""")
+     public boolean commandPerimeterInfo = true;
+ 
+-    @Comment("Enables /player command to control/spawn players")
+-    public boolean commandPlayer = true;
+-
+-    @Comment("Spawn offline players in online mode if online-mode player with specified name does not exist")
+-    public boolean allowSpawningOfflinePlayers = true;
+-
+-    @Comment("Allows listing fake players on the multiplayer screen")
+-    public boolean allowListingFakePlayers = false;
+-
+-    @Comment("""
+-            Add a markerName prefix for fake players spawned with /player command
+-            Which can prevent summoning fake player with illegal names and make player list look nicer
+-            Set it to #none to stop adding a prefix""")
+-    public String fakePlayerNamePrefix = "#none";
+-
+-    @Comment("""
+-            Add a markerName suffix for fake players spawned with /player command
+-            Which can prevent summoning fake player with illegal names and make player list look nicer
+-            Set it to #none to stop adding a suffix""")
+-    public String fakePlayerNameSuffix = "#none";
+-
+     @Comment("Allows to track mobs AI via /track command")
+     public boolean commandTrackAI = true;
+ 
+@@ -284,7 +264,7 @@ public class CarpetConfigModule {
+     @Comment("""
+             Makes world borders move based on in game time instead of real time
+             This has the effect that when the tick rate changes the world border speed also changes proportional to it""")
+-    public boolean tickSyncedWorldBorders = false;
++    public boolean tickSyncedWorldBorders = false; // TODO
+ 
+     // refers to "[MC-215169](https://bugs.mojang.com/browse/MC-215169)." - unconfirmed yet that its a java bug
+     @Comment("""
+@@ -306,17 +286,17 @@ public class CarpetConfigModule {
+         }
+     }
+ 
+-    public static class TNTRandomRangeValidator extends Validator<Double> {
+-        @Override
+-        public boolean validate(Double newValue, Double oldValue) {
+-            return newValue == -1 || newValue >= 0;
+-        }
+-
+-        @Override
+-        public String getErrorMessage(Double newValue) {
+-            return "Value can't be negative, or -1, but got " + newValue;
+-        }
+-    }
++    // public static class TNTRandomRangeValidator extends Validator<Double> {
++    //     @Override
++    //     public boolean validate(Double newValue, Double oldValue) {
++    //         return newValue == -1 || newValue >= 0;
++    //     }
++    //
++    //     @Override
++    //     public String getErrorMessage(Double newValue) {
++    //         return "Value can't be negative, or -1, but got " + newValue;
++    //     }
++    // }
+ 
+     public static class TNTAngleValidator extends Validator<Double> {
+         @Override
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..962504db0e98d2c6e7ce14ba3caafff2aa062eab
+index 0000000000000000000000000000000000000000..8ea101f28d97b0bc7635b4e3ace42784503835b8
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/CarpetServer.java
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,141 @@
 +package org.leavesmc.lumina.carpet;
 +
 +import com.mojang.logging.LogUtils;
@@ -3452,9 +3361,6 @@ index 0000000000000000000000000000000000000000..962504db0e98d2c6e7ce14ba3caafff2
 +        if (CarpetConfig.configModule() == null) {
 +            return;
 +        }
-+        if (CarpetConfig.configModule().commandPlayer) {
-+            PlayerCommand.register();
-+        }
 +        if (CarpetConfig.configModule().commandTrackAI) {
 +            TrackCommand.register();
 +        }
@@ -3477,6 +3383,7 @@ index 0000000000000000000000000000000000000000..962504db0e98d2c6e7ce14ba3caafff2
 +            CounterCommand.register();
 +        }
 +        CarpetCommand.register();
++        PlayerCommand.register();
 +    }
 +
 +    public static void onPlayerLoggedIn(ServerPlayer player) {
@@ -5742,341 +5649,6 @@ index 0000000000000000000000000000000000000000..93c3c260737bf2e3ec5627c89f021eea
 +    }
 +}
 +
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..5c626cad4c90f84cb71fb0d79d2179d123aeb093
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/patches/EntityPlayerMPFake.java
-@@ -0,0 +1,234 @@
-+package org.leavesmc.lumina.carpet.patches;
-+
-+import com.mojang.authlib.GameProfile;
-+import io.papermc.paper.threadedregions.RegionizedWorldData;
-+import io.papermc.paper.threadedregions.ThreadedRegionizer;
-+import io.papermc.paper.threadedregions.TickRegionScheduler;
-+import io.papermc.paper.threadedregions.TickRegions;
-+import net.minecraft.core.BlockPos;
-+import net.minecraft.core.UUIDUtil;
-+import net.minecraft.network.Connection;
-+import net.minecraft.network.chat.Component;
-+import net.minecraft.network.chat.contents.TranslatableContents;
-+import net.minecraft.network.protocol.PacketFlow;
-+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-+import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
-+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
-+import net.minecraft.network.protocol.game.ServerboundClientCommandPacket;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ClientInformation;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.server.network.CommonListenerCookie;
-+import net.minecraft.server.players.GameProfileCache;
-+import net.minecraft.world.damagesource.DamageSource;
-+import net.minecraft.world.entity.Entity;
-+import net.minecraft.world.entity.EquipmentSlot;
-+import net.minecraft.world.entity.ai.attributes.Attributes;
-+import net.minecraft.world.entity.player.Player;
-+import net.minecraft.world.food.FoodData;
-+import net.minecraft.world.item.ItemStack;
-+import net.minecraft.world.level.GameType;
-+import net.minecraft.world.level.block.entity.SkullBlockEntity;
-+import net.minecraft.world.level.block.state.BlockState;
-+import org.bukkit.Bukkit;
-+import org.bukkit.Location;
-+import org.bukkit.World;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.event.player.PlayerKickEvent;
-+import org.jetbrains.annotations.Contract;
-+import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.CarpetConfig;
-+import org.leavesmc.lumina.carpet.CarpetServer;
-+import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
-+import org.leavesmc.lumina.carpet.utils.Messenger;
-+import org.leavesmc.lumina.entity.FakePlayer;
-+
-+import java.util.Optional;
-+import java.util.concurrent.CompletableFuture;
-+import java.util.function.Consumer;
-+
-+import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
-+import static org.leavesmc.lumina.entity.FakePlayer.*;
-+
-+@SuppressWarnings("EntityConstructor")
-+public class EntityPlayerMPFake extends ServerPlayer {
-+    public Runnable fixStartingPosition = () -> {
-+    };
-+    public boolean isAShadow;
-+
-+    // Returns true if it was successful, false if couldn't spawn due to the player not existing in Mojang servers
-+    public static boolean createFake(String username, @NotNull MinecraftServer server, Location pos, double yaw, double pitch, World world, GameType gamemode, boolean flying) {
-+        // prolly half of that crap is not necessary, but it works
-+        GameProfileCache.setUsesAuthentication(false);
-+        GameProfile gameprofile;
-+        try { // noinspection DataFlowIssue
-+            gameprofile = server.getProfileCache().get(username).orElse(null); // findByName  .orElse(null)
-+        } finally {
-+            GameProfileCache.setUsesAuthentication(server.isDedicatedServer() && server.usesAuthentication());
-+        }
-+        if (gameprofile == null) {
-+            if (!CarpetConfig.configModule().allowSpawningOfflinePlayers) {
-+                return false;
-+            } else {
-+                gameprofile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(username), username);
-+            }
-+        }
-+        GameProfile finalGameProfile = gameprofile;
-+        // Bukkit.getAsyncScheduler().runNow(
-+        //         CarpetServer.PLUGIN,
-+        //         scheduledTask -> {
-+        //             GameProfile current = SkullBlockEntity.fetchGameProfile(username).join().orElse(finalGameProfile); // TODO
-+        ServerLevel worldIn = ((CraftWorld) world).getHandle().getLevel();
-+        Bukkit.getRegionScheduler().run(CarpetServer.PLUGIN, pos, task -> {
-+            EntityPlayerMPFake instance = new EntityPlayerMPFake(server, worldIn, finalGameProfile, ClientInformation.createDefault(), false);
-+            instance.isRealPlayer = true;
-+            instance.fixStartingPosition = () -> instance.moveTo(pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch);
-+            server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), instance, new CommonListenerCookie(finalGameProfile, 0, instance.clientInformation(), false), Optional.empty(), username, new Location(world, pos.getX(), pos.getY(), pos.getZ(), (float) yaw, (float) pitch));
-+            instance.setHealth(20.0F);
-+            instance.unsetRemoved();
-+            // noinspection DataFlowIssue
-+            instance.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
-+            instance.gameMode.changeGameModeForPlayer(gamemode);
-+            server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(instance, (byte) (instance.yHeadRot * 256 / 360)), worldIn.dimension());// instance.dimension);
-+            server.getPlayerList().broadcastAll(new ClientboundTeleportEntityPacket(instance), worldIn.dimension());// instance.dimension);
-+            // instance.world.getChunkManager(). updatePosition(instance);
-+            instance.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f); // show all model layers (incl. capes)
-+            instance.getAbilities().flying = flying;
-+        });
-+        //         }
-+        // );
-+        return true;
-+    }
-+
-+    private static @NotNull CompletableFuture<Optional<GameProfile>> fetchGameProfile(final String name) {
-+        return SkullBlockEntity.fetchGameProfile(name);
-+    }
-+
-+    public static @NotNull EntityPlayerMPFake createShadow(MinecraftServer server, @NotNull ServerPlayer player) {
-+        // noinspection DataFlowIssue
-+        player.getServer().getPlayerList().remove(player);
-+        player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"), PlayerKickEvent.Cause.DUPLICATE_LOGIN);
-+        ServerLevel worldIn = player.serverLevel();
-+        GameProfile gameprofile = player.getGameProfile();
-+        EntityPlayerMPFake playerShadow = new EntityPlayerMPFake(server, worldIn, gameprofile, player.clientInformation(), true);
-+        // noinspection DataFlowIssue
-+        playerShadow.setChatSession(player.getChatSession());
-+        server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), playerShadow, new CommonListenerCookie(gameprofile, 0, player.clientInformation(), true), Optional.empty(), player.getScoreboardName(), ((org.bukkit.entity.Player) player).getLocation());
-+        playerShadow.setHealth(player.getHealth());
-+        playerShadow.gameMode.changeGameModeForPlayer(player.gameMode.getGameModeForPlayer());
-+        playerShadow.getActionPack().copyFrom(player.getActionPack());
-+        // this might create problems if a player logs back in...
-+        // noinspection DataFlowIssue
-+        playerShadow.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(0.6F);
-+        playerShadow.entityData.set(DATA_PLAYER_MODE_CUSTOMISATION, player.getEntityData().get(DATA_PLAYER_MODE_CUSTOMISATION));
-+        server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(playerShadow, (byte) (player.yHeadRot * 256 / 360)), playerShadow.level().dimension());
-+        server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER, playerShadow));
-+        // player.world.getChunkManager().updatePosition(playerShadow);
-+        playerShadow.getAbilities().flying = player.getAbilities().flying;
-+        return playerShadow;
-+    }
-+
-+    // in carpet this will inject to PlayerList, but maybe it isn't necessary
-+    @Contract("_, _, _, _ -> new")
-+    public static @NotNull EntityPlayerMPFake respawnFake(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation cli) {
-+        return new EntityPlayerMPFake(server, level, profile, cli, false);
-+    }
-+
-+    private EntityPlayerMPFake(MinecraftServer server, ServerLevel worldIn, GameProfile profile, ClientInformation cli, boolean shadow) {
-+        super(server, worldIn, profile, cli);
-+        isAShadow = shadow;
-+    }
-+
-+    @Override
-+    public void onEquipItem(final @NotNull EquipmentSlot slot, final @NotNull ItemStack previous, final @NotNull ItemStack stack) {
-+        if (!isUsingItem()) super.onEquipItem(slot, previous, stack);
-+    }
-+
-+    @Override
-+    public void kill() {
-+        // TODO fakeplayer kill event
-+        kill(Messenger.s("Killed"));
-+    }
-+
-+    public void kill(@NotNull Component reason) {
-+        shakeOff();
-+
-+        if (reason.getContents() instanceof TranslatableContents text && "multiplayer.disconnect.duplicate_login".equals(text.getKey())) {
-+            this.connection.onDisconnect(reason);
-+        } else {
-+            this.getBukkitEntity().taskScheduler.schedule(
-+                    (Consumer<? extends Entity>) scheduledTask -> this.connection.onDisconnect(reason),
-+                    null,
-+                    1
-+            );
-+            // this.server.tell(new TickTask(this.tickCount, () -> this.connection.onDisconnect(reason)));
-+        }
-+    }
-+
-+    @Override
-+    public void tick() {
-+        if (this.tickCount % 10 == 0) {
-+            this.connection.resetPosition();
-+            // noinspection resource
-+            this.serverLevel().getChunkSource().move(this);
-+        }
-+        try {
-+            super.tick();
-+            this.doTick();
-+        } catch (NullPointerException ignored) {
-+            // happens with that paper port thingy - not sure what that would fix, but hey
-+            // the game not gonna crash violently.
-+        }
-+
-+
-+    }
-+
-+    private void shakeOff() {
-+        if (getVehicle() instanceof Player) stopRiding();
-+        for (Entity passenger : getIndirectPassengers()) {
-+            if (passenger instanceof Player) passenger.stopRiding();
-+        }
-+    }
-+
-+    @Override
-+    public void die(@NotNull DamageSource cause) {
-+        shakeOff();
-+        super.die(cause);
-+        setHealth(20);
-+        this.foodData = new FoodData(this);
-+        // TODO fakeplayer kill event
-+        kill(this.getCombatTracker().getDeathMessage());
-+    }
-+
-+    @Override
-+    public @NotNull String getIpAddress() {
-+        return "127.0.0.1";
-+    }
-+
-+    @Override
-+    public boolean allowsListing() {
-+        return CarpetConfig.configModule().allowListingFakePlayers;
-+    }
-+
-+    @Override
-+    protected void checkFallDamage(double y, boolean onGround, @NotNull BlockState state, @NotNull BlockPos pos) {
-+        doCheckFallDamage(0.0, y, 0.0, onGround);
-+    }
-+
-+    @Override
-+    public Entity changeDimension(@NotNull ServerLevel serverLevel) {
-+        super.changeDimension(serverLevel);
-+        if (wonGame) {
-+            ServerboundClientCommandPacket p = new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.PERFORM_RESPAWN);
-+            connection.handleClientCommand(p);
-+        }
-+
-+        // If above branch was taken, *this* has been removed and replaced, the new instance has been set
-+        // on 'our' connection (which is now theirs, but we still have a ref).
-+        if (connection.player.isChangingDimension()) {
-+            connection.player.hasChangedDimension();
-+        }
-+        return connection.player;
-+    }
-+}
-\ No newline at end of file
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..43827d78b698f69b97682ca36f9d5a2ce9512839
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/patches/FakeClientConnection.java
-@@ -0,0 +1,33 @@
-+package org.leavesmc.lumina.carpet.patches;
-+
-+import io.netty.channel.embedded.EmbeddedChannel;
-+import net.minecraft.network.Connection;
-+import net.minecraft.network.PacketListener;
-+import net.minecraft.network.ProtocolInfo;
-+import net.minecraft.network.protocol.PacketFlow;
-+
-+public class FakeClientConnection extends Connection {
-+    public FakeClientConnection(PacketFlow p) {
-+        super(p);
-+        // compat with adventure-platform-fabric. This does NOT trigger other vanilla handlers for establishing a channel
-+        // also makes #isOpen return true, allowing enderpearls to teleport fake players
-+        this.setChannel(new EmbeddedChannel());
-+    }
-+
-+    @Override
-+    public void setReadOnly() {
-+    }
-+
-+    @Override
-+    public void handleDisconnection() {
-+    }
-+
-+    @Override
-+    public void setListenerForServerboundHandshake(PacketListener packetListener) {
-+    }
-+
-+    @Override
-+    public <T extends PacketListener> void setupInboundProtocol(ProtocolInfo<T> protocolInfo, T packetListener) {
-+        super.packetListener = packetListener;
-+    }
-+}
-\ No newline at end of file
-diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..e27520371570ef22fb9387a6974eeb78ec076136
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/carpet/patches/NetHandlerPlayServerFake.java
-@@ -0,0 +1,47 @@
-+package org.leavesmc.lumina.carpet.patches;
-+
-+import net.minecraft.network.Connection;
-+import net.minecraft.network.chat.Component;
-+import net.minecraft.network.chat.contents.TranslatableContents;
-+import net.minecraft.network.protocol.Packet;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.server.network.CommonListenerCookie;
-+import net.minecraft.server.network.ServerGamePacketListenerImpl;
-+import net.minecraft.world.entity.RelativeMovement;
-+import org.bukkit.event.player.PlayerKickEvent;
-+import org.jetbrains.annotations.NotNull;
-+
-+import java.util.Set;
-+
-+public class NetHandlerPlayServerFake extends ServerGamePacketListenerImpl {
-+    public NetHandlerPlayServerFake(final MinecraftServer minecraftServer, final Connection connection, final ServerPlayer serverPlayer, final CommonListenerCookie i) {
-+        super(minecraftServer, connection, serverPlayer, i);
-+    }
-+
-+    @Override
-+    public void send(final @NotNull Packet<?> packetIn) {
-+    }
-+
-+    @SuppressWarnings("deprecation")
-+    @Override
-+    public void disconnect(@NotNull Component message) {
-+        ((EntityPlayerMPFake) player).kill(message);
-+    }
-+
-+    @Override
-+    public void disconnect(@NotNull Component message, PlayerKickEvent.@NotNull Cause cause) {
-+        disconnect(message);
-+    }
-+
-+    @SuppressWarnings("resource")
-+    @Override
-+    public void teleport(double d, double e, double f, float g, float h, @NotNull Set<RelativeMovement> set) {
-+        super.teleport(d, e, f, g, h, set);
-+        if (player.serverLevel().getPlayerByUUID(player.getUUID()) != null) {
-+            resetPosition();
-+            player.serverLevel().getChunkSource().move(player);
-+        }
-+    }
-+
-+}
-\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/patches/TickSyncedBorderExtent.java b/src/main/java/org/leavesmc/lumina/carpet/patches/TickSyncedBorderExtent.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..b84b143f70c3e3e82324b27cde90e4eb450a2f08
@@ -8224,31 +7796,5 @@ index 0000000000000000000000000000000000000000..f8f59c96589643fb054bb1640a2439a3
 +    public static DyeColor getWoolColorAtPosition(Level worldIn, BlockPos pos) {
 +        BlockState state = worldIn.getBlockState(pos);
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
-+    }
-+}
-diff --git a/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java b/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..ce4baf41da1c97fd6e1a2c372db0b5607733e921
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/craft/entity/CraftFakePlayer.java
-@@ -0,0 +1,20 @@
-+package org.leavesmc.lumina.craft.entity;
-+
-+import net.minecraft.server.level.ServerPlayer;
-+import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
-+import org.jetbrains.annotations.ApiStatus;
-+import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
-+import org.leavesmc.lumina.entity.FakePlayer;
-+
-+@ApiStatus.Internal
-+public class CraftFakePlayer extends CraftPlayer implements FakePlayer {
-+    public CraftFakePlayer(CraftServer server, ServerPlayer entity) {
-+        super(server, entity);
-+    }
-+
-+    @Override
-+    public void startAction(ActionType actionType, int limit, int interval, boolean continuous) {
-+        getHandle().getActionPack().start(EntityPlayerActionPack.ActionType.fromAPI(actionType), new EntityPlayerActionPack.Action(limit, interval, 0, continuous));
 +    }
 +}

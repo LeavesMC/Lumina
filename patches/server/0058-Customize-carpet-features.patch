@@ -1,0 +1,128 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Fri, 20 Sep 2024 11:27:39 +0800
+Subject: [PATCH] Customize carpet features
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index ac41a73dbc0ae72dc686bafbc381ef9a93cd36c2..2c710c7af8310952dcab88fc48c6ba5e5ba8d74d 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -329,10 +329,49 @@ public class ItemEntity extends Entity implements TraceableEntity {
+     private boolean isMergable() {
+         ItemStack itemstack = this.getItem();
+ 
+-        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < itemstack.getMaxStackSize(); // Paper - Alternative item-despawn-rate
++        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack); // Paper - Alternative item-despawn-rate // Leaves - stackable shulker boxes
+     }
+ 
++    // Leaves end - stackable shulker boxes
++    private boolean tryStackShulkerBoxes(ItemEntity other) {
++        ItemStack selfStack = this.getItem();
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize == 1 || !(selfStack.getItem() instanceof net.minecraft.world.item.BlockItem bi) || !(bi.getBlock() instanceof net.minecraft.world.level.block.ShulkerBoxBlock)) {
++            return false;
++        }
++
++        ItemStack otherStack = other.getItem();
++        if (selfStack.getItem() == otherStack.getItem()
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(selfStack)
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(otherStack)
++            && Objects.equals(selfStack.getComponents(), otherStack.getComponents()) // empty block entity tags are cleaned up when spawning
++            && selfStack.getCount() != org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize) {
++            int amount = Math.min(otherStack.getCount(), org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize - selfStack.getCount());
++
++            selfStack.grow(amount);
++            this.setItem(selfStack);
++
++            this.pickupDelay = Math.max(other.pickupDelay, this.pickupDelay);
++            this.age = Math.min(other.getAge(), this.age);
++
++            otherStack.shrink(amount);
++            if (otherStack.isEmpty()) {
++                other.discard();
++            }
++            else {
++                other.setItem(otherStack);
++            }
++            return true;
++        }
++        return false;
++    }
++    // Leaves end - stackable shulker boxes
++
+     private void tryToMerge(ItemEntity other) {
++        // Leaves start - stackable shulker boxes
++        if (tryStackShulkerBoxes(other)) {
++            return;
++        }
++        // Leaves end - stackable shulker boxes
+         ItemStack itemstack = this.getItem();
+         ItemStack itemstack1 = other.getItem();
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+index 20f2b575c8131621edea0e75fbf38a9fe20a36c4..94a3796bed43acea4346ad09dd122330320c9b50 100644
+--- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+@@ -58,9 +58,27 @@ public abstract class AbstractCauldronBlock extends Block {
+         ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
+     ) {
+         CauldronInteraction cauldronInteraction = this.interactions.map().get(stack.getItem());
+-        return cauldronInteraction.interact(state, world, pos, player, hand, stack);
++        // Leaves start - stackable shulker boxes
++        return wrapInteractor(cauldronInteraction, state, world, pos, player, hand, stack);
+     }
+ 
++    private ItemInteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack) {
++        int count = -1;
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize > 1 && itemStack.getItem() instanceof net.minecraft.world.item.BlockItem bi &&
++            bi.getBlock() instanceof ShulkerBoxBlock) {
++            count = itemStack.getCount();
++        }
++        ItemInteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack);
++        if (count > 0 && result.consumesAction()) {
++            ItemStack current = playerEntity.getItemInHand(hand);
++            if (current.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof ShulkerBoxBlock) {
++                current.setCount(count);
++            }
++        }
++        return result;
++    }
++    // Leaves end - stackable shulker boxes
++
+     @Override
+     protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+         return SHAPE;
+diff --git a/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4636c881a27db9e1d0b338cd08dc5faa0dba69b7
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+@@ -0,0 +1,28 @@
++package org.leavesmc.leaves.util;
++
++import net.minecraft.core.component.DataComponents;
++import net.minecraft.world.item.BlockItem;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.component.ItemContainerContents;
++import net.minecraft.world.level.block.ShulkerBoxBlock;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetConfig;
++
++public class ShulkerBoxUtils {
++
++    public static boolean shulkerBoxNoItem(@NotNull ItemStack stack) {
++        return stack.getComponents().getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().findAny().isEmpty();
++    }
++
++    public static int getItemStackMaxCount(ItemStack stack) {
++        if (CarpetConfig.configModule().shulkerBoxStackSize > 1 && stack.getItem() instanceof BlockItem bi &&
++                bi.getBlock() instanceof ShulkerBoxBlock && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(stack)) {
++            return CarpetConfig.configModule().shulkerBoxStackSize;
++        }
++        return stack.getMaxStackSize();
++    }
++
++    public static boolean isStackable(ItemStack itemStack) {
++        return getItemStackMaxCount(itemStack) > 1 && (!itemStack.isDamageableItem() || !itemStack.isDamaged());
++    }
++}

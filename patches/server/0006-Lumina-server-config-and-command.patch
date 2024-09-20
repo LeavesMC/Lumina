@@ -655,7 +655,7 @@ index 0000000000000000000000000000000000000000..8d6de4b557dfb5fdef7d246f15872b9f
 \ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..acb85b85be72d0b27fe2b8b192dac8d1d7fe1921
+index 0000000000000000000000000000000000000000..5466d7cc56e2bc116a7bf74e12568438fcc73392
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/CarpetCommand.java
 @@ -0,0 +1,22 @@
@@ -673,9 +673,9 @@ index 0000000000000000000000000000000000000000..acb85b85be72d0b27fe2b8b192dac8d1
 +                                        """;
 +    public static void register() {
 +        new CommandAPICommand("carpet")
-+                .withArguments(
-+                        new GreedyStringArgument("deprecated").replaceSuggestions(
-+                                ArgumentSuggestions.strings(DEPRECATED_TEXT)))
++                .withArguments(new GreedyStringArgument("deprecated")
++                        .replaceSuggestions(ArgumentSuggestions.strings(
++                                DEPRECATED_TEXT)))
 +                .executes((sender, args) -> {
 +                    sender.sendMessage(DEPRECATED_TEXT);
 +                }).register("carpet");
@@ -1216,474 +1216,455 @@ index 0000000000000000000000000000000000000000..f673832378af9529a2eb6fe18c25cda7
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c788178e2bc8ee5376496e2c753acfdd3f86b800
+index 0000000000000000000000000000000000000000..daa4c1b959a1724453bebba18239ab42cbaeb824
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/carpet/command/PlayerCommand.java
-@@ -0,0 +1,466 @@
+@@ -0,0 +1,447 @@
 +package org.leavesmc.lumina.carpet.command;
 +
-+import com.mojang.authlib.GameProfile;
-+import dev.jorel.commandapi.CommandAPIBukkit;
++
 +import dev.jorel.commandapi.CommandAPICommand;
-+import dev.jorel.commandapi.arguments.*;
-+import dev.jorel.commandapi.executors.CommandArguments;
-+import dev.jorel.commandapi.executors.CommandExecutor;
-+import dev.jorel.commandapi.wrappers.Rotation;
-+import net.minecraft.SharedConstants;
-+import net.minecraft.core.BlockPos;
-+import net.minecraft.core.Direction;
-+import net.minecraft.core.UUIDUtil;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.server.players.PlayerList;
-+import net.minecraft.world.level.GameType;
-+import net.minecraft.world.level.Level;
-+import net.minecraft.world.phys.Vec2;
-+import net.minecraft.world.phys.Vec3;
-+import org.bukkit.*;
-+import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.entity.CraftPlayer;
-+import org.bukkit.entity.Player;
-+import org.bukkit.permissions.ServerOperator;
-+import org.jetbrains.annotations.Contract;
-+import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.lumina.carpet.CarpetConfig;
-+import org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack;
-+import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
-+import org.leavesmc.lumina.utils.PermissionUtils;
-+
-+import java.util.Arrays;
-+import java.util.List;
-+import java.util.function.Consumer;
-+
-+import static net.kyori.adventure.text.Component.*;
-+import static net.kyori.adventure.text.format.NamedTextColor.*;
-+import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.*;
-+import static org.leavesmc.lumina.carpet.helpers.EntityPlayerActionPack.ActionType.*;
-+import static org.leavesmc.lumina.utils.LocationUtils.getLocationWithDefaultWorld;
++import dev.jorel.commandapi.arguments.ArgumentSuggestions;
++import dev.jorel.commandapi.arguments.GreedyStringArgument;
 +
 +public class PlayerCommand {
++    private static final String NOT_IMPLEMENTATION_TEXT = """
++                                        command /carpet <rule> <value> is deprecated.
++                                        Please use /lumina carpet config <set/get> <node> [value] (for saved changes)
++                                        and /lumina carpet config temp <set/get> <node> [value] (for temp changes)
++                                        """;
++
 +    public static void register() {
-+        SubCommandSpawn.register();
-+        SubCommandKill.register();
-+        registerActionCommand("use", USE);
-+        registerActionCommand("jump", JUMP);
-+        registerActionCommand("attack", ATTACK);
-+        registerActionCommand("drop", DROP_ITEM);
-+        registerDropCommand("drop", false);
-+        registerActionCommand("dropStack", DROP_STACK);
-+        registerDropCommand("dropStack", true);
-+        registerActionCommand("swapHands", SWAP_HANDS);
-+        registerManipulateCommand("mount", ap -> ap.mount(false));
-+        registerManipulateCommand("mount", ap -> ap.mount(true), "anything");
-+        registerManipulateCommand("dismount", EntityPlayerActionPack::dismount);
-+        registerManipulateCommand("sneak", ap -> ap.setSneaking(true));
-+        registerManipulateCommand("unsneak", ap -> ap.setSneaking(false));
-+        registerManipulateCommand("sprint", ap -> ap.setSprinting(true));
-+        registerManipulateCommand("unsprint", ap -> ap.setSprinting(false));
-+        registerManipulateCommand("stop", EntityPlayerActionPack::stopAll);
-+        registerSubCommandLook();
-+        registerSubCommandTurn();
-+        registerSubCommandMove();
-+        createBase("shadow")
++        new CommandAPICommand("player")
++                .withArguments(new GreedyStringArgument("not-implementation")
++                        .replaceSuggestions(ArgumentSuggestions.strings(
++                                NOT_IMPLEMENTATION_TEXT)))
 +                .executes((sender, args) -> {
-+                    if (!canManipulate(sender, args, "shadow")) {
-+                        return;
-+                    }
-+
-+                    ServerPlayer player = getOnlineServerPlayer(args);
-+                    if (player instanceof EntityPlayerMPFake) {
-+                        sender.sendMessage(text("Cannot shadow fake players").color(RED));
-+                        return;
-+                    }
-+                    if (MinecraftServer.getServer().isSingleplayerOwner(player.getGameProfile())) {
-+                        sender.sendMessage(text("Cannot shadow single-player server owner").color(RED));
-+                        return;
-+                    }
-+
-+                    EntityPlayerMPFake.createShadow(player.server, player);
++                    sender.sendMessage(NOT_IMPLEMENTATION_TEXT);
 +                }).register("carpet");
-+        // noinspection DataFlowIssue
-+        createBase("hotbar")
-+                .withArguments(new IntegerArgument("slot", 0, 8))
-+                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, "hotbar",
-+                                ap -> ap.setSlot((Integer) args.get("slot"))))
-+                .register("carpet");
-+        registerPermissions();
 +    }
 +
-+    private static void registerPermissions() {
-+        PermissionUtils.addPermissionAndBind(
-+                "carpet.command.player",
-+                "Player command",
-+                List.of(
-+                        "&.spawn",
-+                        "&.kill",
-+                        "&.shadow",
-+                        "&.use",
-+                        "&.jump",
-+                        "&.attack",
-+                        "&.drop",
-+                        "&.dropStack",
-+                        "&.swapHands",
-+                        "&.hotbar",
-+                        "&.mount",
-+                        "&.dismount",
-+                        "&.sneak",
-+                        "&.unsneak",
-+                        "&.sprint",
-+                        "&.unsprint",
-+                        "&.look",
-+                        "&.turn",
-+                        "&.move",
-+                        "&.stop",
-+                        "&.manipulate-real"
-+                )
-+        );
-+        PermissionUtils.addPermissionAndBind(
-+                createPlayerCommandPermission("look"),
-+                "Look to a direction",
-+                List.of(
-+                        "&.north",
-+                        "&.south",
-+                        "&.east",
-+                        "&.west",
-+                        "&.up",
-+                        "&.down",
-+                        "&.at",
-+                        "&.direction"
-+                )
-+        );
-+        PermissionUtils.addPermissionAndBind(
-+                createPlayerCommandPermission("turn"),
-+                "Turn to a direction",
-+                List.of(
-+                        "&.left",
-+                        "&.right",
-+                        "&.back",
-+                        "&.rotation"
-+                )
-+        );
-+        PermissionUtils.addPermissionAndBind(
-+                createPlayerCommandPermission("move"),
-+                "Move to a direction",
-+                List.of(
-+                        "&.forward",
-+                        "&.backward",
-+                        "&.left",
-+                        "&.right"
-+                )
-+        );
-+    }
-+
-+    private static class SubCommandSpawn {
-+        public static void register() {
-+            createBase("spawn")
-+                    .withOptionalArguments(
-+                            new LiteralArgument("at").combineWith(new LocationArgument("position")),
-+                            new LiteralArgument("facing").combineWith(new RotationArgument("direction")),
-+                            new LiteralArgument("in").combineWith(new WorldArgument("dimension")),
-+                            new LiteralArgument("in")
-+                                    .withRequirement(ServerOperator::isOp)
-+                                    .combineWith(new MultiLiteralArgument("gamemode", Arrays
-+                                            .stream(GameType.values())
-+                                            .map(GameType::name)
-+                                            .toArray(String[]::new)))
-+                    ).executes(SubCommandSpawn::spawn).register("carpet");
-+        }
-+
-+        private static void spawn(CommandSender sender, CommandArguments args) {
-+            if (!canSpawn(sender, args)) {
-+                return;
-+            }
-+            Location pos = null;
-+            Rotation facing = new Rotation(0, 0);
-+            World world = Bukkit.getWorlds().getFirst();
-+            GameType mode = GameType.CREATIVE;
-+            boolean flying = false;
-+            if (sender instanceof Player player) {
-+                ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
-+                pos = player.getLocation();
-+                facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
-+                world = player.getWorld();
-+                mode = serverPlayer.gameMode.getGameModeForPlayer();
-+                flying = serverPlayer.getAbilities().flying;
-+            }
-+            pos = (Location) args.getOrDefault("position", pos);
-+            facing = (Rotation) args.getOrDefault("direction", facing);
-+            world = (World) args.getOrDefault("dimension", world);
-+            if (pos == null) {
-+                sender.sendMessage(text("Need position to spawn player in console").color(RED));
-+                return;
-+            }
-+            pos.setWorld(world);
-+            GameMode nullableGameMode = (GameMode) args.get("gamemode");
-+            if (nullableGameMode != null) {
-+                mode = GameType.byId(nullableGameMode.getValue());
-+            }
-+
-+            if (mode == GameType.SPECTATOR) {
-+                // Force override flying to true for spectator players, or they will fell out of the world.
-+                flying = true;
-+            } else if (mode.isSurvival()) {
-+                // Force override flying to false for survival-like players, or they will fly too
-+                flying = false;
-+            }
-+            String playerName = getPlayerName(args);
-+            if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
-+                sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED));
-+                return;
-+            }
-+
-+            if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
-+                sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED));
-+                return;
-+            }
-+            boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
-+            if (!success) {
-+                sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED));
-+            }
-+        }
-+
-+        private static boolean canSpawn(CommandSender sender, CommandArguments args) {
-+            String playerName = getPlayerName(args);
-+            MinecraftServer server = MinecraftServer.getServer();
-+            PlayerList manager = server.getPlayerList();
-+
-+            if (manager.getPlayerByName(playerName) != null) {
-+                sender.sendMessage(text("Player " + playerName + " is already logged on").color(RED));
-+                return false;
-+            }
-+            @SuppressWarnings("DataFlowIssue") GameProfile profile = server.getProfileCache().get(playerName).orElse(null);
-+            if (profile == null) {
-+                if (!CarpetConfig.configModule().allowSpawningOfflinePlayers) {
-+                    sender.sendMessage(text("Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.").color(RED));
-+                    return false;
-+                } else {
-+                    profile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(playerName), playerName);
-+                }
-+            }
-+            if (manager.getBans().isBanned(profile)) {
-+                sender.sendMessage(text("Player" + playerName + "is banned on this server").color(RED));
-+                return false;
-+            }
-+            if (manager.isUsingWhitelist() && manager.isWhiteListed(profile) && !sender.isOp()) {
-+                sender.sendMessage(text("Whitelisted players can only be spawned by operators").color(RED));
-+                return false;
-+            }
-+            return true;
-+        }
-+    }
-+
-+    private static class SubCommandKill {
-+        public static void register() {
-+            createBase("kill")
-+                    .executes(SubCommandKill::kill)
-+                    .register("carpet");
-+        }
-+
-+        private static void kill(CommandSender sender, CommandArguments args) {
-+            if (!canKill(sender, args)) {
-+                return;
-+            }
-+            Player player = getOnlinePlayer(args);
-+            ((CraftPlayer) player).getHandle().kill();
-+            sender.sendMessage(text("Player " + player.getName() + " has been killed").color(GREEN));
-+        }
-+
-+        private static boolean canKill(CommandSender sender, CommandArguments args) {
-+            ServerPlayer player = getOnlineServerPlayer(args);
-+            if (player instanceof EntityPlayerMPFake) {
-+                return canManipulate(sender, args, "kill");
-+            }
-+            sender.sendMessage(text("Only fake players can be killed by this command").color(RED));
-+            return false;
-+        }
-+    }
-+
-+    private static void registerSubCommandLook() {
-+        registerManipulateCommand("look", ap -> ap.look(Direction.NORTH), "north");
-+        registerManipulateCommand("look", ap -> ap.look(Direction.SOUTH), "south");
-+        registerManipulateCommand("look", ap -> ap.look(Direction.EAST), "east");
-+        registerManipulateCommand("look", ap -> ap.look(Direction.WEST), "west");
-+        registerManipulateCommand("look", ap -> ap.look(Direction.UP), "up");
-+        registerManipulateCommand("look", ap -> ap.look(Direction.DOWN), "down");
-+        createBase("look")
-+                .withArguments(
-+                        new LiteralArgument("direction"),
-+                        new RotationArgument("direction")
-+                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, "look",
-+                                ap -> {
-+                                    Rotation rotation = (Rotation) args.get("direction");
-+                                    if (rotation == null) {
-+                                        sender.sendMessage(text("Invalid rotation").color(RED));
-+                                        return;
-+                                    }
-+                                    ap.look(new Vec2(rotation.getYaw(), rotation.getPitch()));
-+                                })
-+                ).register("carpet");
-+        createBase("look")
-+                .withArguments(
-+                        new LiteralArgument("at"),
-+                        new LocationArgument("position")
-+                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, "look",
-+                                ap -> {
-+                                    Location location = getLocationWithDefaultWorld(sender, args, "position");
-+                                    ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
-+                                })
-+                ).register("carpet");
-+    }
-+
-+    private static void registerSubCommandTurn() {
-+        registerManipulateCommand("turn", ap -> ap.turn(-90, 0), "left");
-+        registerManipulateCommand("turn", ap -> ap.turn(90, 0), "right");
-+        registerManipulateCommand("turn", ap -> ap.turn(180, 0), "back");
-+        createBase("turn")
-+                .withArguments(new RotationArgument("rotation"))
-+                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, "turn",
-+                                ap -> {
-+                                    Rotation rotation = (Rotation) args.get("rotation");
-+                                    if (rotation == null) {
-+                                        sender.sendMessage(text("Invalid rotation").color(RED));
-+                                        return;
-+                                    }
-+                                    ap.turn(rotation.getYaw(), rotation.getPitch());
-+                                })
-+                ).register("carpet");
-+    }
-+
-+    private static void registerSubCommandMove() {
-+        registerManipulateCommand("move", EntityPlayerActionPack::stopMovement);
-+        registerManipulateCommand("move", EntityPlayerActionPack::stopMovement, "stop");
-+        registerManipulateCommand("move", ap -> ap.setForward(1), "forward");
-+        registerManipulateCommand("move", ap -> ap.setForward(-1), "backward");
-+        registerManipulateCommand("move", ap -> ap.setStrafing(-1), "right");
-+        registerManipulateCommand("move", ap -> ap.setStrafing(1), "left");
-+    }
-+
-+    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action, String literal) {
-+        createBase(name)
-+                .withArguments(new MultiLiteralArgument("_literals", literal))
-+                .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
-+                .register("carpet");
-+    }
-+
-+    private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action) {
-+        createBase(name)
-+                .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
-+                .register("carpet");
-+    }
-+
-+    private static void registerActionCommand(String name, ActionType type) {
-+        registerManipulateCommand(name, ap -> ap.start(type, Action.once()));
-+        registerManipulateCommand(name, ap -> ap.start(type, Action.once()), "once");
-+        registerManipulateCommand(name, ap -> ap.start(type, Action.continuous()), "continuous");
-+        // noinspection DataFlowIssue
-+        createBase(name)
-+                .withArguments(
-+                        new LiteralArgument("interval"),
-+                        new IntegerArgument("ticks", 1)
-+                ).executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, name,
-+                                ap -> ap.start(type, Action.interval((Integer) args.get("ticks"))))
-+                ).register("carpet");
-+    }
-+
-+    private static void registerDropCommand(String name, boolean dropAll) {
-+        registerManipulateCommand(name, ap -> ap.drop(-2, dropAll), "all");
-+        registerManipulateCommand(name, ap -> ap.drop(-1, dropAll), "mainhand");
-+        registerManipulateCommand(name, ap -> ap.drop(40, dropAll), "offhand");
-+        // noinspection DataFlowIssue
-+        createBase(name)
-+                .withArguments(new IntegerArgument("slot", 0, 40))
-+                .executes((CommandExecutor) (sender, args) ->
-+                        manipulate(sender, args, name,
-+                                ap -> ap.drop((Integer) args.get("slot"), dropAll))
-+                ).register("carpet");
-+
-+    }
-+
-+    private static void manipulate(CommandSender sender, CommandArguments args, String name, Consumer<EntityPlayerActionPack> action) {
-+        if (!canManipulate(sender, args, name)) {
-+            return;
-+        }
-+        action.accept(getOnlineServerPlayer(args).getActionPack());
-+    }
-+
-+    private static CommandAPICommand createBase(String literal) {
-+        return new CommandAPICommand("player")
-+                .withPermission("carpet.command.player")
-+                .withArguments(
-+                        new StringArgument("player").replaceSuggestions(ArgumentSuggestions.strings(info ->
-+                                MinecraftServer
-+                                        .getServer()
-+                                        .getPlayerList()
-+                                        .getPlayers()
-+                                        .stream().map(ServerPlayer::getScoreboardName)
-+                                        .toArray(String[]::new))),
-+                        new LiteralArgument(literal)
-+                ).withPermission(createPlayerCommandPermission(literal));
-+    }
-+
-+    private static boolean canManipulate(@NotNull CommandSender sender, CommandArguments args, String name) {
-+        String permission = createPlayerCommandPermission(name);
-+        if (sender.hasPermission(permission)) {
-+            Player player = getOnlinePlayer(args);
-+            if (sender == player || player instanceof EntityPlayerMPFake) {
-+                return true;
-+            }
-+            String manipulateRealPermission = createPlayerCommandPermission("manipulate-real");
-+            if (sender.hasPermission(manipulateRealPermission)) {
-+                return true;
-+            }
-+            permission = permission + " and " + manipulateRealPermission;
-+        }
-+        sender.sendMessage(text("Require permission: " + permission).color(RED));
-+        return false;
-+    }
-+
-+    private static @NotNull Player getOnlinePlayer(CommandArguments args) {
-+        String playerName = getPlayerName(args);
-+        Player player = Bukkit.getPlayer(playerName);
-+        if (player == null) {
-+            throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
-+        }
-+        return player;
-+    }
-+
-+    private static @NotNull ServerPlayer getOnlineServerPlayer(CommandArguments args) {
-+        String playerName = getPlayerName(args);
-+        ServerPlayer player = MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
-+        if (player == null) {
-+            throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
-+        }
-+        return player;
-+    }
-+
-+    private static @NotNull String getPlayerName(@NotNull CommandArguments args) {
-+        String playerName = (String) args.get("player");
-+        if (playerName == null) {
-+            throw CommandAPIBukkit.failWithAdventureComponent(text("Require player name").color(RED));
-+        }
-+        String prefix = CarpetConfig.configModule().fakePlayerNamePrefix;
-+        String suffix = CarpetConfig.configModule().fakePlayerNameSuffix;
-+        if ("#none".equals(prefix)) {
-+            prefix = "";
-+        }
-+        if ("#none".equals(suffix)) {
-+            suffix = "";
-+        }
-+        return prefix + playerName + suffix;
-+    }
-+
-+    @Contract(pure = true)
-+    private static @NotNull String createPlayerCommandPermission(String sub) {
-+        return "carpet.command.player." + sub;
-+    }
++    // public static void register() {
++    //     SubCommandSpawn.register();
++    //     SubCommandKill.register();
++    //     registerActionCommand("use", USE);
++    //     registerActionCommand("jump", JUMP);
++    //     registerActionCommand("attack", ATTACK);
++    //     registerActionCommand("drop", DROP_ITEM);
++    //     registerDropCommand("drop", false);
++    //     registerActionCommand("dropStack", DROP_STACK);
++    //     registerDropCommand("dropStack", true);
++    //     registerActionCommand("swapHands", SWAP_HANDS);
++    //     registerManipulateCommand("mount", ap -> ap.mount(false));
++    //     registerManipulateCommand("mount", ap -> ap.mount(true), "anything");
++    //     registerManipulateCommand("dismount", EntityPlayerActionPack::dismount);
++    //     registerManipulateCommand("sneak", ap -> ap.setSneaking(true));
++    //     registerManipulateCommand("unsneak", ap -> ap.setSneaking(false));
++    //     registerManipulateCommand("sprint", ap -> ap.setSprinting(true));
++    //     registerManipulateCommand("unsprint", ap -> ap.setSprinting(false));
++    //     registerManipulateCommand("stop", EntityPlayerActionPack::stopAll);
++    //     registerSubCommandLook();
++    //     registerSubCommandTurn();
++    //     registerSubCommandMove();
++    //     createBase("shadow")
++    //             .executes((sender, args) -> {
++    //                 if (!canManipulate(sender, args, "shadow")) {
++    //                     return;
++    //                 }
++    //
++    //                 ServerPlayer player = getOnlineServerPlayer(args);
++    //                 if (player instanceof EntityPlayerMPFake) {
++    //                     sender.sendMessage(text("Cannot shadow fake players").color(RED));
++    //                     return;
++    //                 }
++    //                 if (MinecraftServer.getServer().isSingleplayerOwner(player.getGameProfile())) {
++    //                     sender.sendMessage(text("Cannot shadow single-player server owner").color(RED));
++    //                     return;
++    //                 }
++    //
++    //                 EntityPlayerMPFake.createShadow(player.server, player);
++    //             }).register("carpet");
++    //     // noinspection DataFlowIssue
++    //     createBase("hotbar")
++    //             .withArguments(new IntegerArgument("slot", 0, 8))
++    //             .executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, "hotbar",
++    //                             ap -> ap.setSlot((Integer) args.get("slot"))))
++    //             .register("carpet");
++    //     registerPermissions();
++    // }
++    //
++    // private static void registerPermissions() {
++    //     PermissionUtils.addPermissionAndBind(
++    //             "carpet.command.player",
++    //             "Player command",
++    //             List.of(
++    //                     "&.spawn",
++    //                     "&.kill",
++    //                     "&.shadow",
++    //                     "&.use",
++    //                     "&.jump",
++    //                     "&.attack",
++    //                     "&.drop",
++    //                     "&.dropStack",
++    //                     "&.swapHands",
++    //                     "&.hotbar",
++    //                     "&.mount",
++    //                     "&.dismount",
++    //                     "&.sneak",
++    //                     "&.unsneak",
++    //                     "&.sprint",
++    //                     "&.unsprint",
++    //                     "&.look",
++    //                     "&.turn",
++    //                     "&.move",
++    //                     "&.stop",
++    //                     "&.manipulate-real"
++    //             )
++    //     );
++    //     PermissionUtils.addPermissionAndBind(
++    //             createPlayerCommandPermission("look"),
++    //             "Look to a direction",
++    //             List.of(
++    //                     "&.north",
++    //                     "&.south",
++    //                     "&.east",
++    //                     "&.west",
++    //                     "&.up",
++    //                     "&.down",
++    //                     "&.at",
++    //                     "&.direction"
++    //             )
++    //     );
++    //     PermissionUtils.addPermissionAndBind(
++    //             createPlayerCommandPermission("turn"),
++    //             "Turn to a direction",
++    //             List.of(
++    //                     "&.left",
++    //                     "&.right",
++    //                     "&.back",
++    //                     "&.rotation"
++    //             )
++    //     );
++    //     PermissionUtils.addPermissionAndBind(
++    //             createPlayerCommandPermission("move"),
++    //             "Move to a direction",
++    //             List.of(
++    //                     "&.forward",
++    //                     "&.backward",
++    //                     "&.left",
++    //                     "&.right"
++    //             )
++    //     );
++    // }
++    //
++    // private static class SubCommandSpawn {
++    //     public static void register() {
++    //         createBase("spawn")
++    //                 .withOptionalArguments(
++    //                         new LiteralArgument("at").combineWith(new LocationArgument("position")),
++    //                         new LiteralArgument("facing").combineWith(new RotationArgument("direction")),
++    //                         new LiteralArgument("in").combineWith(new WorldArgument("dimension")),
++    //                         new LiteralArgument("in")
++    //                                 .withRequirement(ServerOperator::isOp)
++    //                                 .combineWith(new MultiLiteralArgument("gamemode", Arrays
++    //                                         .stream(GameType.values())
++    //                                         .map(GameType::name)
++    //                                         .toArray(String[]::new)))
++    //                 ).executes(SubCommandSpawn::spawn).register("carpet");
++    //     }
++    //
++    //     private static void spawn(CommandSender sender, CommandArguments args) {
++    //         if (!canSpawn(sender, args)) {
++    //             return;
++    //         }
++    //         Location pos = null;
++    //         Rotation facing = new Rotation(0, 0);
++    //         World world = Bukkit.getWorlds().getFirst();
++    //         GameType mode = GameType.CREATIVE;
++    //         boolean flying = false;
++    //         if (sender instanceof Player player) {
++    //             ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
++    //             pos = player.getLocation();
++    //             facing = new Rotation(player.getLocation().getYaw(), player.getLocation().getPitch());
++    //             world = player.getWorld();
++    //             mode = serverPlayer.gameMode.getGameModeForPlayer();
++    //             flying = serverPlayer.getAbilities().flying;
++    //         }
++    //         pos = (Location) args.getOrDefault("position", pos);
++    //         facing = (Rotation) args.getOrDefault("direction", facing);
++    //         world = (World) args.getOrDefault("dimension", world);
++    //         if (pos == null) {
++    //             sender.sendMessage(text("Need position to spawn player in console").color(RED));
++    //             return;
++    //         }
++    //         pos.setWorld(world);
++    //         GameMode nullableGameMode = (GameMode) args.get("gamemode");
++    //         if (nullableGameMode != null) {
++    //             mode = GameType.byId(nullableGameMode.getValue());
++    //         }
++    //
++    //         if (mode == GameType.SPECTATOR) {
++    //             // Force override flying to true for spectator players, or they will fell out of the world.
++    //             flying = true;
++    //         } else if (mode.isSurvival()) {
++    //             // Force override flying to false for survival-like players, or they will fly too
++    //             flying = false;
++    //         }
++    //         String playerName = getPlayerName(args);
++    //         if (playerName.length() > SharedConstants.MAX_PLAYER_NAME_LENGTH) {
++    //             sender.sendMessage(text("Player name: " + playerName + " is too long").color(RED));
++    //             return;
++    //         }
++    //
++    //         if (!Level.isInSpawnableBounds(BlockPos.containing(pos.getX(), pos.getY(), pos.getZ()))) {
++    //             sender.sendMessage(text("Player " + playerName + " cannot be placed outside of the world").color(RED));
++    //             return;
++    //         }
++    //         boolean success = EntityPlayerMPFake.createFake(playerName, MinecraftServer.getServer(), pos, facing.getPitch(), facing.getYaw(), world, mode, flying);
++    //         if (!success) {
++    //             sender.sendMessage(text("Player " + playerName + " doesn't exist and cannot spawn in online mode. Turn the server offline or the allowSpawningOfflinePlayers on to spawn non-existing players").color(RED));
++    //         }
++    //     }
++    //
++    //     private static boolean canSpawn(CommandSender sender, CommandArguments args) {
++    //         String playerName = getPlayerName(args);
++    //         MinecraftServer server = MinecraftServer.getServer();
++    //         PlayerList manager = server.getPlayerList();
++    //
++    //         if (manager.getPlayerByName(playerName) != null) {
++    //             sender.sendMessage(text("Player " + playerName + " is already logged on").color(RED));
++    //             return false;
++    //         }
++    //         @SuppressWarnings("DataFlowIssue") GameProfile profile = server.getProfileCache().get(playerName).orElse(null);
++    //         if (profile == null) {
++    //             // if (!CarpetConfig.configModule().allowSpawningOfflinePlayers) {
++    //                 sender.sendMessage(text("Player " + playerName + " is either banned by Mojang, or auth servers are down. Banned players can only be summoned in Singleplayer and in servers in off-line mode.").color(RED));
++    //                 return false;
++    //             // } else {
++    //             //     profile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(playerName), playerName);
++    //             // }
++    //         }
++    //         if (manager.getBans().isBanned(profile)) {
++    //             sender.sendMessage(text("Player" + playerName + "is banned on this server").color(RED));
++    //             return false;
++    //         }
++    //         if (manager.isUsingWhitelist() && manager.isWhiteListed(profile) && !sender.isOp()) {
++    //             sender.sendMessage(text("Whitelisted players can only be spawned by operators").color(RED));
++    //             return false;
++    //         }
++    //         return true;
++    //     }
++    // }
++    //
++    // private static class SubCommandKill {
++    //     public static void register() {
++    //         createBase("kill")
++    //                 .executes(SubCommandKill::kill)
++    //                 .register("carpet");
++    //     }
++    //
++    //     private static void kill(CommandSender sender, CommandArguments args) {
++    //         if (!canKill(sender, args)) {
++    //             return;
++    //         }
++    //         Player player = getOnlinePlayer(args);
++    //         ((CraftPlayer) player).getHandle().kill();
++    //         sender.sendMessage(text("Player " + player.getName() + " has been killed").color(GREEN));
++    //     }
++    //
++    //     private static boolean canKill(CommandSender sender, CommandArguments args) {
++    //         ServerPlayer player = getOnlineServerPlayer(args);
++    //         if (player instanceof EntityPlayerMPFake) {
++    //             return canManipulate(sender, args, "kill");
++    //         }
++    //         sender.sendMessage(text("Only fake players can be killed by this command").color(RED));
++    //         return false;
++    //     }
++    // }
++    //
++    // private static void registerSubCommandLook() {
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.NORTH), "north");
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.SOUTH), "south");
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.EAST), "east");
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.WEST), "west");
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.UP), "up");
++    //     registerManipulateCommand("look", ap -> ap.look(Direction.DOWN), "down");
++    //     createBase("look")
++    //             .withArguments(
++    //                     new LiteralArgument("direction"),
++    //                     new RotationArgument("direction")
++    //             ).executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, "look",
++    //                             ap -> {
++    //                                 Rotation rotation = (Rotation) args.get("direction");
++    //                                 if (rotation == null) {
++    //                                     sender.sendMessage(text("Invalid rotation").color(RED));
++    //                                     return;
++    //                                 }
++    //                                 ap.look(new Vec2(rotation.getYaw(), rotation.getPitch()));
++    //                             })
++    //             ).register("carpet");
++    //     createBase("look")
++    //             .withArguments(
++    //                     new LiteralArgument("at"),
++    //                     new LocationArgument("position")
++    //             ).executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, "look",
++    //                             ap -> {
++    //                                 Location location = getLocationWithDefaultWorld(sender, args, "position");
++    //                                 ap.lookAt(new Vec3(location.getX(), location.getY(), location.getZ()));
++    //                             })
++    //             ).register("carpet");
++    // }
++    //
++    // private static void registerSubCommandTurn() {
++    //     registerManipulateCommand("turn", ap -> ap.turn(-90, 0), "left");
++    //     registerManipulateCommand("turn", ap -> ap.turn(90, 0), "right");
++    //     registerManipulateCommand("turn", ap -> ap.turn(180, 0), "back");
++    //     createBase("turn")
++    //             .withArguments(new RotationArgument("rotation"))
++    //             .executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, "turn",
++    //                             ap -> {
++    //                                 Rotation rotation = (Rotation) args.get("rotation");
++    //                                 if (rotation == null) {
++    //                                     sender.sendMessage(text("Invalid rotation").color(RED));
++    //                                     return;
++    //                                 }
++    //                                 ap.turn(rotation.getYaw(), rotation.getPitch());
++    //                             })
++    //             ).register("carpet");
++    // }
++    //
++    // private static void registerSubCommandMove() {
++    //     registerManipulateCommand("move", EntityPlayerActionPack::stopMovement);
++    //     registerManipulateCommand("move", EntityPlayerActionPack::stopMovement, "stop");
++    //     registerManipulateCommand("move", ap -> ap.setForward(1), "forward");
++    //     registerManipulateCommand("move", ap -> ap.setForward(-1), "backward");
++    //     registerManipulateCommand("move", ap -> ap.setStrafing(-1), "right");
++    //     registerManipulateCommand("move", ap -> ap.setStrafing(1), "left");
++    // }
++    //
++    // private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action, String literal) {
++    //     createBase(name)
++    //             .withArguments(new MultiLiteralArgument("_literals", literal))
++    //             .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
++    //             .register("carpet");
++    // }
++    //
++    // private static void registerManipulateCommand(String name, Consumer<EntityPlayerActionPack> action) {
++    //     createBase(name)
++    //             .executes((CommandExecutor) (sender, args2) -> manipulate(sender, args2, name, action))
++    //             .register("carpet");
++    // }
++    //
++    // private static void registerActionCommand(String name, ActionType type) {
++    //     registerManipulateCommand(name, ap -> ap.start(type, Action.once()));
++    //     registerManipulateCommand(name, ap -> ap.start(type, Action.once()), "once");
++    //     registerManipulateCommand(name, ap -> ap.start(type, Action.continuous()), "continuous");
++    //     // noinspection DataFlowIssue
++    //     createBase(name)
++    //             .withArguments(
++    //                     new LiteralArgument("interval"),
++    //                     new IntegerArgument("ticks", 1)
++    //             ).executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, name,
++    //                             ap -> ap.start(type, Action.interval((Integer) args.get("ticks"))))
++    //             ).register("carpet");
++    // }
++    //
++    // private static void registerDropCommand(String name, boolean dropAll) {
++    //     registerManipulateCommand(name, ap -> ap.drop(-2, dropAll), "all");
++    //     registerManipulateCommand(name, ap -> ap.drop(-1, dropAll), "mainhand");
++    //     registerManipulateCommand(name, ap -> ap.drop(40, dropAll), "offhand");
++    //     // noinspection DataFlowIssue
++    //     createBase(name)
++    //             .withArguments(new IntegerArgument("slot", 0, 40))
++    //             .executes((CommandExecutor) (sender, args) ->
++    //                     manipulate(sender, args, name,
++    //                             ap -> ap.drop((Integer) args.get("slot"), dropAll))
++    //             ).register("carpet");
++    //
++    // }
++    //
++    // private static void manipulate(CommandSender sender, CommandArguments args, String name, Consumer<EntityPlayerActionPack> action) {
++    //     if (!canManipulate(sender, args, name)) {
++    //         return;
++    //     }
++    //     action.accept(getOnlineServerPlayer(args).getActionPack());
++    // }
++    //
++    // private static CommandAPICommand createBase(String literal) {
++    //     return new CommandAPICommand("player")
++    //             .withPermission("carpet.command.player")
++    //             .withArguments(
++    //                     new StringArgument("player").replaceSuggestions(ArgumentSuggestions.strings(info ->
++    //                             MinecraftServer
++    //                                     .getServer()
++    //                                     .getPlayerList()
++    //                                     .getPlayers()
++    //                                     .stream().map(ServerPlayer::getScoreboardName)
++    //                                     .toArray(String[]::new))),
++    //                     new LiteralArgument(literal)
++    //             ).withPermission(createPlayerCommandPermission(literal));
++    // }
++    //
++    // private static boolean canManipulate(@NotNull CommandSender sender, CommandArguments args, String name) {
++    //     String permission = createPlayerCommandPermission(name);
++    //     if (sender.hasPermission(permission)) {
++    //         Player player = getOnlinePlayer(args);
++    //         if (sender == player || player instanceof EntityPlayerMPFake) {
++    //             return true;
++    //         }
++    //         String manipulateRealPermission = createPlayerCommandPermission("manipulate-real");
++    //         if (sender.hasPermission(manipulateRealPermission)) {
++    //             return true;
++    //         }
++    //         permission = permission + " and " + manipulateRealPermission;
++    //     }
++    //     sender.sendMessage(text("Require permission: " + permission).color(RED));
++    //     return false;
++    // }
++    //
++    // private static @NotNull Player getOnlinePlayer(CommandArguments args) {
++    //     String playerName = getPlayerName(args);
++    //     Player player = Bukkit.getPlayer(playerName);
++    //     if (player == null) {
++    //         throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
++    //     }
++    //     return player;
++    // }
++    //
++    // private static @NotNull ServerPlayer getOnlineServerPlayer(CommandArguments args) {
++    //     String playerName = getPlayerName(args);
++    //     ServerPlayer player = MinecraftServer.getServer().getPlayerList().getPlayerByName(playerName);
++    //     if (player == null) {
++    //         throw CommandAPIBukkit.failWithAdventureComponent(text("No such player").color(RED));
++    //     }
++    //     return player;
++    // }
++    //
++    // private static @NotNull String getPlayerName(@NotNull CommandArguments args) {
++    //     String playerName = (String) args.get("player");
++    //     if (playerName == null) {
++    //         throw CommandAPIBukkit.failWithAdventureComponent(text("Require player name").color(RED));
++    //     }
++    //     String prefix = CarpetConfig.configModule().fakePlayerNamePrefix;
++    //     String suffix = CarpetConfig.configModule().fakePlayerNameSuffix;
++    //     if ("#none".equals(prefix)) {
++    //         prefix = "";
++    //     }
++    //     if ("#none".equals(suffix)) {
++    //         suffix = "";
++    //     }
++    //     return prefix + playerName + suffix;
++    // }
++    //
++    // @Contract(pure = true)
++    // private static @NotNull String createPlayerCommandPermission(String sub) {
++    //     return "carpet.command.player." + sub;
++    // }
 +
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java b/src/main/java/org/leavesmc/lumina/carpet/command/SpawnCommand.java
