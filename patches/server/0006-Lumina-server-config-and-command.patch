@@ -4,6 +4,203 @@ Date: Thu, 11 Apr 2024 22:58:15 +0800
 Subject: [PATCH] Lumina server config and command
 
 
+diff --git a/src/main/java/org/leavesmc/leaves/command/CommandArgument.java b/src/main/java/org/leavesmc/leaves/command/CommandArgument.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bccbf7816ef621316f0da4911ec112f4753f88e
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/command/CommandArgument.java
+@@ -0,0 +1,55 @@
++package org.leavesmc.leaves.command;
++
++import org.jetbrains.annotations.NotNull;
++
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++
++public class CommandArgument {
++
++    public static final CommandArgument EMPTY = new CommandArgument();
++
++    private final List<CommandArgumentType<?>> argumentTypes;
++    private final List<List<String>> tabComplete;
++
++    private CommandArgument(CommandArgumentType<?>... argumentTypes) {
++        this.argumentTypes = List.of(argumentTypes);
++        this.tabComplete = new ArrayList<>();
++        for (int i = 0; i < argumentTypes.length; i++) {
++            tabComplete.add(new ArrayList<>());
++        }
++    }
++
++    public static CommandArgument of(CommandArgumentType<?>... argumentTypes) {
++        return new CommandArgument(argumentTypes);
++    }
++
++    public List<String> tabComplete(int n) {
++        if (tabComplete.size() > n) {
++            return tabComplete.get(n);
++        } else {
++            return List.of();
++        }
++    }
++
++    public CommandArgument setTabComplete(int index, List<String> list) {
++        tabComplete.set(index, list);
++        return this;
++    }
++
++    public CommandArgument setAllTabComplete(List<List<String>> tabComplete) {
++        this.tabComplete.clear();
++        this.tabComplete.addAll(tabComplete);
++        return this;
++    }
++
++    public CommandArgumentResult parse(int index, String @NotNull [] args) {
++        Object[] result = new Object[argumentTypes.size()];
++        Arrays.fill(result, null);
++        for (int i = index, j = 0; i < args.length && j < result.length; i++, j++) {
++            result[j] = argumentTypes.get(j).pasre(args[i]);
++        }
++        return new CommandArgumentResult(new ArrayList<>(Arrays.asList(result)));
++    }
++}
+diff --git a/src/main/java/org/leavesmc/leaves/command/CommandArgumentResult.java b/src/main/java/org/leavesmc/leaves/command/CommandArgumentResult.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..46aa6eaa75b65aad6bdbe4a5f517b42e87bcca77
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/command/CommandArgumentResult.java
+@@ -0,0 +1,69 @@
++package org.leavesmc.leaves.command;
++
++import net.minecraft.core.BlockPos;
++import org.bukkit.util.Vector;
++
++import java.util.List;
++import java.util.Objects;
++
++public class CommandArgumentResult {
++
++    private final List<Object> result;
++
++    public CommandArgumentResult(List<Object> result) {
++        this.result = result;
++    }
++
++    public int readInt(int def) {
++        return Objects.requireNonNullElse(read(Integer.class), def);
++    }
++
++    public double readDouble(double def) {
++        return Objects.requireNonNullElse(read(Double.class), def);
++    }
++
++    public float readFloat(float def) {
++        return Objects.requireNonNullElse(read(Float.class), def);
++    }
++
++    public String readString(String def) {
++        return Objects.requireNonNullElse(read(String.class), def);
++    }
++
++    public boolean readBoolean(boolean def) {
++        return Objects.requireNonNullElse(read(Boolean.class), def);
++    }
++
++    public BlockPos readPos() {
++        Integer[] pos = {read(Integer.class), read(Integer.class), read(Integer.class)};
++        for (Integer po : pos) {
++            if (po == null) {
++                return null;
++            }
++        }
++        return new BlockPos(pos[0], pos[1], pos[2]);
++    }
++
++    public Vector readVector() {
++        Double[] pos = {read(Double.class), read(Double.class), read(Double.class)};
++        for (Double po : pos) {
++            if (po == null) {
++                return null;
++            }
++        }
++        return new Vector(pos[0], pos[1], pos[2]);
++    }
++
++    public <T> T read(Class<T> tClass) {
++        if (result.isEmpty()) {
++            return null;
++        }
++
++        Object obj = result.remove(0);
++        if (tClass.isInstance(obj)) {
++            return tClass.cast(obj);
++        } else {
++            return null;
++        }
++    }
++}
+diff --git a/src/main/java/org/leavesmc/leaves/command/CommandArgumentType.java b/src/main/java/org/leavesmc/leaves/command/CommandArgumentType.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ca3508475bbd9771768704e300fe12b717489d6
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/command/CommandArgumentType.java
+@@ -0,0 +1,55 @@
++package org.leavesmc.leaves.command;
++
++import org.jetbrains.annotations.NotNull;
++
++public abstract class CommandArgumentType<E> {
++
++    public static final CommandArgumentType<Integer> INTEGER = new CommandArgumentType<>() {
++        @Override
++        public Integer pasre(@NotNull String arg) {
++            try {
++                return Integer.parseInt(arg);
++            } catch (NumberFormatException e) {
++                return null;
++            }
++        }
++    };
++
++    public static final CommandArgumentType<Double> DOUBLE = new CommandArgumentType<>() {
++        @Override
++        public Double pasre(@NotNull String arg) {
++            try {
++                return Double.parseDouble(arg);
++            } catch (NumberFormatException e) {
++                return null;
++            }
++        }
++    };
++
++    public static final CommandArgumentType<Float> FLOAT = new CommandArgumentType<>() {
++        @Override
++        public Float pasre(@NotNull String arg) {
++            try {
++                return Float.parseFloat(arg);
++            } catch (NumberFormatException e) {
++                return null;
++            }
++        }
++    };
++
++    public static final CommandArgumentType<String> STRING = new CommandArgumentType<>() {
++        @Override
++        public String pasre(@NotNull String arg) {
++            return arg;
++        }
++    };
++
++    public static final CommandArgumentType<Boolean> BOOLEAN = new CommandArgumentType<>() {
++        @Override
++        public Boolean pasre(@NotNull String arg) {
++            return Boolean.parseBoolean(arg);
++        }
++    };
++
++    public abstract E pasre(@NotNull String arg);
++}
 diff --git a/src/main/java/org/leavesmc/lumina/LuminaCommand.java b/src/main/java/org/leavesmc/lumina/LuminaCommand.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..872c620b9fd90e41f1c012c9462ab90f8c8b1dd1

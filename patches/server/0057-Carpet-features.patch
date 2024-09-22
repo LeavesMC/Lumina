@@ -385,18 +385,6 @@ index 494e32eb9304e1ecfb71eb5d59de40557c01c0de..2ecb97fc5ae11ee9c41a4ab325ac4919
          }
      }
  
-diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 94283bb3e99e718e3bc8038caced443447453de1..0907dec90f9bfef326e900285965c53ffb4f9544 100644
---- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
-+++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -872,6 +872,7 @@ public class ServerPlayer extends Player {
- 
-     @Override
-     public void tick() {
-+        actionPack.onUpdate(); // Lumina - Porting Carpet's features - action pack
-         // CraftBukkit start
-         if (this.joining) {
-             this.joining = false;
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 index 2fec6e3594b5946077102ca4abded9c2fc301f89..49a0e23b0b91d28fb0f0ad82f0135927919dd531 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
@@ -411,7 +399,7 @@ index 2fec6e3594b5946077102ca4abded9c2fc301f89..49a0e23b0b91d28fb0f0ad82f0135927
                  if (iteminteractionresult.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, blockposition, itemstack1);
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index a38a2065adec531a17c9a279cced88745536243e..4059dd625a392da10cb9f531e9abbe1d7e4eb320 100644
+index a38a2065adec531a17c9a279cced88745536243e..3a6f95e89e09a5ff19cc819c3d98279dc967a196 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -119,6 +119,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
@@ -435,38 +423,15 @@ index a38a2065adec531a17c9a279cced88745536243e..4059dd625a392da10cb9f531e9abbe1d
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
          // Purpur start
-@@ -282,11 +289,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -282,7 +289,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          long elapsedTime = currentTime - this.keepAliveTime;
  
          // Purpur start
 -        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive) {
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().misc.alternativeKeepAlive){
              if (elapsedTime >= 1000L) { // 1 second
                  if (this.keepAlivePending && !this.processedDisconnect && keepAlives.size() * 1000L >= KEEPALIVE_LIMIT) {
                      LOGGER.warn("{} was kicked due to keepalive timeout!", this.player.getScoreboardName());
--                    this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT);
-+                    this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Lumina - fakeplayer no timeout
-                 } else if (this.checkIfClosed(currentTime)) {
-                     this.keepAlivePending = true;
-                     this.keepAliveTime = currentTime; // hijack this field for 1 second intervals
-@@ -296,7 +303,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
-             }
-         } else {
- 
--        if (!this.isSingleplayerOwner() && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets
-+        if (!this.isSingleplayerOwner()){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets // Lumina - fakeplayer no timeout
-             if (this.keepAlivePending && !this.processedDisconnect && elapsedTime >= KEEPALIVE_LIMIT) { // Paper - check keepalive limit, don't fire if already disconnected
-                 this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
-             } else if (this.checkIfClosed(currentTime)) { // Paper
-@@ -314,7 +321,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
- 
-     private boolean checkIfClosed(long time) {
-         if (this.closed) {
--            if (time - this.closedListenerTime >= 15000L) {
-+            if (time - this.closedListenerTime >= 15000L){// TODO && !(this.player instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake)) { // Lumina - fakeplayer no timeout
-                 this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
-             }
- 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..9949f00c15b46001bbcf867e1e9e38708942d966 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
@@ -619,7 +584,7 @@ index d04bf7d06855022c973073fb84c5d3d65f2553e1..9bedd76330e71ca7f3feecf0b90ec960
  
          if (j > 0) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 3e3ef55801831c1a43653710a443b297d9206cd6..7722bed26ac01ec01b16f1c31979b95862694414 100644
+index 3e3ef55801831c1a43653710a443b297d9206cd6..3653be3e9dce060f704424230334ea1b4195357e 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -171,6 +171,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -639,7 +604,7 @@ index 3e3ef55801831c1a43653710a443b297d9206cd6..7722bed26ac01ec01b16f1c31979b958
      }
  
      public boolean isControlledByLocalInstance() {
-+        if (getControllingPassenger() instanceof org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake) return !level.isClientSide; // Lumina - Porting Carpet's features
++        if (getControllingPassenger() instanceof org.leavesmc.leaves.bot.ServerBot) return !level.isClientSide; // Lumina - fakeplayer
          net.minecraft.world.entity.LivingEntity entityliving = this.getControllingPassenger();
  
          if (entityliving instanceof Player entityhuman) {

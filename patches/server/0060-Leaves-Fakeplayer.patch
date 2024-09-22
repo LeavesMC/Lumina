@@ -196,7 +196,7 @@ index c5dd259e88f49461d98e84e3dabf2009eb16e0b0..e0ae7823d9cd23b27913a70ab7a69fe1
              }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 0907dec90f9bfef326e900285965c53ffb4f9544..dfa502da981b2febfa6049fa05064d4b01af3345 100644
+index 94283bb3e99e718e3bc8038caced443447453de1..c1ad868ec214d9830a7cc823ea632763e68a353f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -208,7 +208,7 @@ public class ServerPlayer extends Player {
@@ -208,7 +208,7 @@ index 0907dec90f9bfef326e900285965c53ffb4f9544..dfa502da981b2febfa6049fa05064d4b
      private final PlayerAdvancements advancements;
      private final ServerStatsCounter stats;
      private float lastRecordedHealthAndAbsorption = Float.MIN_VALUE;
-@@ -885,16 +885,20 @@ public class ServerPlayer extends Player {
+@@ -884,16 +884,20 @@ public class ServerPlayer extends Player {
              --this.invulnerableTime;
          }
  
@@ -238,7 +238,7 @@ index 0907dec90f9bfef326e900285965c53ffb4f9544..dfa502da981b2febfa6049fa05064d4b
  
          Entity entity = this.getCamera();
          //Luminol start - Fix folia spector teleportation
-@@ -915,7 +919,7 @@ public class ServerPlayer extends Player {
+@@ -914,7 +918,7 @@ public class ServerPlayer extends Player {
              }
          }
  
@@ -247,12 +247,12 @@ index 0907dec90f9bfef326e900285965c53ffb4f9544..dfa502da981b2febfa6049fa05064d4b
          if (this.levitationStartPos != null) {
              CriteriaTriggers.LEVITATION.trigger(this, this.levitationStartPos, this.tickCount - this.levitationStartTime);
          }
-@@ -1796,6 +1800,12 @@ public class ServerPlayer extends Player {
+@@ -1795,6 +1799,12 @@ public class ServerPlayer extends Player {
                  this.lastSentHealth = -1.0F;
                  this.lastSentFood = -1;
  
 +                // Leaves start - bot support
-+                if (org.leavesmc.leaves.LeavesConfig.fakeplayerSupport) {
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule().modify.fakeplayer.enable) {
 +                    this.server.getBotList().bots.forEach(bot -> bot.sendFakeDataIfNeed(this, true)); // Leaves - render bot
 +                }
 +                // Leaves end - bot support
@@ -261,7 +261,7 @@ index 0907dec90f9bfef326e900285965c53ffb4f9544..dfa502da981b2febfa6049fa05064d4b
                  PlayerChangedWorldEvent changeEvent = new PlayerChangedWorldEvent(this.getBukkitEntity(), worldserver1.getWorld());
                  this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..86104bc9b4038a07c5307e34b33ef6265ee84ff8 100644
+index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..372410e641e899f3efee2b511bf13a81b8b77dc1 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -123,6 +123,8 @@ import org.bukkit.event.player.PlayerRespawnEvent.RespawnReason;
@@ -278,7 +278,7 @@ index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..86104bc9b4038a07c5307e34b33ef626
          org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handlePlayerJoin(player); // Leaves - protocol
  
 +        // Leaves start - bot support
-+        if (org.leavesmc.leaves.LeavesConfig.fakeplayerSupport) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().modify.fakeplayer.enable) {
 +            ServerBot bot = this.server.getBotList().getBotByName(player.getScoreboardName());
 +            if (bot != null) {
 +                this.server.getBotList().removeBot(bot, org.leavesmc.leaves.event.bot.BotRemoveEvent.RemoveReason.INTERNAL, player.getBukkitEntity(), false);
@@ -298,7 +298,7 @@ index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..86104bc9b4038a07c5307e34b33ef626
          // Paper end - Add PlayerPostRespawnEvent
  
 +        // Leaves start - bot support
-+        if (org.leavesmc.leaves.LeavesConfig.fakeplayerSupport) {
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().modify.fakeplayer.enable) {
 +            this.server.getBotList().bots.forEach(bot -> bot.sendFakeDataIfNeed(entityplayer1, true)); // Leaves - render bot
 +        }
 +        // Leaves end - bot support
@@ -356,7 +356,7 @@ index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..86104bc9b4038a07c5307e34b33ef626
  
      public boolean canBypassPlayerLimit(GameProfile profile) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a51f8c2713ed1c604954626356c2f2b29b8badb7..6c86079872589ecea3937934435984ea43beb2e3 100644
+index ce929c427507afd7e2cf8f1bc6d2704236f3c917..17606f2f85d8bde31fcaa506e335e862de4e1e24 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1556,7 +1556,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -618,12 +618,13 @@ index 419ccf2b74a8621e0daa134acea060a39c0f5327..254f788950311ab31e15bc7579bde314
              return event;
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotCommand.java b/src/main/java/org/leavesmc/leaves/bot/BotCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987cad397ff12
+index 0000000000000000000000000000000000000000..407d2691249283e9ab6b9638e50cc1e4dca0496b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotCommand.java
-@@ -0,0 +1,543 @@
+@@ -0,0 +1,518 @@
 +package org.leavesmc.leaves.bot;
 +
++import com.mojang.logging.LogUtils;
 +import io.papermc.paper.command.CommandUtil;
 +import net.kyori.adventure.text.Component;
 +import net.kyori.adventure.text.format.NamedTextColor;
@@ -640,8 +641,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +import org.bukkit.permissions.PermissionDefault;
 +import org.bukkit.plugin.PluginManager;
 +import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.leaves.LeavesConfig;
-+import org.leavesmc.leaves.LeavesLogger;
 +import org.leavesmc.leaves.bot.agent.Actions;
 +import org.leavesmc.leaves.bot.agent.BotAction;
 +import org.leavesmc.leaves.bot.agent.BotConfig;
@@ -654,13 +653,15 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +import org.leavesmc.leaves.event.bot.BotCreateEvent;
 +import org.leavesmc.leaves.event.bot.BotRemoveEvent;
 +import org.leavesmc.leaves.plugin.MinecraftInternalPlugin;
++import org.leavesmc.lumina.config.LuminaConfig;
++import org.slf4j.Logger;
 +
 +import java.util.*;
 +
 +import static net.kyori.adventure.text.Component.text;
 +
 +public class BotCommand extends Command {
-+
++    private static final Logger LOGGER = LogUtils.getClassLogger();
 +    private final Component unknownMessage;
 +
 +    public BotCommand(String name) {
@@ -683,23 +684,18 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +        if (args.length <= 1) {
 +            list.add("create");
 +            list.add("remove");
-+            if (LeavesConfig.fakeplayerUseAction) {
-+                list.add("action");
-+            }
-+            if (LeavesConfig.fakeplayerModifyConfig) {
-+                list.add("config");
-+            }
-+            if (LeavesConfig.fakeplayerManualSaveAndLoad) {
-+                list.add("save");
-+                list.add("load");
-+            }
++            list.add("action");
++            list.add("config");
++            list.add("save");
++            list.add("load");
 +            list.add("list");
 +        }
 +
 +        if (args.length == 2) {
 +            switch (args[0]) {
 +                case "create" -> list.add("<BotName>");
-+                case "remove", "action", "config", "save" -> list.addAll(botList.bots.stream().map(e -> e.getName().getString()).toList());
++                case "remove", "action", "config", "save" ->
++                        list.addAll(botList.bots.stream().map(e -> e.getName().getString()).toList());
 +                case "list" -> list.addAll(Bukkit.getWorlds().stream().map(WorldInfo::getName).toList());
 +                case "load" -> list.addAll(botList.getSavedBotList().getAllKeys());
 +            }
@@ -759,9 +755,14 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +
 +    @Override
 +    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
-+        if (!testPermission(sender) || !LeavesConfig.fakeplayerSupport) return true;
++        if (!testPermission(sender) || !LuminaConfig.configModule().modify.fakeplayer.enable) return true;
 +
 +        if (args.length == 0) {
++            sender.sendMessage(unknownMessage);
++            return false;
++        }
++
++        if (List.of("action", "config", "save", "load").contains(args[0]) && !sender.hasPermission("bukkit.command.bot." + args[0])) {
 +            sender.sendMessage(unknownMessage);
 +            return false;
 +        }
@@ -810,7 +811,7 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +                            builder.location(new Location(world, x, y, z));
 +                        }
 +                    } catch (Exception e) {
-+                        LeavesLogger.LOGGER.warning("Can't build location", e);
++                        LOGGER.warn("Can't build location", e);
 +                    }
 +                }
 +            }
@@ -828,16 +829,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +
 +        if (Bukkit.getPlayerExact(name) != null || botList.getBotByName(name) != null) {
 +            sender.sendMessage(text("This player is in server", NamedTextColor.RED));
-+            return false;
-+        }
-+
-+        if (org.leavesmc.leaves.LeavesConfig.unableFakeplayerNames.contains(name)) {
-+            sender.sendMessage(text("This name is not allowed", NamedTextColor.RED));
-+            return false;
-+        }
-+
-+        if (botList.bots.size() >= org.leavesmc.leaves.LeavesConfig.fakeplayerLimit) {
-+            sender.sendMessage(text("Fakeplayer limit is full", NamedTextColor.RED));
 +            return false;
 +        }
 +
@@ -919,10 +910,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +    }
 +
 +    private void onAction(CommandSender sender, String @NotNull [] args) {
-+        if (!LeavesConfig.fakeplayerUseAction) {
-+            return;
-+        }
-+
 +        if (args.length < 3) {
 +            sender.sendMessage(text("Use /bot action <name> <action> to make fakeplayer do action", NamedTextColor.RED));
 +            return;
@@ -1030,10 +1017,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +    private static final List<String> acceptConfig = Configs.getConfigs().stream().map(config -> config.config.getName()).toList();
 +
 +    private void onConfig(CommandSender sender, String @NotNull [] args) {
-+        if (!LeavesConfig.fakeplayerModifyConfig) {
-+            return;
-+        }
-+
 +        if (args.length < 3) {
 +            sender.sendMessage(text("Use /bot config <name> <config> to modify fakeplayer's config", NamedTextColor.RED));
 +            return;
@@ -1075,10 +1058,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +    }
 +
 +    private void onSave(CommandSender sender, String @NotNull [] args) {
-+        if (!LeavesConfig.fakeplayerManualSaveAndLoad) {
-+            return;
-+        }
-+
 +        if (args.length < 2) {
 +            sender.sendMessage(text("Use /bot save <name> to save a fakeplayer", NamedTextColor.RED));
 +            return;
@@ -1098,10 +1077,6 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +    }
 +
 +    private void onLoad(CommandSender sender, String @NotNull [] args) {
-+        if (!LeavesConfig.fakeplayerManualSaveAndLoad) {
-+            return;
-+        }
-+
 +        if (args.length < 2) {
 +            sender.sendMessage(text("Use /bot save <name> to save a fakeplayer", NamedTextColor.RED));
 +            return;
@@ -1132,7 +1107,7 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +                botMap.get(bukkitBot.getWorld()).add(bukkitBot.getName());
 +            }
 +
-+            sender.sendMessage("Total number: (" + botList.bots.size() + "/" + org.leavesmc.leaves.LeavesConfig.fakeplayerLimit + ")");
++            sender.sendMessage("Total number: (" + botList.bots.size() + ")");
 +            for (World world : botMap.keySet()) {
 +                sender.sendMessage(world.getName() + "(" + botMap.get(world).size() + "): " + formatPlayerNameList(botMap.get(world)));
 +            }
@@ -1167,7 +1142,7 @@ index 0000000000000000000000000000000000000000..5a1054414f5313b59d38d89fb84987ca
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotCreateState.java b/src/main/java/org/leavesmc/leaves/bot/BotCreateState.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ebb3aa94718382e8fac2a8fa617c796a9387709b
+index 0000000000000000000000000000000000000000..682b2b15db96956b139748d40c1483ec1199f9eb
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotCreateState.java
 @@ -0,0 +1,120 @@
@@ -1179,12 +1154,12 @@ index 0000000000000000000000000000000000000000..ebb3aa94718382e8fac2a8fa617c796a
 +import org.bukkit.command.CommandSender;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
-+import org.leavesmc.leaves.LeavesConfig;
 +import org.leavesmc.leaves.entity.Bot;
 +import org.leavesmc.leaves.entity.BotCreator;
 +import org.leavesmc.leaves.entity.CraftBot;
 +import org.leavesmc.leaves.event.bot.BotCreateEvent;
 +import org.leavesmc.leaves.plugin.MinecraftInternalPlugin;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.util.Objects;
 +import java.util.function.Consumer;
@@ -1221,7 +1196,7 @@ index 0000000000000000000000000000000000000000..ebb3aa94718382e8fac2a8fa617c796a
 +            this.realName = realName;
 +            this.location = location;
 +
-+            this.name = LeavesConfig.fakeplayerPrefix + realName + LeavesConfig.fakeplayerSuffix;
++            this.name = LuminaConfig.configModule().modify.fakeplayer.prefix + realName + LuminaConfig.configModule().modify.fakeplayer.suffix;
 +            this.skinName = this.realName;
 +            this.skin = null;
 +            this.createReason = BotCreateEvent.CreateReason.UNKNOWN;
@@ -1617,10 +1592,10 @@ index 0000000000000000000000000000000000000000..4f5e6e5c1b9d8bd38c98e97fd31b3833
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotList.java b/src/main/java/org/leavesmc/leaves/bot/BotList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..33deb7eeda2c4cda396ac4ed7f05e6a851e89050
+index 0000000000000000000000000000000000000000..2ebc999424f4a1b2c7f7c61c123c4e203a89698a
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotList.java
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,331 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.Maps;
@@ -1646,12 +1621,12 @@ index 0000000000000000000000000000000000000000..33deb7eeda2c4cda396ac4ed7f05e6a8
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
-+import org.leavesmc.leaves.LeavesConfig;
 +import org.leavesmc.leaves.event.bot.BotCreateEvent;
 +import org.leavesmc.leaves.event.bot.BotJoinEvent;
 +import org.leavesmc.leaves.event.bot.BotLoadEvent;
 +import org.leavesmc.leaves.event.bot.BotRemoveEvent;
 +import org.leavesmc.leaves.event.bot.BotSpawnLocationEvent;
++import org.leavesmc.lumina.config.LuminaConfig;
 +import org.slf4j.Logger;
 +
 +import java.util.Iterator;
@@ -1896,13 +1871,13 @@ index 0000000000000000000000000000000000000000..33deb7eeda2c4cda396ac4ed7f05e6a8
 +
 +    public void removeAll() {
 +        for (ServerBot bot : this.bots) {
-+            bot.resume = LeavesConfig.fakeplayerResident;
-+            this.removeBot(bot, BotRemoveEvent.RemoveReason.INTERNAL, null, LeavesConfig.fakeplayerResident);
++            bot.resume = LuminaConfig.configModule().modify.fakeplayer.residentFakeplayer;
++            this.removeBot(bot, BotRemoveEvent.RemoveReason.INTERNAL, null, bot.resume);
 +        }
 +    }
 +
 +    public void loadResume() {
-+        if (LeavesConfig.fakeplayerSupport && LeavesConfig.fakeplayerResident) {
++        if (LuminaConfig.configModule().modify.fakeplayer.enable && LuminaConfig.configModule().modify.fakeplayer.residentFakeplayer) {
 +            for (String realName : this.getSavedBotList().getAllKeys()) {
 +                CompoundTag nbt = this.getSavedBotList().getCompound(realName);
 +                if (nbt.getBoolean("resume")) {
@@ -1935,15 +1910,7 @@ index 0000000000000000000000000000000000000000..33deb7eeda2c4cda396ac4ed7f05e6a8
 +            return false;
 +        }
 +
-+        if (Bukkit.getPlayerExact(name) != null || this.getBotByName(name) != null) {
-+            return false;
-+        }
-+
-+        if (LeavesConfig.unableFakeplayerNames.contains(name)) {
-+            return false;
-+        }
-+
-+        return this.bots.size() < LeavesConfig.fakeplayerLimit;
++        return Bukkit.getPlayerExact(name) == null && this.getBotByName(name) == null;
 +    }
 +
 +    public static class CustomGameProfile extends GameProfile {
@@ -2102,7 +2069,7 @@ index 0000000000000000000000000000000000000000..7ebe4d6c71e90be92387a585ea581c6b
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/MojangAPI.java b/src/main/java/org/leavesmc/leaves/bot/MojangAPI.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..517e3321b866abe9d17a6fe9e919528b50bb130a
+index 0000000000000000000000000000000000000000..34af4b59a4b4f9572e45d4e691a6f2606f5698f4
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/MojangAPI.java
 @@ -0,0 +1,39 @@
@@ -2110,7 +2077,7 @@ index 0000000000000000000000000000000000000000..517e3321b866abe9d17a6fe9e919528b
 +
 +import com.google.gson.JsonObject;
 +import com.google.gson.JsonParser;
-+import org.leavesmc.leaves.LeavesConfig;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.io.IOException;
 +import java.io.InputStreamReader;
@@ -2123,7 +2090,7 @@ index 0000000000000000000000000000000000000000..517e3321b866abe9d17a6fe9e919528b
 +    private static final Map<String, String[]> CACHE = new HashMap<>();
 +
 +    public static String[] getSkin(String name) {
-+        if (LeavesConfig.fakeplayerCacheSkin && CACHE.containsKey(name)) {
++        if (LuminaConfig.configModule().modify.fakeplayer.cacheSkin && CACHE.containsKey(name)) {
 +            return CACHE.get(name);
 +        }
 +
@@ -2147,14 +2114,15 @@ index 0000000000000000000000000000000000000000..517e3321b866abe9d17a6fe9e919528b
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/ServerBot.java b/src/main/java/org/leavesmc/leaves/bot/ServerBot.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5e7d0b95f
+index 0000000000000000000000000000000000000000..b2e6f9c1de47ac21393616201c67f1110127386c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/ServerBot.java
-@@ -0,0 +1,544 @@
+@@ -0,0 +1,527 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.ImmutableMap;
 +import com.mojang.authlib.GameProfile;
++import com.mojang.logging.LogUtils;
 +import io.papermc.paper.adventure.PaperAdventure;
 +import io.papermc.paper.event.entity.EntityKnockbackEvent;
 +import net.minecraft.core.BlockPos;
@@ -2190,7 +2158,6 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +import net.minecraft.world.level.GameRules;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.gameevent.GameEvent;
-+import net.minecraft.world.level.portal.DimensionTransition;
 +import net.minecraft.world.phys.EntityHitResult;
 +import net.minecraft.world.phys.Vec3;
 +import org.bukkit.Bukkit;
@@ -2199,8 +2166,6 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +import org.bukkit.util.Vector;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
-+import org.leavesmc.leaves.LeavesConfig;
-+import org.leavesmc.leaves.LeavesLogger;
 +import org.leavesmc.leaves.bot.agent.Actions;
 +import org.leavesmc.leaves.bot.agent.BotAction;
 +import org.leavesmc.leaves.bot.agent.BotConfig;
@@ -2213,6 +2178,8 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +import org.leavesmc.leaves.event.bot.BotRemoveEvent;
 +import org.leavesmc.leaves.plugin.MinecraftInternalPlugin;
 +import org.leavesmc.leaves.util.MathUtils;
++import org.leavesmc.lumina.config.LuminaConfig;
++import org.slf4j.Logger;
 +
 +import java.util.ArrayList;
 +import java.util.EnumSet;
@@ -2224,7 +2191,7 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +
 +// TODO test
 +public class ServerBot extends ServerPlayer {
-+
++    private static final Logger LOGGER = LogUtils.getClassLogger();
 +    private final Map<Configs<?>, BotConfig<?>> configs;
 +    private final List<BotAction<?>> actions;
 +
@@ -2260,7 +2227,7 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +        this.tracingRange = world.spigotConfig.playerTrackingRange * world.spigotConfig.playerTrackingRange;
 +
 +        this.notSleepTicks = 0;
-+        this.fauxSleeping = LeavesConfig.fakeplayerSkipSleep;
++        this.fauxSleeping = LuminaConfig.configModule().modify.fakeplayer.skipSleepCheck;
 +    }
 +
 +    public void sendPlayerInfo(ServerPlayer player) {
@@ -2281,7 +2248,7 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +        ChunkMap.TrackedEntity entityTracker = ((ServerLevel) this.level()).getChunkSource().chunkMap.entityMap.get(this.getId());
 +
 +        if (entityTracker == null) {
-+            LeavesLogger.LOGGER.warning("Fakeplayer cant get entity tracker for " + this.getId());
++            LOGGER.warn("Fakeplayer cant get entity tracker for " + this.getId());
 +            return;
 +        }
 +
@@ -2337,7 +2304,7 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +
 +    @Nullable
 +    @Override
-+    public Entity changeDimension(@NotNull DimensionTransition teleportTarget) {
++    public Entity changeDimension(@NotNull ServerLevel teleportTarget) {
 +        return null; // disable dimension change
 +    }
 +
@@ -2352,10 +2319,10 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +            notSleepTicks++;
 +        }
 +
-+        if (LeavesConfig.fakeplayerRegenAmount > 0.0 && server.getTickCount() % 20 == 0) {
++        if (LuminaConfig.configModule().modify.fakeplayer.regenAmount > 0.0 && server.getTickCount() % 20 == 0) {
 +            float health = getHealth();
 +            float maxHealth = getMaxHealth();
-+            float regenAmount = (float) (LeavesConfig.fakeplayerRegenAmount * 20);
++            float regenAmount = (float) (LuminaConfig.configModule().modify.fakeplayer.regenAmount * 20);
 +            float amount;
 +
 +            if (health < maxHealth - regenAmount) {
@@ -2388,24 +2355,13 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +
 +    @Override
 +    public @NotNull InteractionResult interact(@NotNull Player player, @NotNull InteractionHand hand) {
-+        if (LeavesConfig.openFakeplayerInventory) {
-+            if (player instanceof ServerPlayer player1 && player.getMainHandItem().isEmpty()) {
-+                BotInventoryOpenEvent event = new BotInventoryOpenEvent(this.getBukkitEntity(), player1.getBukkitEntity());
-+                this.server.server.getPluginManager().callEvent(event);
-+                if (!event.isCancelled()) {
-+                    Component menuName = this.getDisplayName() != null ? this.getDisplayName() : Component.literal(this.createState.name());
-+                    player.openMenu(new SimpleMenuProvider((i, inventory, p) -> ChestMenu.sixRows(i, inventory, this.container), menuName));
-+                    return InteractionResult.SUCCESS;
-+                }
-+            }
-+        }
 +        return super.interact(player, hand);
 +    }
 +
 +    @Override
 +    public void checkFallDamage(double heightDifference, boolean onGround, @NotNull BlockState state, @NotNull BlockPos landedPosition) {
 +        if (onGround && this.fallDistance > 0.0F) {
-+            this.onChangedBlock(this.serverLevel(), landedPosition);
++            this.onChangedBlock(landedPosition);
 +            double d1 = this.getAttributeValue(Attributes.SAFE_FALL_DISTANCE);
 +
 +            if ((double) this.fallDistance > d1 && !state.isAir()) {
@@ -2651,17 +2607,11 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +    }
 +
 +    private void runAction() {
-+        if (LeavesConfig.fakeplayerUseAction) {
-+            this.actions.forEach(action -> action.tryTick(this));
-+            this.actions.removeIf(BotAction::isCancelled);
-+        }
++        this.actions.forEach(action -> action.tryTick(this));
++        this.actions.removeIf(BotAction::isCancelled);
 +    }
 +
 +    public boolean addBotAction(BotAction<?> action, CommandSender sender) {
-+        if (!LeavesConfig.fakeplayerUseAction) {
-+            return false;
-+        }
-+
 +        if (!new BotActionScheduleEvent(this.getBukkitEntity(), action.getName(), action.getUUID(), sender).callEvent()) {
 +            return false;
 +        }
@@ -2697,7 +2647,7 @@ index 0000000000000000000000000000000000000000..bab7790db401135cb9ea5b05f749dca5
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java b/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bc1e29f6080c4783940848456620be8c06c32cce
+index 0000000000000000000000000000000000000000..068bd6ce5fe4bdc81a10bd1697b4c27480f87f00
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java
 @@ -0,0 +1,138 @@
@@ -2763,7 +2713,7 @@ index 0000000000000000000000000000000000000000..bc1e29f6080c4783940848456620be8c
 +        if (this.player.blockActionRestricted(this.level, pos, this.getGameModeForPlayer())) {
 +            return false;
 +        } else {
-+            this.level.captureDrops = null;
++            this.level.worldRegionData.get().captureDrops = null;
 +            BlockState iblockdata1 = block.playerWillDestroy(this.level, pos, iblockdata, this.player);
 +            boolean flag = this.level.removeBlock(pos, false);
 +
@@ -2841,14 +2791,14 @@ index 0000000000000000000000000000000000000000..bc1e29f6080c4783940848456620be8c
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/ServerBotPacketListenerImpl.java b/src/main/java/org/leavesmc/leaves/bot/ServerBotPacketListenerImpl.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c62f9258e4114ff686642b7f472d0e14151f37d5
+index 0000000000000000000000000000000000000000..c693157be01f87b581628536eeace0d6c56af73b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/ServerBotPacketListenerImpl.java
 @@ -0,0 +1,85 @@
 +package org.leavesmc.leaves.bot;
 +
++import net.kyori.adventure.text.Component;
 +import net.minecraft.network.Connection;
-+import net.minecraft.network.DisconnectionDetails;
 +import net.minecraft.network.PacketSendListener;
 +import net.minecraft.network.protocol.Packet;
 +import net.minecraft.network.protocol.PacketFlow;
@@ -2878,7 +2828,7 @@ index 0000000000000000000000000000000000000000..c62f9258e4114ff686642b7f472d0e14
 +    }
 +
 +    @Override
-+    public void disconnect(@NotNull DisconnectionDetails disconnectionInfo, PlayerKickEvent.@NotNull Cause cause) {
++    public void disconnect(@NotNull Component reason, PlayerKickEvent.@NotNull Cause cause) {
 +    }
 +
 +    @Override
@@ -4162,7 +4112,7 @@ index 0000000000000000000000000000000000000000..e42288a4f99f7de6655d49ee1a05d37b
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/agent/configs/AlwaysSendDataConfig.java b/src/main/java/org/leavesmc/leaves/bot/agent/configs/AlwaysSendDataConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9a584603edbbe4ccd8a88c90ef3e9125480635f1
+index 0000000000000000000000000000000000000000..3188e4adb255f63722d6c5f67c66e3df56f2a573
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/agent/configs/AlwaysSendDataConfig.java
 @@ -0,0 +1,45 @@
@@ -4170,12 +4120,12 @@ index 0000000000000000000000000000000000000000..9a584603edbbe4ccd8a88c90ef3e9125
 +
 +import net.minecraft.nbt.CompoundTag;
 +import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.leaves.LeavesConfig;
 +
 +import org.leavesmc.leaves.bot.agent.BotConfig;
 +import org.leavesmc.leaves.command.CommandArgument;
 +import org.leavesmc.leaves.command.CommandArgumentResult;
 +import org.leavesmc.leaves.command.CommandArgumentType;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.util.List;
 +
@@ -4185,7 +4135,7 @@ index 0000000000000000000000000000000000000000..9a584603edbbe4ccd8a88c90ef3e9125
 +
 +    public AlwaysSendDataConfig() {
 +        super("always_send_data", CommandArgument.of(CommandArgumentType.BOOLEAN).setTabComplete(0, List.of("ture", "false")), AlwaysSendDataConfig::new);
-+        this.value = LeavesConfig.alwaysSendFakeplayerData;
++        this.value = LuminaConfig.configModule().modify.fakeplayer.alwaysSendData;
 +    }
 +
 +    @Override
@@ -4314,7 +4264,7 @@ index 0000000000000000000000000000000000000000..0d934910cff745ea9a53d651e2007963
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/agent/configs/SpawnPhantomConfig.java b/src/main/java/org/leavesmc/leaves/bot/agent/configs/SpawnPhantomConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a3f978318a67c3c5e147a50eb2b6c01c3f549dc2
+index 0000000000000000000000000000000000000000..a077d9bf232fb5fd2469605216024dacc7a2f1ed
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/agent/configs/SpawnPhantomConfig.java
 @@ -0,0 +1,51 @@
@@ -4322,11 +4272,11 @@ index 0000000000000000000000000000000000000000..a3f978318a67c3c5e147a50eb2b6c01c
 +
 +import net.minecraft.nbt.CompoundTag;
 +import org.jetbrains.annotations.NotNull;
-+import org.leavesmc.leaves.LeavesConfig;
 +import org.leavesmc.leaves.bot.agent.BotConfig;
 +import org.leavesmc.leaves.command.CommandArgument;
 +import org.leavesmc.leaves.command.CommandArgumentResult;
 +import org.leavesmc.leaves.command.CommandArgumentType;
++import org.leavesmc.lumina.config.LuminaConfig;
 +
 +import java.util.List;
 +
@@ -4336,7 +4286,7 @@ index 0000000000000000000000000000000000000000..a3f978318a67c3c5e147a50eb2b6c01c
 +
 +    public SpawnPhantomConfig() {
 +        super("spawn_phantom", CommandArgument.of(CommandArgumentType.BOOLEAN).setTabComplete(0, List.of("ture", "false")), SpawnPhantomConfig::new);
-+        this.value = LeavesConfig.fakeplayerSpawnPhantom;
++        this.value = LuminaConfig.configModule().modify.fakeplayer.spawnPhantom;
 +    }
 +
 +    @Override
@@ -4702,3 +4652,69 @@ index 0000000000000000000000000000000000000000..de06c854a9a5242cf632b38806e8e710
 +        throw new UnsupportedOperationException("Not supported.");
 +    }
 +}
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/Modify.java b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
+index b22fa9a59a6a26788a26ba217ac6e8847c71d9f1..a035eb761bead7fe9f873660af0dda8f609bde15 100644
+--- a/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/Modify.java
+@@ -1,7 +1,9 @@
+ package org.leavesmc.lumina.config.modules;
+ 
++import org.leavesmc.lumina.config.modules.modify.FakePlayerConfig;
+ import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+ 
+ @ConfigSerializable
+ public class Modify {
++    public FakePlayerConfig fakeplayer = new FakePlayerConfig();
+ }
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/modify/FakePlayerConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/modify/FakePlayerConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ff1fb1fa9b73c153a4d0661ab72b238503a7b2d6
+--- /dev/null
++++ b/src/main/java/org/leavesmc/lumina/config/modules/modify/FakePlayerConfig.java
+@@ -0,0 +1,16 @@
++package org.leavesmc.lumina.config.modules.modify;
++
++import org.spongepowered.configurate.objectmapping.ConfigSerializable;
++
++@ConfigSerializable
++public class FakePlayerConfig {
++    public boolean enable = true;
++    public String prefix = "";
++    public String suffix = "";
++    public double regenAmount = 0.0;
++    public boolean residentFakeplayer = false;
++    public boolean alwaysSendData = false;
++    public boolean skipSleepCheck = false;
++    public boolean spawnPhantom = false;
++    public boolean cacheSkin = false;
++}
+diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+index 1e268b84f4ffd7bed1aaa79574e9116d07811bb8..1e52be4ad70676d34ac85ddf5526878411ed0f0c 100644
+--- a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
++++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
+@@ -2,6 +2,7 @@ package org.leavesmc.lumina.utils;
+ 
+ import net.minecraft.server.level.ServerPlayer;
+ import org.jetbrains.annotations.NotNull;
++import org.leavesmc.leaves.bot.ServerBot;
+ 
+ import java.util.Collection;
+ import java.util.HashMap;
+@@ -74,11 +75,12 @@ public class DividedPlayerList extends CopyOnWriteArrayList<ServerPlayer> {
+ 
+     public PlayerType getType(ServerPlayer player) {
+         // TODO Ghost player check
+-        // TODO Fakeplayer
+-        // if (player instanceof EntityPlayerMPFake) {
+-        //     return FAKE;
+-        // } else {
++        if (false) {
++            return GHOST;
++        } else if (player instanceof ServerBot) {
++            return FAKE;
++        } else {
+             return REAL;
+-        // }
++        }
+     }
+ }
