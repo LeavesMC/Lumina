@@ -7100,31 +7100,3 @@ index 0000000000000000000000000000000000000000..f8f59c96589643fb054bb1640a2439a3
 +        return WOOL_BLOCK_TO_DYE.get(state.getBlock());
 +    }
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
-index 9c320400105d4433d83e1d06fc9d19dcf42284f8..1e268b84f4ffd7bed1aaa79574e9116d07811bb8 100644
---- a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
-+++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
-@@ -2,7 +2,6 @@ package org.leavesmc.lumina.utils;
- 
- import net.minecraft.server.level.ServerPlayer;
- import org.jetbrains.annotations.NotNull;
--import org.leavesmc.lumina.carpet.patches.EntityPlayerMPFake;
- 
- import java.util.Collection;
- import java.util.HashMap;
-@@ -75,10 +74,11 @@ public class DividedPlayerList extends CopyOnWriteArrayList<ServerPlayer> {
- 
-     public PlayerType getType(ServerPlayer player) {
-         // TODO Ghost player check
--        if (player instanceof EntityPlayerMPFake) {
--            return FAKE;
--        } else {
-+        // TODO Fakeplayer
-+        // if (player instanceof EntityPlayerMPFake) {
-+        //     return FAKE;
-+        // } else {
-             return REAL;
--        }
-+        // }
-     }
- }
