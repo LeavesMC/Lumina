@@ -3594,10 +3594,10 @@ index 0000000000000000000000000000000000000000..93686ee85bfd508a80c119050ab04d8c
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c2c1343643dc9b69fd68fbd685d1bcb44bd345bd
+index 0000000000000000000000000000000000000000..bc93796e23a689e0dcda649f033e72f7ae6a8069
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/utils/DividedPlayerList.java
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,86 @@
 +package org.leavesmc.lumina.utils;
 +
 +import net.minecraft.server.level.ServerPlayer;
@@ -3682,6 +3682,9 @@ index 0000000000000000000000000000000000000000..c2c1343643dc9b69fd68fbd685d1bcb4
 +        } else {
 +            return REAL;
 +        }
++    }
++}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java b/src/main/java/org/leavesmc/lumina/utils/LocationUtils.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..a9d0f247f3834626767688c9298ad0b03557000e
