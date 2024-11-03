@@ -23,6 +23,18 @@ index a1c9726d25479b5326fe2fa2b0f5a98d6b2da4c5..0724bd95143cb5dc69b5f1eb2e67ecd6
          HandlerList handlers = event.getHandlers();
          RegisteredListener[] listeners = handlers.getRegisteredListeners();
  
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+index f80df258cd1efc7e169f9387ba381631b55cc632..4e6969cf86af88ecc05629e9f13262bb0e02d8d1 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+@@ -316,6 +316,7 @@ public final class RegionizedServer {
+         MinecraftServer.getServer().getPlayerList().tick();
+ 
+         org.leavesmc.leaves.protocol.core.LeavesProtocolManager.handleTick(); // Leaves - protocol
++        MinecraftServer.getServer().botList.networkTick(); // Leaves
+     }
+ 
+     private void tickPlayerSample() {
 diff --git a/src/main/java/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java b/src/main/java/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java
 index 35772110e9318df46a2729dbc0b5879b290011b7..f26989a44cdda9baabf337d573436c6c115c9884 100644
 --- a/src/main/java/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java
@@ -36,14 +48,14 @@ index 35772110e9318df46a2729dbc0b5879b290011b7..f26989a44cdda9baabf337d573436c6c
          Set<CriterionTrigger.Listener<T>> set = (Set) playerAdvancements.criterionData.get(this); // Paper - fix AdvancementDataPlayer leak
          if (set != null && !set.isEmpty()) {
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index c390838321e3a0f20f9b73c64195f8727b96f6fe..8be6d0566d58db6d5bedc5996535489cfdeb3dd9 100644
+index c390838321e3a0f20f9b73c64195f8727b96f6fe..eabef56dc9347db6dc8cb8f4cff5c753820f353b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -339,6 +339,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
      // Folia end - regionised ticking
  
-+    private org.leavesmc.leaves.bot.BotList botList; // Leaves - fakeplayer
++    public org.leavesmc.leaves.bot.BotList botList; // Leaves - fakeplayer
 +
      public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
          AtomicReference<S> atomicreference = new AtomicReference();
@@ -70,7 +82,7 @@ index c390838321e3a0f20f9b73c64195f8727b96f6fe..8be6d0566d58db6d5bedc5996535489c
  
          this.profiler.popPush("connection");
 -        if (region == null) this.getConnection().tick(); // Folia - region threading
-+        if (region == null) { this.getConnection().tick();this.botList.networkTick(); } // Leaves - fakeplayer // Folia - region threading
++        if (region == null) {this.getConnection().tick();} // Folia - region threading
          profiler.startTimer(ca.spottedleaf.leafprofiler.LProfilerRegistry.CONNECTION_TICK); try { // Folia - profiler
          if (region != null) regionizedWorldData.tickConnections(); // Folia - region threading
          } finally { profiler.stopTimer(ca.spottedleaf.leafprofiler.LProfilerRegistry.CONNECTION_TICK); } // Folia - profiler
@@ -1068,10 +1080,10 @@ index 0000000000000000000000000000000000000000..4f5e6e5c1b9d8bd38c98e97fd31b3833
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotList.java b/src/main/java/org/leavesmc/leaves/bot/BotList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4b214456a57d97b6eb8ab8e634d1820f9d0e7013
+index 0000000000000000000000000000000000000000..e92d069abf2b227605a139a8bd8e428307b08494
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotList.java
-@@ -0,0 +1,335 @@
+@@ -0,0 +1,337 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.Maps;
@@ -1368,7 +1380,9 @@ index 0000000000000000000000000000000000000000..4b214456a57d97b6eb8ab8e634d1820f
 +    }
 +
 +    public void networkTick() {
-+        this.bots.forEach(ServerBot::doTick);
++        for(ServerBot bot : this.bots) {
++            bot.getBukkitEntity().taskScheduler.schedule((entity) -> bot.doTick(), (entity) -> {}, 1L);
++        }
 +    }
 +
 +    @Nullable
