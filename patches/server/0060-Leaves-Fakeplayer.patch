@@ -273,7 +273,7 @@ index 94283bb3e99e718e3bc8038caced443447453de1..c1ad868ec214d9830a7cc823ea632763
                  PlayerChangedWorldEvent changeEvent = new PlayerChangedWorldEvent(this.getBukkitEntity(), worldserver1.getWorld());
                  this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index 9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3..372410e641e899f3efee2b511bf13a81b8b77dc1 100644
+index 7c71ba70c00fc2281c82656ec6d4afd6fd7ba4ad..d29b927fbf0459418b4097b3c6f7cce5430f89ba 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -123,6 +123,8 @@ import org.bukkit.event.player.PlayerRespawnEvent.RespawnReason;
@@ -507,7 +507,7 @@ index 8ab7ca373a885fbe658013c9c6a2e38d32d77bb2..2262eaab7af5f1d7c37ef028479842c0
      private static final Logger LOGGER = LogUtils.getLogger();
      private final File playerDir;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 2be07f8c48a08ebe9d49d1110043eebed2e2ef42..bd01edf37b43fa9cda7452e7d597dc9987a3e397 100644
+index 853d57ee3547ecf11c79a5077b8225b8ef15fb0a..7e945eeb892e53b5f304c5b4853925a407d9e914 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -296,6 +296,7 @@ public final class CraftServer implements Server {
@@ -518,7 +518,7 @@ index 2be07f8c48a08ebe9d49d1110043eebed2e2ef42..bd01edf37b43fa9cda7452e7d597dc99
  
      // Paper start - Folia region threading API
      private final io.papermc.paper.threadedregions.scheduler.FoliaRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaRegionScheduler(); // Folia - region threading
-@@ -475,6 +476,7 @@ public final class CraftServer implements Server {
+@@ -467,6 +468,7 @@ public final class CraftServer implements Server {
          this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
          datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
          org.leavesmc.leaves.protocol.core.LeavesProtocolManager.init(); // Leaves - protocol
@@ -526,7 +526,7 @@ index 2be07f8c48a08ebe9d49d1110043eebed2e2ef42..bd01edf37b43fa9cda7452e7d597dc99
      }
  
      public boolean getCommandBlockOverride(String command) {
-@@ -1487,7 +1489,7 @@ public final class CraftServer implements Server {
+@@ -1479,7 +1481,7 @@ public final class CraftServer implements Server {
              return false;
          }
  
@@ -535,7 +535,7 @@ index 2be07f8c48a08ebe9d49d1110043eebed2e2ef42..bd01edf37b43fa9cda7452e7d597dc99
              return false;
          }
  
-@@ -3324,4 +3326,11 @@ public final class CraftServer implements Server {
+@@ -3316,4 +3318,11 @@ public final class CraftServer implements Server {
          return this.potionBrewer;
      }
      // Paper end
@@ -1080,10 +1080,10 @@ index 0000000000000000000000000000000000000000..4f5e6e5c1b9d8bd38c98e97fd31b3833
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotList.java b/src/main/java/org/leavesmc/leaves/bot/BotList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e92d069abf2b227605a139a8bd8e428307b08494
+index 0000000000000000000000000000000000000000..dbd3e897c3f72982297695b93b2cced75082cd7a
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotList.java
-@@ -0,0 +1,337 @@
+@@ -0,0 +1,344 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.Maps;
@@ -1091,6 +1091,7 @@ index 0000000000000000000000000000000000000000..e92d069abf2b227605a139a8bd8e4283
 +import com.mojang.authlib.properties.Property;
 +import com.mojang.logging.LogUtils;
 +import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.threadedregions.RegionizedServer;
 +import net.kyori.adventure.text.format.NamedTextColor;
 +import net.kyori.adventure.text.format.Style;
 +import net.minecraft.nbt.CompoundTag;
@@ -1345,19 +1346,24 @@ index 0000000000000000000000000000000000000000..e92d069abf2b227605a139a8bd8e4283
 +            if (bot1 == bot) {
 +                this.botsByUUID.remove(uuid);
 +            }
-+        }, (e) -> {
 +            bot.removeTab();
 +            for (ServerPlayer player : bot.serverLevel().players()) {
 +                if (!(player instanceof ServerBot) && !bot.needSendFakeData(player)) {
-+                    player.connection.send(new ClientboundRemoveEntitiesPacket(bot.getId()));
++                    player.getBukkitEntity().taskScheduler.schedule(
++                            (entity) -> player.connection.send(new ClientboundRemoveEntitiesPacket(bot.getId())),
++                            null,
++                            1L
++                    );
 +                }
 +            }
 +
-+            net.kyori.adventure.text.Component removeMessage = event.removeMessage();
-+            if (removeMessage != null && !removeMessage.equals(net.kyori.adventure.text.Component.empty())) {
-+                this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(removeMessage), false);
-+            }
-+        }, 1L);
++            this.server.server.getGlobalRegionScheduler().execute(MinecraftInternalPlugin.INSTANCE,() -> {
++                net.kyori.adventure.text.Component removeMessage = event.removeMessage();
++                if (removeMessage != null && !removeMessage.equals(net.kyori.adventure.text.Component.empty())) {
++                    this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(removeMessage), false);
++                }
++            });
++        }, null, 1L);
 +        return true;
 +    }
 +
@@ -1380,8 +1386,9 @@ index 0000000000000000000000000000000000000000..e92d069abf2b227605a139a8bd8e4283
 +    }
 +
 +    public void networkTick() {
-+        for(ServerBot bot : this.bots) {
-+            bot.getBukkitEntity().taskScheduler.schedule((entity) -> bot.doTick(), (entity) -> {}, 1L);
++        for (ServerBot bot : this.bots) {
++            bot.getBukkitEntity().taskScheduler.schedule((entity) -> bot.doTick(), (entity) -> {
++            }, 1L);
 +        }
 +    }
 +

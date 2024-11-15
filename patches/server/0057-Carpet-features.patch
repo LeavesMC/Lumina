@@ -524,18 +524,9 @@ index 7ddb7d5aa1047eb8151aef01d5db694d2683cf51..9949f00c15b46001bbcf867e1e9e3870
                  // CraftBukkit start - Call click event
                  InventoryView inventory = this.player.inventoryMenu.getBukkitView();
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..9ea1ef7712fce1f9b3c97f4cf90fc305bc86c4b3 100644
+index b00e254fd059dcf5b9246b1d6171bf6d1ead8254..7c71ba70c00fc2281c82656ec6d4afd6fd7ba4ad 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
-@@ -135,7 +135,7 @@ public abstract class PlayerList {
-     private static final int SEND_PLAYER_INFO_INTERVAL = 600;
-     private static final ThreadLocal<SimpleDateFormat> BAN_DATE_FORMAT = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z")); // Folia - region threading - SDF is not thread-safe
-     private final MinecraftServer server;
--    public final List<ServerPlayer> players = new java.util.concurrent.CopyOnWriteArrayList(); // CraftBukkit - ArrayList -> CopyOnWriteArrayList: Iterator safety
-+    public final org.leavesmc.lumina.utils.DividedPlayerList players = new org.leavesmc.lumina.utils.DividedPlayerList(); // CraftBukkit - ArrayList -> CopyOnWriteArrayList: Iterator safety // Lumina - DividedPlayerList
-     private final Map<UUID, ServerPlayer> playersByUUID = new java.util.concurrent.ConcurrentHashMap<>(); // Folia - region threading - change to CHM - Note: we do NOT expect concurrency PER KEY!
-     private final UserBanList bans;
-     private final IpBanList ipBans;
 @@ -517,6 +517,7 @@ public abstract class PlayerList {
              );
          }
@@ -2864,7 +2855,7 @@ index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..57737218697f90c55b3e8a87f1c4ac5b
      public CollectingNeighborUpdater(Level world, int maxChainDepth) {
          this.level = world;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b586912ec67ea6708e0df260adc7c949e87a2075..2be07f8c48a08ebe9d49d1110043eebed2e2ef42 100644
+index b586912ec67ea6708e0df260adc7c949e87a2075..853d57ee3547ecf11c79a5077b8225b8ef15fb0a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -22,19 +22,7 @@ import java.io.FileNotFoundException;
@@ -2896,47 +2887,6 @@ index b586912ec67ea6708e0df260adc7c949e87a2075..2be07f8c48a08ebe9d49d1110043eebe
  import org.yaml.snakeyaml.LoaderOptions;
  import org.yaml.snakeyaml.Yaml;
  import org.yaml.snakeyaml.constructor.SafeConstructor;
-@@ -300,7 +289,7 @@ public final class CraftServer implements Server {
-     private CraftIconCache icon;
-     private boolean overrideAllCommandBlockCommands = false;
-     public boolean ignoreVanillaPermissions = false;
--    private final List<CraftPlayer> playerView;
-+    private final Map<org.leavesmc.lumina.utils.PlayerType, List<CraftPlayer>> playerView = new HashMap<>(); // Lumina - player type
-     public int reloadCount;
-     public Set<String> activeCompatibilities = Collections.emptySet();
-     private final io.papermc.paper.datapack.PaperDatapackManager datapackManager; // Paper
-@@ -395,12 +384,20 @@ public final class CraftServer implements Server {
-     public CraftServer(DedicatedServer console, PlayerList playerList) {
-         this.console = console;
-         this.playerList = (DedicatedPlayerList) playerList;
--        this.playerView = Collections.unmodifiableList(Lists.transform(playerList.players, new Function<ServerPlayer, CraftPlayer>() {
-+        // Lumina start - player type
-+        this.playerView.put(org.leavesmc.lumina.utils.PlayerType.REAL, Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.PlayerType.REAL), new Function<ServerPlayer, CraftPlayer>() {
-             @Override
-             public CraftPlayer apply(ServerPlayer player) {
-                 return player.getBukkitEntity();
-             }
--        }));
-+        })));
-+        this.playerView.put(org.leavesmc.lumina.utils.PlayerType.FAKE, Collections.unmodifiableList(Lists.transform(playerList.players.divided.get(org.leavesmc.lumina.utils.PlayerType.FAKE), new Function<ServerPlayer, CraftPlayer>() {
-+            @Override
-+            public CraftPlayer apply(ServerPlayer player) {
-+                return player.getBukkitEntity();
-+            }
-+        })));
-+        // Lumina end - player type
-         this.serverVersion = io.papermc.paper.ServerBuildInfo.buildInfo().asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_SIMPLE); // Paper - improve version
-         this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
-         this.dataPackManager = new CraftDataPackManager(this.getServer().getPackRepository());
-@@ -660,7 +657,7 @@ public final class CraftServer implements Server {
- 
-     @Override
-     public List<CraftPlayer> getOnlinePlayers() {
--        return this.playerView;
-+        return this.playerView.get(org.leavesmc.lumina.utils.PlayerType.REAL);
-     }
- 
-     @Override
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/CarpetServerProtocol.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..0939faf78ea163984a7df2f77579a8c6dfe9ec04

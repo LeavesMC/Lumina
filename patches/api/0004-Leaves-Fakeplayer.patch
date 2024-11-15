@@ -1293,16 +1293,3 @@ index 0000000000000000000000000000000000000000..46ab3e9b5e398ec238e129d16fb020b4
 +        return handlers;
 +    }
 +}
-diff --git a/src/main/java/org/leavesmc/lumina/utils/PlayerType.java b/src/main/java/org/leavesmc/lumina/utils/PlayerType.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a14d16f9ae7d97478ee369e2c2b0b80ec651b2ee
---- /dev/null
-+++ b/src/main/java/org/leavesmc/lumina/utils/PlayerType.java
-@@ -0,0 +1,7 @@
-+package org.leavesmc.lumina.utils;
-+
-+public enum PlayerType {
-+    REAL,
-+    FAKE,
-+    GHOST
-+}
