@@ -20,7 +20,6 @@ unsupported-settings:
   allow-piston-duplication: true
   allow-grindstone-overstacking: true
   allow-unsafe-end-portal-teleportation: true
-  allow-tripwire-disarming-exploits: true
 ```
 ### paper-world-defaults.yml
 ```yaml
@@ -41,8 +40,6 @@ entities:
       mode: warn
     filter-bad-tile-entity-nbt-from-falling-blocks: false
     filtered-entity-tag-nbt-paths: []
-fixes:
-  disable-unloaded-chunk-enderpearl-exploit: false
 hopper:
   cooldown-when-full: false
 maps:

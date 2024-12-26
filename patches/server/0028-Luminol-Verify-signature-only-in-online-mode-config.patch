@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stabrinai <wujiaxin752@outlook.com>
+Date: Sun, 30 Jun 2024 20:46:42 +0800
+Subject: [PATCH] Luminol Verify signature only in online-mode config
+
+This patch is Powered by Luminol(https://github.com/LuminolMC/Luminol)
+License:
+MIT License
+
+Copyright (c) 2024 LuminolMC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java b/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
+index 6a7d7fad990fc44fdda6849d43dad141e61f7f37..82bb3a9aa1c7242d7ba290c931fb4b17fe67d4a9 100644
+--- a/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
++++ b/src/main/java/net/minecraft/world/entity/player/ProfilePublicKey.java
+@@ -15,6 +15,7 @@ import net.minecraft.network.chat.ThrowingComponent;
+ import net.minecraft.util.Crypt;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.SignatureValidator;
++import org.bukkit.Bukkit;
+ 
+ public record ProfilePublicKey(ProfilePublicKey.Data data) {
+     public static final Component EXPIRED_PROFILE_PUBLIC_KEY = Component.translatable("multiplayer.disconnect.expired_public_key");
+@@ -23,7 +24,7 @@ public record ProfilePublicKey(ProfilePublicKey.Data data) {
+     public static final Codec<ProfilePublicKey> TRUSTED_CODEC = ProfilePublicKey.Data.CODEC.xmap(ProfilePublicKey::new, ProfilePublicKey::data);
+ 
+     public static ProfilePublicKey createValidated(SignatureValidator servicesSignatureVerifier, UUID playerUuid, ProfilePublicKey.Data publicKeyData) throws ProfilePublicKey.ValidationException {
+-        if (!publicKeyData.validateSignature(servicesSignatureVerifier, playerUuid)) {
++        if ((!org.leavesmc.lumina.config.LuminaConfig.configModule().misc.verifyPublicKeyOnlyInOnlineMode || Bukkit.getServer().getOnlineMode()) && !publicKeyData.validateSignature(servicesSignatureVerifier, playerUuid)) { // Luminol - Verify signature only in online-mode
+             throw new ProfilePublicKey.ValidationException(INVALID_SIGNATURE, org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PUBLIC_KEY_SIGNATURE); // Paper - kick event causes
+         } else {
+             return new ProfilePublicKey(publicKeyData);

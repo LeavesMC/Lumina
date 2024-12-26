@@ -5,7 +5,7 @@ Subject: [PATCH] Dev fix
 
 
 diff --git a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java b/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
-index bc885d2cc95572ec68f1df62555fdba7998b1d93..0211311b3b63bcdea7ebf7bcb24629674c771402 100644
+index b2a4ae4388758f89fcd0dc3b0c4c03bf46fa5470..7655987d061bdb2839b30f926efb034046feaea3 100644
 --- a/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 +++ b/src/main/java/net/minecraft/network/protocol/common/custom/CustomPacketPayload.java
 @@ -34,7 +34,7 @@ public interface CustomPacketPayload {
@@ -18,11 +18,11 @@ index bc885d2cc95572ec68f1df62555fdba7998b1d93..0211311b3b63bcdea7ebf7bcb2462967
              }
  
 diff --git a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
-index e68e464a42096e6c048c81765f85d5e9f4581c6d..1661f71bb875f4143d860c9ead0f9334cf4a5c0b 100644
+index 93eaec9a13474882c276354f33565571f7e4ff30..3f1b8edca02737a607b7720bc574ae55ccf8438b 100644
 --- a/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
 +++ b/src/main/java/net/minecraft/world/entity/SpawnPlacements.java
-@@ -73,7 +73,7 @@ public class SpawnPlacements {
-         EntityType<T> type, ServerLevelAccessor world, MobSpawnType spawnReason, BlockPos pos, RandomSource random
+@@ -74,7 +74,7 @@ public class SpawnPlacements {
+         EntityType<T> type, ServerLevelAccessor world, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
      ) {
          SpawnPlacements.Data data = DATA_BY_TYPE.get(type);
 -        return data == null || data.predicate.test(type, world, spawnReason, pos, random);

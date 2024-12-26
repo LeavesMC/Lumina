@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: M2ke4U <79621885+MrHua269@users.noreply.github.com>
+Date: Sun, 26 Nov 2023 20:25:38 +0800
+Subject: [PATCH] Kaiiju Vanilla end portal teleportation
+
+This patch is Powered by Kaiiju(https://github.com/KaiijuMC/Kaiiju)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/KaiijuMC/Kaiiju?tab=GPL-3.0-1-ov-file)
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index f324fc896b3dddb8a473323c82a9e9c639a99e00..a4d3557bd654f15469d8d460ff1ae920903ad14b 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -4457,13 +4457,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                         targetPos, 16, // load 16 blocks to be safe from block physics
+                         ca.spottedleaf.concurrentutil.util.Priority.HIGH,
+                         (chunks) -> {
+-                            net.minecraft.world.level.levelgen.feature.EndPlatformFeature.createEndPlatform(destination, targetPos.below(), true, null);
++                            // net.minecraft.world.level.levelgen.feature.EndPlatformFeature.createEndPlatform(destination, targetPos.below(), true, null); // Kaiiju - Vanilla end teleportation - moved down
+ 
++                            // Kaiiju start - Vanilla end teleportation
++                            Vec3 finalPos;
++                            if (this instanceof Player) finalPos = Vec3.atBottomCenterOf(targetPos.below());
++                            else finalPos = Vec3.atBottomCenterOf(targetPos);
++                            // Kaiiju end
+                             // the portal obsidian is placed at targetPos.y - 2, so if we want to place the entity
+                             // on the obsidian, we need to spawn at targetPos.y - 1
+                             portalInfoCompletable.complete(
+                                 new net.minecraft.world.level.portal.TeleportTransition(
+-                                    destination, Vec3.atBottomCenterOf(targetPos.below()), Vec3.ZERO, 90.0f, 0.0f,
++                                    destination, finalPos, this.getDeltaMovement(), 90.0f, 0.0f, // Kaiiju - Vanilla end teleportation
+                                     TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET),
+                                     org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL
+                                 )
+@@ -4659,6 +4664,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         if (!this.canPortalAsync(destination, takePassengers)) {
+             return false;
+         }
++        // Kaiiju start - sync end platform spawning & entity teleportation
++        final java.util.function.Consumer<Entity> tpComplete = type == PortalType.END && destination.getTypeKey() == LevelStem.END ?
++            e -> net.minecraft.world.level.levelgen.feature.EndPlatformFeature.createEndPlatform(destination, ServerLevel.END_SPAWN_POINT.below(), true, null) : teleportComplete;
++        // Kaiiju end
+ 
+         Vec3 initialPosition = this.position();
+         ChunkPos initialPositionChunk = new ChunkPos(
+@@ -4723,9 +4732,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                         info.postTeleportTransition().onTransition(teleported);
+                     }
+ 
+-                    if (teleportComplete != null) {
++                    // Kaiiju start - vanilla end teleportation
++                    /*if (teleportComplete != null) {
+                         teleportComplete.accept(teleported);
++                    }*/
++                    if (tpComplete != null) {
++                        tpComplete.accept(teleported);
+                     }
++                    // Kaiiju end
+                 }
+             );
+         });

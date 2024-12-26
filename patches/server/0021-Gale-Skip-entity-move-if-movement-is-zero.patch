@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Tue, 6 Feb 2024 04:21:05 +0000
+Subject: [PATCH] Gale Skip entity move if movement is zero
+
+This patch is Powered by Gale(https://github.com/GaleMC/Gale)
+License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/GaleMC/Gale?tab=License-1-ov-file)
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 98222364dc2f3672b5d9f62114b0787ba3b91854..67a88be090642d9a262691753659d176cf9bca15 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -282,6 +282,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     public float yRotO;
+     public float xRotO;
+     private AABB bb;
++    private boolean boundingBoxChanged = false; // Gale - VMP - skip entity move if movement is zero
+     public boolean onGround;
+     public boolean horizontalCollision;
+     public boolean verticalCollision;
+@@ -1185,6 +1186,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     //Luminol end
+ 
+     public void move(MoverType type, Vec3 movement) {
++        // Gale start - VMP - skip entity move if movement is zero
++        if (!this.boundingBoxChanged && movement.equals(Vec3.ZERO)) {
++            return;
++        }
++        // Gale end - VMP - skip entity move if movement is zero
+         final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
+         // Paper start - detailed watchdog information
+         ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+@@ -5279,6 +5285,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     public final void setBoundingBox(AABB boundingBox) {
++        // Gale start - VMP - skip entity move if movement is zero
++        if (!this.bb.equals(boundingBox)) {
++            this.boundingBoxChanged = true;
++        }
++        // Gale end - VMP - skip entity move if movement is zero
+         // CraftBukkit start - block invalid bounding boxes
+         double minX = boundingBox.minX,
+                 minY = boundingBox.minY,

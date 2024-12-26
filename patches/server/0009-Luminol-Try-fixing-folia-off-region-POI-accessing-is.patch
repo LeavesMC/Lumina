@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Mon, 10 Jun 2024 10:51:08 +0000
+Subject: [PATCH] Luminol Try fixing folia off region POI accessing issue
+
+This patch is Powered by Luminol(https://github.com/LuminolMC/Luminol)
+License:
+MIT License
+
+Copyright (c) 2024 LuminolMC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java b/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
+index aac1df9e2c0652bc6348af0404deba7465f82d42..422a30808b5cef371a8de810ce01644b408dfd57 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
++++ b/src/main/java/net/minecraft/world/entity/ai/behavior/GoToPotentialJobSite.java
+@@ -49,10 +49,17 @@ public class GoToPotentialJobSite extends Behavior<Villager> {
+             ServerLevel serverLevel2 = serverLevel.getServer().getLevel(pos.dimension());
+             if (serverLevel2 != null) {
+                 PoiManager poiManager = serverLevel2.getPoiManager();
++                // Luminol start - Fix off region POI accessing
++                java.lang.Runnable scheduledRelease = () -> {
+                 if (poiManager.exists(blockPos, poiType -> true)) {
+                     poiManager.release(blockPos);
+                 }
+-
++                };
++                if (!io.papermc.paper.util.TickThread.isTickThreadFor(serverLevel2, blockPos) && org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaPoiAccessOffRegion)
++                    io.papermc.paper.threadedregions.RegionizedServer.getInstance().taskQueue.queueTickTaskQueue(serverLevel2, blockPos.getX() >> 4, blockPos.getZ() >> 4, scheduledRelease);
++                else
++                    scheduledRelease.run();
++                // Luminol end
+                 DebugPackets.sendPoiTicketCountPacket(serverLevel, blockPos);
+             }
+         });
+diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/YieldJobSite.java b/src/main/java/net/minecraft/world/entity/ai/behavior/YieldJobSite.java
+index d1a9b62d3304916275dd6b4c4e783cf1563b5e21..bfa290c1e5ff0109ba96f49c19d8ce09db6a7e23 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/behavior/YieldJobSite.java
++++ b/src/main/java/net/minecraft/world/entity/ai/behavior/YieldJobSite.java
+@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.GlobalPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.network.protocol.game.DebugPackets;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.PathfinderMob;
+ import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
+@@ -33,7 +34,10 @@ public class YieldJobSite {
+                                 } else if (entity.getVillagerData().getProfession() != VillagerProfession.NONE) {
+                                     return false;
+                                 } else {
+-                                    BlockPos blockPos = context.<GlobalPos>get(potentialJobSite).pos();
++                                    final GlobalPos globalPos = context.<GlobalPos>get(potentialJobSite); // Luminol start - Try fixing off main POI accessing
++                                    final ServerLevel targetLevel = net.minecraft.server.MinecraftServer.getServer().getLevel(globalPos.dimension()); //Luminol - Try fixing off main POI accessing
++                                    BlockPos blockPos = globalPos.pos(); // Luminol end - Try fixing off main POI accessing
++                                    if (!io.papermc.paper.util.TickThread.isTickThreadFor(targetLevel, blockPos) && org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaPoiAccessOffRegion) return true; // Luminol - Try fixing off main POI accessing
+                                     Optional<Holder<PoiType>> optional = world.getPoiManager().getType(blockPos);
+                                     if (optional.isEmpty()) {
+                                         return true;
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
+index f3f98e6276dda3bc4f290fc2d80569f7e1e7ef66..6ade40d4b4f24b31d16c625944656d48a276a077 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
+@@ -212,7 +212,7 @@ public class PoiManager extends SectionStorage<PoiSection, PoiSection.Packed> im
+ 
+     public Stream<PoiRecord> getInSquare(Predicate<Holder<PoiType>> typePredicate, BlockPos pos, int radius, PoiManager.Occupancy occupationStatus) {
+         int i = Math.floorDiv(radius, 16) + 1;
+-        return ChunkPos.rangeClosed(new ChunkPos(pos), i).flatMap(chunkPos -> this.getInChunk(typePredicate, chunkPos, occupationStatus)).filter(poi -> {
++        return ChunkPos.rangeClosed(new ChunkPos(pos), i).filter(cpos -> org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaPoiAccessOffRegion ? io.papermc.paper.util.TickThread.isTickThreadFor(this.world,cpos) : true).flatMap(chunkPos -> this.getInChunk(typePredicate, chunkPos, occupationStatus)).filter(poi -> { // Luminol - Fix off region POI access
+             BlockPos blockPos2 = poi.getPos();
+             return Math.abs(blockPos2.getX() - pos.getX()) <= radius && Math.abs(blockPos2.getZ() - pos.getZ()) <= radius;
+         });

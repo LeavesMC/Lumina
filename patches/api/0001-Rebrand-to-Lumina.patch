@@ -5,10 +5,10 @@ Subject: [PATCH] Rebrand to Lumina
 
 
 diff --git a/src/main/java/io/papermc/paper/ServerBuildInfo.java b/src/main/java/io/papermc/paper/ServerBuildInfo.java
-index 9df9d09aa477d4cd3c496ba0933c816df1ef0964..2a88bfed4f9afaaea8e26a50353cb084ab3b7886 100644
+index 652ff54e7c50412503725d628bfe72ed03059790..d1d6be2ff49882aea62022aec413c039d22db656 100644
 --- a/src/main/java/io/papermc/paper/ServerBuildInfo.java
 +++ b/src/main/java/io/papermc/paper/ServerBuildInfo.java
-@@ -16,7 +16,7 @@ public interface ServerBuildInfo {
+@@ -17,7 +17,7 @@ public interface ServerBuildInfo {
      /**
       * The brand id for Paper.
       */

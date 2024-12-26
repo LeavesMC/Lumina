@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Wed, 7 Feb 2024 06:34:15 +0000
+Subject: [PATCH] Luminol Teleport async if entity was moving to another region
+ at once
+
+This patch is Powered by Luminol(https://github.com/LuminolMC/Luminol)
+License:
+MIT License
+
+Copyright (c) 2024 LuminolMC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 94f2610e1f2cce41d998bb9c92abbb38d9811f56..f324fc896b3dddb8a473323c82a9e9c639a99e00 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1180,6 +1180,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         return this.moveStartZ;
+     }
+     // Paper end - detailed watchdog information
++         minol start - Fix large pos moving
++    private volatile boolean preventMoving = false;
++    //Luminol end
+ 
+     public void move(MoverType type, Vec3 movement) {
+         final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
+@@ -1191,6 +1194,32 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             this.moveStartZ = this.getZ();
+             this.moveVector = movement;
+         }
++        //Luminol start - Fix high position moving
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
++            var finalPosition = movement.add(this.position);
++            if (this.preventMoving || Double.isNaN(finalPosition.x) || Double.isNaN(finalPosition.y) || Double.isNaN(finalPosition.z)){
++                return;
++            }
++
++            if (!io.papermc.paper.util.TickThread.isTickThreadFor(((ServerLevel) this.level),finalPosition)){
++                this.preventMoving = true;
++                this.teleportAsync(
++                        (ServerLevel) this.level(),
++                        finalPosition,
++                        this.getYRot(), this.getXRot(),
++                        null, PlayerTeleportEvent.TeleportCause.UNKNOWN,
++                        Entity.TELEPORT_FLAG_LOAD_CHUNK | Entity.TELEPORT_FLAG_TELEPORT_PASSENGERS,
++                        result -> {
++                            this.preventMoving = false;
++                        }
++                );
++                if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.warnOnDetected){
++                    MinecraftServer.LOGGER.warn("Entity {} with entityId {} has tried moving to another region!",this.type.getCategory().getName(),this.getId());
++                }
++                return;
++            }
++        }
++        //Luminol end
+         try {
+         // Paper end - detailed watchdog information
+         if (this.noPhysics) {

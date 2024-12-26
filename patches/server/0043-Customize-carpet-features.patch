@@ -1,0 +1,145 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MC_XiaoHei <xiaohei.xor7@outlook.com>
+Date: Fri, 20 Sep 2024 11:27:39 +0800
+Subject: [PATCH] Customize carpet features
+
+This patch is Powered by Leaves(https://github.com/LeavesMC/Leaves) and plusls-carpet-addition(https://github.com/plusls/plusls-carpet-addition)
+Licenses:
+- GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/LeavesMC/Leaves?tab=License-1-ov-file)
+- CC0-1.0 (https://github.com/plusls/plusls-carpet-addition?tab=CC0-1.0-1-ov-file#readme)
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index b33e0488606202371f662a23140f003a3be5a3d1..06103ba586af2192aa7b365e9b53e65be27aa4d7 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -333,10 +333,49 @@ public class ItemEntity extends Entity implements TraceableEntity {
+     private boolean isMergable() {
+         ItemStack itemstack = this.getItem();
+ 
+-        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < itemstack.getMaxStackSize(); // Paper - Alternative item-despawn-rate
++        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && itemstack.getCount() < org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(itemstack); // Paper - Alternative item-despawn-rate // Leaves - stackable shulker boxes
+     }
+ 
++    // Leaves end - stackable shulker boxes
++    private boolean tryStackShulkerBoxes(ItemEntity other) {
++        ItemStack selfStack = this.getItem();
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize == 1 || !(selfStack.getItem() instanceof net.minecraft.world.item.BlockItem bi) || !(bi.getBlock() instanceof net.minecraft.world.level.block.ShulkerBoxBlock)) {
++            return false;
++        }
++
++        ItemStack otherStack = other.getItem();
++        if (selfStack.getItem() == otherStack.getItem()
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(selfStack)
++            && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(otherStack)
++            && Objects.equals(selfStack.getComponents(), otherStack.getComponents()) // empty block entity tags are cleaned up when spawning
++            && selfStack.getCount() != org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize) {
++            int amount = Math.min(otherStack.getCount(), org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize - selfStack.getCount());
++
++            selfStack.grow(amount);
++            this.setItem(selfStack);
++
++            this.pickupDelay = Math.max(other.pickupDelay, this.pickupDelay);
++            this.age = Math.min(other.getAge(), this.age);
++
++            otherStack.shrink(amount);
++            if (otherStack.isEmpty()) {
++                other.discard();
++            }
++            else {
++                other.setItem(otherStack);
++            }
++            return true;
++        }
++        return false;
++    }
++    // Leaves end - stackable shulker boxes
++
+     private void tryToMerge(ItemEntity other) {
++        // Leaves start - stackable shulker boxes
++        if (tryStackShulkerBoxes(other)) {
++            return;
++        }
++        // Leaves end - stackable shulker boxes
+         ItemStack itemstack = this.getItem();
+         ItemStack itemstack1 = other.getItem();
+ 
+diff --git a/src/main/java/net/minecraft/world/inventory/Slot.java b/src/main/java/net/minecraft/world/inventory/Slot.java
+index d9e8da269da4f985109d6cd870b22efea5628f71..bc242e2628d2ec293731f895f9d877383004fdc5 100644
+--- a/src/main/java/net/minecraft/world/inventory/Slot.java
++++ b/src/main/java/net/minecraft/world/inventory/Slot.java
+@@ -75,7 +75,7 @@ public class Slot {
+     }
+ 
+     public int getMaxStackSize(ItemStack stack) {
+-        return Math.min(this.getMaxStackSize(), stack.getMaxStackSize());
++        return Math.min(this.getMaxStackSize(), org.leavesmc.leaves.util.ShulkerBoxUtils.getItemStackMaxCount(stack)); // Leaves - stackable shulker boxes
+     }
+ 
+     @Nullable
+diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+index e00ab1ed8088a1970249313ed63e09070fc6192d..5d9a296497b5a054d0c3233ad03ec1f1347a1100 100644
+--- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
+@@ -56,9 +56,27 @@ public abstract class AbstractCauldronBlock extends Block {
+     @Override
+     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+         CauldronInteraction cauldronInteraction = this.interactions.map().get(stack.getItem());
+-        return cauldronInteraction.interact(state, world, pos, player, hand, stack, hit.getDirection()); // Paper - pass hit direction
++        // Leaves start - stackable shulker boxes
++        return wrapInteractor(cauldronInteraction, state, world, pos, player, hand, stack, hit.getDirection()); // Paper - pass hit direction
+     }
+ 
++    private InteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack) {
++        int count = -1;
++        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize > 1 && itemStack.getItem() instanceof net.minecraft.world.item.BlockItem bi &&
++            bi.getBlock() instanceof ShulkerBoxBlock) {
++            count = itemStack.getCount();
++        }
++        InteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack);
++        if (count > 0 && result.consumesAction()) {
++            ItemStack current = playerEntity.getItemInHand(hand);
++            if (current.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof ShulkerBoxBlock) {
++                current.setCount(count);
++            }
++        }
++        return result;
++    }
++    // Leaves end - stackable shulker boxes
++
+     @Override
+     protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+         return SHAPE;
+diff --git a/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4636c881a27db9e1d0b338cd08dc5faa0dba69b7
+--- /dev/null
++++ b/src/main/java/org/leavesmc/leaves/util/ShulkerBoxUtils.java
+@@ -0,0 +1,28 @@
++package org.leavesmc.leaves.util;
++
++import net.minecraft.core.component.DataComponents;
++import net.minecraft.world.item.BlockItem;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.component.ItemContainerContents;
++import net.minecraft.world.level.block.ShulkerBoxBlock;
++import org.jetbrains.annotations.NotNull;
++import org.leavesmc.lumina.carpet.CarpetConfig;
++
++public class ShulkerBoxUtils {
++
++    public static boolean shulkerBoxNoItem(@NotNull ItemStack stack) {
++        return stack.getComponents().getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().findAny().isEmpty();
++    }
++
++    public static int getItemStackMaxCount(ItemStack stack) {
++        if (CarpetConfig.configModule().shulkerBoxStackSize > 1 && stack.getItem() instanceof BlockItem bi &&
++                bi.getBlock() instanceof ShulkerBoxBlock && org.leavesmc.leaves.util.ShulkerBoxUtils.shulkerBoxNoItem(stack)) {
++            return CarpetConfig.configModule().shulkerBoxStackSize;
++        }
++        return stack.getMaxStackSize();
++    }
++
++    public static boolean isStackable(ItemStack itemStack) {
++        return getItemStackMaxCount(itemStack) > 1 && (!itemStack.isDamageableItem() || !itemStack.isDamaged());
++    }
++}
