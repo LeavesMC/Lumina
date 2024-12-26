@@ -27,19 +27,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a4d3557bd654f15469d8d460ff1ae920903ad14b..93413e9af95611deb6ec9e5dc9d0c8de1d45345a 100644
---- a/src/main/java/net/minecraft/world/entity/Entity.java
-+++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -4733,7 +4733,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
-                     }
- 
-                     // Kaiiju start - vanilla end teleportation
--                    /*if (teleportComplete != null) {
-+                       f (teleportComplete != null) {
-                         teleportComplete.accept(teleported);
-                     }*/
-                     if (tpComplete != null) {
 diff --git a/src/main/java/net/minecraft/world/entity/Mob.java b/src/main/java/net/minecraft/world/entity/Mob.java
 index e48728723e9f765099fc1cea8e6a2baa48d7fc75..4623063eb23237a88a3a38b88d72ca7d5603c742 100644
 --- a/src/main/java/net/minecraft/world/entity/Mob.java

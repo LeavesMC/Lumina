@@ -51,7 +51,7 @@ index f324fc896b3dddb8a473323c82a9e9c639a99e00..a4d3557bd654f15469d8d460ff1ae920
 +                    /*if (teleportComplete != null) {
                          teleportComplete.accept(teleported);
 +                    }*/
-+                    if (tpComplete != null) {
++                    if (tpComplete != null){
 +                        tpComplete.accept(teleported);
                      }
 +                    // Kaiiju end
