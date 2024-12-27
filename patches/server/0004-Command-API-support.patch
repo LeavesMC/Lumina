@@ -6,7 +6,7 @@ Subject: [PATCH] Command API support
 
 diff --git a/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373ae1230238
+index 0000000000000000000000000000000000000000..2a21b6da2609cd433cb229f1026bb79ebf79c7e0
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 @@ -0,0 +1,57 @@
@@ -63,7 +63,7 @@ index 0000000000000000000000000000000000000000..0c978c7f7a5291b27b62457519d0373a
 +     */
 +    static CommandAPIPlatform<?, ?, ?> getPlatform() {
 +        Logger.getLogger("CommandAPIVersionHandler").info("Command API is using NMS version 1_20_R4");
-+        return new NMS_1_20_R4();
++        return new NMS_1_21_R3();
 +    }
 +
 +}
