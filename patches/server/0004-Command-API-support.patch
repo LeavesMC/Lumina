@@ -6,7 +6,7 @@ Subject: [PATCH] Command API support
 
 diff --git a/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2a21b6da2609cd433cb229f1026bb79ebf79c7e0
+index 0000000000000000000000000000000000000000..cc91910e601390becc24a77b7d48640064e02fcf
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/CommandAPIVersionHandler.java
 @@ -0,0 +1,57 @@
@@ -30,7 +30,7 @@ index 0000000000000000000000000000000000000000..2a21b6da2609cd433cb229f1026bb79e
 + * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 + * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 + *******************************************************************************/
-+// Copy from https://github.com/JorelAli/CommandAPI
++// Copy from https://github.com/CommandAPI/CommandAPI
 +package dev.jorel.commandapi;
 +
 +import dev.jorel.commandapi.nms.*;
@@ -54,16 +54,16 @@ index 0000000000000000000000000000000000000000..2a21b6da2609cd433cb229f1026bb79e
 + * depends on CommandListenerWrapper and then our main NMS_VERSION class extends
 + * that.
 + */
-+public interface CommandAPIVersionHandler {
++public abstract class CommandAPIVersionHandler {
 +
 +    /**
 +     * Returns an instance of the current running version's implementation of the Bukkit NMS.
 +     *
 +     * @return an instance of NMS which can run on the specified Minecraft version
 +     */
-+    static CommandAPIPlatform<?, ?, ?> getPlatform() {
-+        Logger.getLogger("CommandAPIVersionHandler").info("Command API is using NMS version 1_20_R4");
-+        return new NMS_1_21_R3();
++    static LoadContext getPlatform() {
++        Logger.getLogger("CommandAPIVersionHandler").info("Command API is using NMS version 1_21_R3");
++        return new LoadContext(new NMS_1_21_R3());
 +    }
 +
 +}
@@ -242,10 +242,10 @@ index 0000000000000000000000000000000000000000..003a869e730000c498e0546e9ce692af
 +}
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_1_21_R3.java b/src/main/java/dev/jorel/commandapi/nms/NMS_1_21_R3.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c824a1937cbbd787d690c8483a622c47d52775e
+index 0000000000000000000000000000000000000000..046c70b6508f7a9174652fd72d3ff860d38a72fa
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/nms/NMS_1_21_R3.java
-@@ -0,0 +1,1055 @@
+@@ -0,0 +1,1056 @@
 +/*******************************************************************************
 + * Copyright 2024 Jorel Ali (Skepter) - MIT License
 + *
@@ -266,6 +266,7 @@ index 0000000000000000000000000000000000000000..9c824a1937cbbd787d690c8483a622c4
 + * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 + * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 + *******************************************************************************/
++// Copy from https://github.com/CommandAPI/CommandAPI
 +package dev.jorel.commandapi.nms;
 +
 +import com.google.common.collect.ImmutableList;
@@ -1304,10 +1305,10 @@ index 0000000000000000000000000000000000000000..9c824a1937cbbd787d690c8483a622c4
 \ No newline at end of file
 diff --git a/src/main/java/dev/jorel/commandapi/nms/NMS_Common.java b/src/main/java/dev/jorel/commandapi/nms/NMS_Common.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..216ef38a930b762fb88c3d76a3315d0382fb8b36
+index 0000000000000000000000000000000000000000..e3e92477794ab2f285ddf05e7221a056a14a286e
 --- /dev/null
 +++ b/src/main/java/dev/jorel/commandapi/nms/NMS_Common.java
-@@ -0,0 +1,604 @@
+@@ -0,0 +1,605 @@
 +/*******************************************************************************
 + * Copyright 2018, 2021 Jorel Ali (Skepter) - MIT License
 + *
@@ -1328,6 +1329,7 @@ index 0000000000000000000000000000000000000000..216ef38a930b762fb88c3d76a3315d03
 + * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 + * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 + *******************************************************************************/
++// Copy from https://github.com/CommandAPI/CommandAPI
 +package dev.jorel.commandapi.nms;
 +
 +import com.mojang.brigadier.CommandDispatcher;

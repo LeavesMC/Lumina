@@ -1151,3 +1151,16 @@ index e40665cead218502b44dd49051a53326ed94f061..912e99d71c5221e853a120ec3ab4bdc6
                  try {
                      regionFile.flush();
                  } catch (final IOException ex) {
+diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
+index a77ee98609c33e47a36ceb28628bd3ffd49f7614..51338fae13814eadcc83d480abe1b17a9d65817c 100644
+--- a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
++++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
+@@ -8,7 +8,7 @@ import org.spongepowered.configurate.objectmapping.meta.PostProcess;
+ 
+ @ConfigSerializable
+ public class RegionFormatConfig {
+-    public EnumRegionFormat regionFormat;
++    public EnumRegionFormat regionFormat = EnumRegionFormat.MCA;
+     public int linearCompressionLevel = 1;
+     public int linearIoThreadCount = 6;
+     public int linearIoFlushDelayMs = 100;
