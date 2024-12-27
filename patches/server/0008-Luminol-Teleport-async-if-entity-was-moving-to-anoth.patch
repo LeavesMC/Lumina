@@ -29,7 +29,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 94f2610e1f2cce41d998bb9c92abbb38d9811f56..f324fc896b3dddb8a473323c82a9e9c639a99e00 100644
+index 94f2610e1f2cce41d998bb9c92abbb38d9811f56..de5c353c918a3e80ec5f5e783a2d9ef60b8d078d 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1180,6 +1180,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -47,13 +47,13 @@ index 94f2610e1f2cce41d998bb9c92abbb38d9811f56..f324fc896b3dddb8a473323c82a9e9c6
              this.moveVector = movement;
          }
 +        //Luminol start - Fix high position moving
-+        if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.enabled && io.papermc.paper.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
++        if (org.leavesmc.lumina.config.LuminaConfig.configModule().fix.fixFoliaEntityMoving.enabled && ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()){ //Except the threads because it may be called by the chunk system worker thread
 +            var finalPosition = movement.add(this.position);
 +            if (this.preventMoving || Double.isNaN(finalPosition.x) || Double.isNaN(finalPosition.y) || Double.isNaN(finalPosition.z)){
 +                return;
 +            }
 +
-+            if (!io.papermc.paper.util.TickThread.isTickThreadFor(((ServerLevel) this.level),finalPosition)){
++            if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(((ServerLevel) this.level),finalPosition)){
 +                this.preventMoving = true;
 +                this.teleportAsync(
 +                        (ServerLevel) this.level(),

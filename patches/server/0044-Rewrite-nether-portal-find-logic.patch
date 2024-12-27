@@ -5,14 +5,14 @@ Subject: [PATCH] Rewrite nether portal find logic
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/poi/PoiChunk.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/poi/PoiChunk.java
-index bbf9d6c1c9525d97160806819a57be03eca290f1..6b20e9df01527f82e31d0536235d613e1c1a08ff 100644
+index bbf9d6c1c9525d97160806819a57be03eca290f1..543f751624a2e50163e5cd68ca145398c04e74dd 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/poi/PoiChunk.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/level/poi/PoiChunk.java
 @@ -192,6 +192,7 @@ public final class PoiChunk {
                  // completely empty, no point in storing this
                  continue;
              }
-+            world.chunkTaskScheduler.scheduleChunkTask(chunkX, chunkZ, () -> { for (net.minecraft.core.BlockPos pos : deserialized.loadedNetherPortalPoi) world.netherPortalPoiManager.addPoi(pos, world.getBlockState(pos)); }, ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHEST); // Lumina - rewrite nether portal find logic
++            world.chunkTaskScheduler.scheduleChunkTask(chunkX, chunkZ, () -> { for (net.minecraft.core.BlockPos pos : deserialized.loadedNetherPortalPoi) world.netherPortalPoiManager.addPoi(pos, world.getBlockState(pos)); }, ca.spottedleaf.concurrentutil.util.Priority.HIGHEST); // Lumina - rewrite nether portal find logic
  
              readAnything = true;
              ret.sections[sectionY - ret.minSection] = deserialized;
@@ -91,7 +91,7 @@ index 137a15e142c6e934804e3f2a072cdac8d40a2ab2..404f27dd09f6f136b51a1b2eeec8da03
          return new SectionPos(x, y, z);
      }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index fa5ed398ae1c74775e93eb3b80abde324a1d2b9d..b722358325024f997369ac1f14027dfb92b1247b 100644
+index 8ca98b4b4854294a1659ec2a9f7f55733685d8aa..cfa568e169b5e09fed0936ecc00906bfa25c109d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -225,6 +225,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
@@ -111,7 +111,7 @@ index fa5ed398ae1c74775e93eb3b80abde324a1d2b9d..b722358325024f997369ac1f14027dfb
          this.prepareWeather();
          this.getWorldBorder().setAbsoluteMaxSize(minecraftserver.getAbsoluteMaxWorldSize());
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a9d879814a051288fe1777d6fe7575f271f6426f..a8bc8cc3a339aa55090bebff29056864e2d1d366 100644
+index 1998d2133d68e9aaa2881688e765bfe0157a39b6..6e91b6c6b72671ec6fddc5e29b7bed8274a45dc6 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4604,12 +4604,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -165,7 +165,7 @@ index 827991ee61406bcda3f4794dcc735c0e2e0e09af..d6cfca3a47285acc04f8466f7c95f350
          this.records.put(s, poi);
          this.byType.computeIfAbsent(holder, type -> Sets.newHashSet()).add(poi);
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index f2a54bab22d8e46616a4f4bda9b5a5988829d8d4..d6cc1c6dbb4ae2422f16ae26870a5cdd9fa65009 100644
+index 955d9073287eda25032a4a3a7de8fee2ffcac8f7..cafecd44b1341127e1dd9d98b31b70d10d616113 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -60,6 +60,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;

@@ -298,7 +298,7 @@ index 26f0c6ddea76c8a6e17faea2e5603e7c02a7f1b1..c27776bfeef0e2a79ac0a22384c862d4
          return ShulkerBoxBlockEntity.SLOTS;
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..25fed027ddb8fa2e11d7f37214868a92dc32c7fb
+index 0000000000000000000000000000000000000000..1527a2ac7d607375f6e55df3891e95de5bf3a935
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/PcaSyncProtocol.java
 @@ -0,0 +1,390 @@
@@ -416,7 +416,7 @@ index 0000000000000000000000000000000000000000..25fed027ddb8fa2e11d7f37214868a92
 +            BlockEntity blockEntityAdj = null;
 +            if (blockState.getBlock() instanceof ChestBlock) {
 +                if (blockState.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
-+                    BlockPos posAdj = pos.offset(ChestBlock.getConnectedDirection(blockState).getNormal());
++                    BlockPos posAdj = pos.relative(ChestBlock.getConnectedDirection(blockState));
 +                    // The method in World now checks that the caller is from the same thread...
 +                    blockEntityAdj = world.getChunk(posAdj).getBlockEntity(posAdj);
 +                }
@@ -577,7 +577,7 @@ index 0000000000000000000000000000000000000000..25fed027ddb8fa2e11d7f37214868a92
 +
 +            if (blockState.getBlock() instanceof ChestBlock) {
 +                if (blockState.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
-+                    BlockPos posAdj = pos.offset(ChestBlock.getConnectedDirection(blockState).getNormal());
++                    BlockPos posAdj = pos.relative(ChestBlock.getConnectedDirection(blockState));
 +                    playerListAdj = getWatchPlayerList(world, posAdj);
 +                }
 +            }

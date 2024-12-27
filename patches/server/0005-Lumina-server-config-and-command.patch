@@ -3285,20 +3285,41 @@ index 0000000000000000000000000000000000000000..b043bf36de0604028cb7bdd166d000d2
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..35aed045ceb1f7647de4b0efbf7c609f62c402d8
+index 0000000000000000000000000000000000000000..a77ee98609c33e47a36ceb28628bd3ffd49f7614
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/lumina/config/modules/misc/RegionFormatConfig.java
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,32 @@
 +package org.leavesmc.lumina.config.modules.misc;
 +
++import abomination.LinearRegionFile;
++import me.earthme.luminol.utils.EnumRegionFormat;
++import net.minecraft.server.MinecraftServer;
 +import org.spongepowered.configurate.objectmapping.ConfigSerializable;
-+import org.stupidcraft.linearpaper.region.EnumRegionFileExtension;
++import org.spongepowered.configurate.objectmapping.meta.PostProcess;
 +
 +@ConfigSerializable
 +public class RegionFormatConfig {
-+    public EnumRegionFileExtension format = EnumRegionFileExtension.MCA;
++    public EnumRegionFormat regionFormat;
 +    public int linearCompressionLevel = 1;
-+    public int linearFlushFrequency = 10;
++    public int linearIoThreadCount = 6;
++    public int linearIoFlushDelayMs = 100;
++    public boolean linearUseVirtualThread = true;
++
++
++    @PostProcess
++    public void postProcess() {
++        if (regionFormat == EnumRegionFormat.LINEAR_V2) {
++            if (linearCompressionLevel > 23 || linearCompressionLevel < 1) {
++                MinecraftServer.LOGGER.error("Linear region compression level should be between 1 and 22 in config: {}", linearCompressionLevel);
++                MinecraftServer.LOGGER.error("Falling back to compression level 1.");
++                linearCompressionLevel = 1;
++            }
++
++            LinearRegionFile.SAVE_DELAY_MS = linearIoFlushDelayMs;
++            LinearRegionFile.SAVE_THREAD_MAX_COUNT = linearIoThreadCount;
++            LinearRegionFile.USE_VIRTUAL_THREAD = linearUseVirtualThread;
++        }
++    }
 +}
 diff --git a/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java b/src/main/java/org/leavesmc/lumina/config/modules/misc/WatchdogConfig.java
 new file mode 100644

@@ -48,7 +48,7 @@ index 35772110e9318df46a2729dbc0b5879b290011b7..f26989a44cdda9baabf337d573436c6c
          Set<CriterionTrigger.Listener<T>> set = (Set) playerAdvancements.criterionData.get(this); // Paper - fix AdvancementDataPlayer leak
          if (set != null && !set.isEmpty()) {
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 3f15e9c90d5ea9eaf009e50383fd9d128327ade5..018f5adcc0ffcf1cbdcf87dcb140c855bfa10965 100644
+index 1350aad84f37671a58a85b73331fb6b849322b28..64d85ba034fcd2c46fa244c7bb95c201f60debe7 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -377,6 +377,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -141,10 +141,18 @@ index 0f722f1ff4ccea02bc0e903509bc15c1ecfae4bf..7259089740a876d6077c5a5a534115ed
  
              }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b722358325024f997369ac1f14027dfb92b1247b..bc5ccefdc8f4cb11172910864de633619a9e9ba6 100644
+index cfa568e169b5e09fed0936ecc00906bfa25c109d..d9a7dc554845404b4d63cf196c7662aad8ddfb99 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -2323,6 +2323,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -226,6 +226,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+     public final boolean tickTime; // Folia - region threading
+     private final RandomSequences randomSequences;
+     public final org.leavesmc.lumina.utils.LevelNetherPortalPoiManager netherPortalPoiManager; // Lumina - rewrite nether portal find logic
++    final List<ServerPlayer> realPlayers = Lists.newArrayList(); // Leaves - skip
+ 
+     // CraftBukkit start
+     public final LevelStorageSource.LevelStorageAccess convertable;
+@@ -2323,6 +2324,12 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
          return this.players;
      }
  
@@ -157,7 +165,7 @@ index b722358325024f997369ac1f14027dfb92b1247b..bc5ccefdc8f4cb11172910864de63361
      @Override
      public void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock) {
          Optional<Holder<PoiType>> optional = PoiTypes.forState(oldBlock);
-@@ -2839,6 +2845,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2839,6 +2846,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.add(entityplayer);
@@ -169,7 +177,7 @@ index b722358325024f997369ac1f14027dfb92b1247b..bc5ccefdc8f4cb11172910864de63361
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2931,6 +2942,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -2931,6 +2943,11 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.remove(entityplayer);
@@ -182,7 +190,7 @@ index b722358325024f997369ac1f14027dfb92b1247b..bc5ccefdc8f4cb11172910864de63361
              }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 93d5ad158635a67dfc5966d9482a3432f68b36bc..817460e24c853d06dc73110c5cb9e4d0615464ae 100644
+index 22165b6fca47d4ac43d7f3c70915d6bfe8b78ba3..10e740fb2a76f5b73ce1f11bffdd0a7bbc76374f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -233,7 +233,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
@@ -328,7 +336,7 @@ index 8273b710e83dcf29763ffd83a04bee56f93bfa50..ad7fb124517ae0cb352082d7a4fc716b
  
      public boolean canBypassPlayerLimit(GameProfile profile) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index a8bc8cc3a339aa55090bebff29056864e2d1d366..6e3d3aca61452769d7e3eaa047a897f5cdff9338 100644
+index 6e91b6c6b72671ec6fddc5e29b7bed8274a45dc6..2648d84574590235c15d89e02d5fecbed238c184 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1587,7 +1587,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -1042,10 +1050,10 @@ index 0000000000000000000000000000000000000000..4f5e6e5c1b9d8bd38c98e97fd31b3833
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/BotList.java b/src/main/java/org/leavesmc/leaves/bot/BotList.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dbd3e897c3f72982297695b93b2cced75082cd7a
+index 0000000000000000000000000000000000000000..bb5c55104bf3b91a2100790432e1dd41d7c27c48
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/BotList.java
-@@ -0,0 +1,344 @@
+@@ -0,0 +1,299 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.Maps;
@@ -1169,6 +1177,8 @@ index 0000000000000000000000000000000000000000..dbd3e897c3f72982297695b93b2cced7
 +    }
 +
 +    public ServerBot placeNewBot(ServerBot bot, ServerLevel world, Location location, @Nullable CompoundTag nbt) {
++        Optional<CompoundTag> optional = Optional.ofNullable(nbt);
++
 +        bot.isRealPlayer = true;
 +        bot.connection = new ServerBotPacketListenerImpl(this.server, bot);
 +        bot.setServerLevel(world);
@@ -1189,7 +1199,8 @@ index 0000000000000000000000000000000000000000..dbd3e897c3f72982297695b93b2cced7
 +
 +        bot.supressTrackerForLogin = true;
 +        world.addNewPlayer(bot);
-+        this.mountSavedVehicle(bot, world, nbt);
++        bot.loadAndSpawnEnderpearls(optional);
++        bot.loadAndSpawnParentVehicle(optional);
 +
 +        BotJoinEvent event1 = new BotJoinEvent(bot.getBukkitEntity(), PaperAdventure.asAdventure(Component.translatable("multiplayer.player.joined", bot.getDisplayName())).style(Style.style(NamedTextColor.YELLOW)));
 +        this.server.server.getPluginManager().callEvent(event1);
@@ -1204,54 +1215,6 @@ index 0000000000000000000000000000000000000000..dbd3e897c3f72982297695b93b2cced7
 +        bot.serverLevel().getChunkSource().chunkMap.addEntity(bot);
 +        BotList.LOGGER.info("{}[{}] logged in with entity id {} at ([{}]{}, {}, {})", bot.getName().getString(), "Local", bot.getId(), bot.serverLevel().serverLevelData.getLevelName(), bot.getX(), bot.getY(), bot.getZ());
 +        return bot;
-+    }
-+
-+    private void mountSavedVehicle(ServerPlayer player, ServerLevel worldserver1, @Nullable CompoundTag nbt) {
-+        Optional<CompoundTag> optional = Optional.ofNullable(nbt);
-+        if (optional.isPresent() && optional.get().contains("RootVehicle", 10)) {
-+            CompoundTag nbttagcompound = optional.get().getCompound("RootVehicle");
-+            Entity entity = EntityType.loadEntityRecursive(nbttagcompound.getCompound("Entity"), worldserver1, (entity1) -> {
-+                return !worldserver1.addWithUUID(entity1, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.MOUNT) ? null : entity1;
-+            });
-+
-+            if (entity != null) {
-+                UUID uuid;
-+
-+                if (nbttagcompound.hasUUID("Attach")) {
-+                    uuid = nbttagcompound.getUUID("Attach");
-+                } else {
-+                    uuid = null;
-+                }
-+
-+                Iterator<Entity> iterator;
-+                Entity entity1;
-+
-+                if (entity.getUUID().equals(uuid)) {
-+                    player.startRiding(entity, true);
-+                } else {
-+                    iterator = entity.getIndirectPassengers().iterator();
-+
-+                    while (iterator.hasNext()) {
-+                        entity1 = iterator.next();
-+                        if (entity1.getUUID().equals(uuid)) {
-+                            player.startRiding(entity1, true);
-+                            break;
-+                        }
-+                    }
-+                }
-+
-+                if (!player.isPassenger()) {
-+                    BotList.LOGGER.warn("Couldn't reattach entity to fakeplayer");
-+                    entity.discard();
-+                    iterator = entity.getIndirectPassengers().iterator();
-+
-+                    while (iterator.hasNext()) {
-+                        entity1 = iterator.next();
-+                        entity1.discard();
-+                    }
-+                }
-+            }
-+        }
 +    }
 +
 +    public boolean removeBot(@NotNull ServerBot bot, @NotNull BotRemoveEvent.RemoveReason reason, @Nullable CommandSender remover, boolean saved) {
@@ -1577,10 +1540,10 @@ index 0000000000000000000000000000000000000000..34af4b59a4b4f9572e45d4e691a6f260
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/ServerBot.java b/src/main/java/org/leavesmc/leaves/bot/ServerBot.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165b29c27f2
+index 0000000000000000000000000000000000000000..eb5b2f7f2f19ef6419b5ea2a5e4035e88d7498dd
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/ServerBot.java
-@@ -0,0 +1,525 @@
+@@ -0,0 +1,522 @@
 +package org.leavesmc.leaves.bot;
 +
 +import com.google.common.collect.ImmutableMap;
@@ -1708,12 +1671,15 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +    }
 +
 +    public void sendFakeData(ServerPlayerConnection playerConnection, boolean login) {
-+        if (this.tracker == null) {
++        ChunkMap.TrackedEntity entityTracker = null; // TODO
++                // this.serverLevel().getChunkSource().chunkMap.entityMap.get(this.getId());
++
++        if (entityTracker == null) {
 +            LOGGER.warn("Fakeplayer cant get entity tracker for " + this.getId());
 +            return;
 +        }
 +
-+        playerConnection.send(this.getAddEntityPacket());
++        playerConnection.send(this.getAddEntityPacket(entityTracker.serverEntity));
 +        if (login) {
 +            Bukkit.getScheduler().runTaskLater(MinecraftInternalPlugin.INSTANCE, () -> playerConnection.send(new ClientboundRotateHeadPacket(this, (byte) ((getYRot() * 256f) / 360f))), 10);
 +        } else {
@@ -1736,7 +1702,7 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +
 +    @Override
 +    public void die(@NotNull DamageSource damageSource) {
-+        boolean flag = this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
++        boolean flag = this.serverLevel().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +
 +        BotDeathEvent event = new BotDeathEvent(this.getBukkitEntity(), PaperAdventure.asAdventure(defaultMessage), flag);
@@ -1761,12 +1727,6 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +
 +    public void removeTab() {
 +        this.sendPacket(new ClientboundPlayerInfoRemovePacket(List.of(this.getUUID())));
-+    }
-+
-+    @Nullable
-+    @Override
-+    public Entity changeDimension(@NotNull ServerLevel teleportTarget) {
-+        return null; // disable dimension change
 +    }
 +
 +    @Override
@@ -1822,7 +1782,7 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +    @Override
 +    public void checkFallDamage(double heightDifference, boolean onGround, @NotNull BlockState state, @NotNull BlockPos landedPosition) {
 +        if (onGround && this.fallDistance > 0.0F) {
-+            this.onChangedBlock(landedPosition);
++            this.onChangedBlock(this.serverLevel(), landedPosition);
 +            double d1 = this.getAttributeValue(Attributes.SAFE_FALL_DISTANCE);
 +
 +            if ((double) this.fallDistance > d1 && !state.isAir()) {
@@ -1844,7 +1804,7 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +                double d8 = Math.min(0.2F + f / 15.0F, 2.5D);
 +                int i = (int) (150.0D * d8);
 +
-+                this.serverLevel().sendParticles(this, new BlockParticleOption(ParticleTypes.BLOCK, state), d2, d3, d4, i, 0.0D, 0.0D, 0.0D, 0.15000000596046448D, false);
++                // this.serverLevel().sendParticles(this, new BlockParticleOption(ParticleTypes.BLOCK, state), d2, d3, d4, i, 0.0D, 0.0D, 0.0D, 0.15000000596046448D, false); // TODO
 +            }
 +        }
 +
@@ -2108,10 +2068,10 @@ index 0000000000000000000000000000000000000000..00e5c4a7037bb8a52ac68fecc2c1d165
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java b/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..068bd6ce5fe4bdc81a10bd1697b4c27480f87f00
+index 0000000000000000000000000000000000000000..b09df8dfe88766b57338fd3284b9a6a0f2c5ecb7
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/bot/ServerBotGameMode.java
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,137 @@
 +package org.leavesmc.leaves.bot;
 +
 +import net.kyori.adventure.text.Component;
@@ -2121,7 +2081,6 @@ index 0000000000000000000000000000000000000000..068bd6ce5fe4bdc81a10bd1697b4c274
 +import net.minecraft.server.level.ServerPlayerGameMode;
 +import net.minecraft.world.InteractionHand;
 +import net.minecraft.world.InteractionResult;
-+import net.minecraft.world.ItemInteractionResult;
 +import net.minecraft.world.item.ItemStack;
 +import net.minecraft.world.item.context.UseOnContext;
 +import net.minecraft.world.level.GameType;
@@ -2211,7 +2170,7 @@ index 0000000000000000000000000000000000000000..068bd6ce5fe4bdc81a10bd1697b4c274
 +            return InteractionResult.FAIL;
 +        }
 +
-+        if (player.getCooldowns().isOnCooldown(stack.getItem())) {
++        if (player.getCooldowns().isOnCooldown(stack)) {
 +            return InteractionResult.PASS;
 +        }
 +
@@ -2225,13 +2184,13 @@ index 0000000000000000000000000000000000000000..068bd6ce5fe4bdc81a10bd1697b4c274
 +        boolean flag1 = player.isSecondaryUseActive() && flag;
 +
 +        if (!flag1) {
-+            ItemInteractionResult iteminteractionresult = iblockdata.useItemOn(player.getItemInHand(hand), world, player, hand, hitResult);
++            InteractionResult iteminteractionresult = iblockdata.useItemOn(player.getItemInHand(hand), world, player, hand, hitResult);
 +
 +            if (iteminteractionresult.consumesAction()) {
-+                return iteminteractionresult.result();
++                return iteminteractionresult;
 +            }
 +
-+            if (iteminteractionresult == ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION && hand == InteractionHand.MAIN_HAND) {
++            if (iteminteractionresult == InteractionResult.PASS && hand == InteractionHand.MAIN_HAND) {
 +                enuminteractionresult = iblockdata.useWithoutItem(world, player, hitResult);
 +                if (enuminteractionresult.consumesAction()) {
 +                    return enuminteractionresult;

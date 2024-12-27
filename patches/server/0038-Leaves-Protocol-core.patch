@@ -48,6 +48,19 @@ index 7655987d061bdb2839b30f926efb034046feaea3..7ae6b2bb868cc3d391bae87fa5e141cf
              }
          };
      }
+diff --git a/src/main/java/net/minecraft/resources/ResourceLocation.java b/src/main/java/net/minecraft/resources/ResourceLocation.java
+index 1967c43ee3a12e63365cc40ee6565307e2fd73cf..823653f3e70d314b42d1da3bebc1aa06381f7ede 100644
+--- a/src/main/java/net/minecraft/resources/ResourceLocation.java
++++ b/src/main/java/net/minecraft/resources/ResourceLocation.java
+@@ -36,7 +36,7 @@ public final class ResourceLocation implements Comparable<ResourceLocation> {
+     private final String namespace;
+     private final String path;
+ 
+-    private ResourceLocation(String namespace, String path) {
++    public ResourceLocation(String namespace, String path) { // Lumina - private -> public
+         assert isValidNamespace(namespace);
+ 
+         assert isValidPath(path);
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 index b6c0f4bc58cb1cc3ab39ac53e92f2ed6caf2e28a..52a6cb54186a4d66e7eb1afb0aeb7e3536edc4bb 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
@@ -168,7 +181,7 @@ index 0000000000000000000000000000000000000000..986d2a6641ff8017dddf3e5f2655adfc
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4d3031be4e670dd8369c32cc07e72f10d0afb228
+index 0000000000000000000000000000000000000000..61978bd1617f6bef252bffffb03f53e771cf4847
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/core/LeavesProtocolManager.java
 @@ -0,0 +1,437 @@
@@ -581,7 +594,7 @@ index 0000000000000000000000000000000000000000..4d3031be4e670dd8369c32cc07e72f10
 +
 +    public record FabricRegisterPayload(Set<ResourceLocation> channels) implements LeavesCustomPayload<FabricRegisterPayload> {
 +
-+        public static final ResourceLocation CHANNEL = new ResourceLocation("register");
++        public static final ResourceLocation CHANNEL = ResourceLocation.withDefaultNamespace("register");
 +
 +        @New
 +        public FabricRegisterPayload(ResourceLocation location, FriendlyByteBuf buf) {

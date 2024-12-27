@@ -36,7 +36,7 @@ index 6003e3495e61073c39928918b9d9f4c2e20f3a49..b82e57fbcaa5aeabb81748ff2c5689a5
      public Level getLevel() {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..a71bd73f23c68ffede651980bbfad8cef71ef9c6
+index 0000000000000000000000000000000000000000..3e14fce2088e3c01f6179440fdd0203ed1a08e71
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/BBORProtocol.java
 @@ -0,0 +1,227 @@
@@ -146,7 +146,7 @@ index 0000000000000000000000000000000000000000..a71bd73f23c68ffede651980bbfad8ce
 +    public static void onChunkLoaded(@NotNull LevelChunk chunk) {
 +        if (LuminaConfig.configModule().protocol.bborProtocol) {
 +            Map<String, StructureStart> structures = new HashMap<>();
-+            final Registry<Structure> structureFeatureRegistry = chunk.getLevel().registryAccess().registryOrThrow(Registries.STRUCTURE);
++            final Registry<Structure> structureFeatureRegistry = chunk.getLevel().registryAccess().lookupOrThrow(Registries.STRUCTURE);
 +            for (var es : chunk.getAllStarts().entrySet()) {
 +                final var optional = structureFeatureRegistry.getResourceKey(es.getKey());
 +                optional.ifPresent(key -> structures.put(key.location().toString(), es.getValue()));
@@ -187,7 +187,7 @@ index 0000000000000000000000000000000000000000..a71bd73f23c68ffede651980bbfad8ce
 +    }
 +
 +    private static void sendStructureList(ServerPlayer player) {
-+        final Registry<Structure> structureRegistry = player.server.registryAccess().registryOrThrow(Registries.STRUCTURE);
++        final Registry<Structure> structureRegistry = player.server.registryAccess().lookupOrThrow(Registries.STRUCTURE);
 +        final Set<String> structureIds = structureRegistry.entrySet().stream()
 +            .map(e -> e.getKey().location().toString()).collect(Collectors.toSet());
 +        ProtocolUtils.sendPayloadPacket(player, STRUCTURE_LIST_SYNC, buf -> {

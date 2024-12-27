@@ -77,7 +77,7 @@ index d9e8da269da4f985109d6cd870b22efea5628f71..bc242e2628d2ec293731f895f9d87738
  
      @Nullable
 diff --git a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
-index e00ab1ed8088a1970249313ed63e09070fc6192d..5d9a296497b5a054d0c3233ad03ec1f1347a1100 100644
+index e00ab1ed8088a1970249313ed63e09070fc6192d..90a35616a4fc011ff1b1e2e2a551778e65433ca1 100644
 --- a/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/AbstractCauldronBlock.java
 @@ -56,9 +56,27 @@ public abstract class AbstractCauldronBlock extends Block {
@@ -89,13 +89,13 @@ index e00ab1ed8088a1970249313ed63e09070fc6192d..5d9a296497b5a054d0c3233ad03ec1f1
 +        return wrapInteractor(cauldronInteraction, state, world, pos, player, hand, stack, hit.getDirection()); // Paper - pass hit direction
      }
  
-+    private InteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack) {
++    private InteractionResult wrapInteractor(CauldronInteraction cauldronBehavior, BlockState blockState, Level world, BlockPos blockPos, Player playerEntity, InteractionHand hand, ItemStack itemStack, net.minecraft.core.Direction hitDirection) {
 +        int count = -1;
 +        if (org.leavesmc.lumina.carpet.CarpetConfig.configModule().shulkerBoxStackSize > 1 && itemStack.getItem() instanceof net.minecraft.world.item.BlockItem bi &&
 +            bi.getBlock() instanceof ShulkerBoxBlock) {
 +            count = itemStack.getCount();
 +        }
-+        InteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack);
++        InteractionResult result = cauldronBehavior.interact(blockState, world, blockPos, playerEntity, hand, itemStack, hitDirection);
 +        if (count > 0 && result.consumesAction()) {
 +            ItemStack current = playerEntity.getItemInHand(hand);
 +            if (current.getItem() instanceof net.minecraft.world.item.BlockItem bi && bi.getBlock() instanceof ShulkerBoxBlock) {

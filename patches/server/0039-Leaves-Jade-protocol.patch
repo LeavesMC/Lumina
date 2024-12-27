@@ -127,10 +127,10 @@ index 30d0133a42ce990352f5c492fcf9beb105364848..1ab2eab686b3a89d406f127a6036c0e2
      protected CompositeLootItemCondition(List<LootItemCondition> terms, Predicate<LootContext> predicate) {
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1cd839012f381db2984d9aead0ecb4bbb713c507
+index 0000000000000000000000000000000000000000..79180118cfe9a4a3132ad5ca1b5c2c17ddddfe8f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/JadeProtocol.java
-@@ -0,0 +1,397 @@
+@@ -0,0 +1,398 @@
 +package org.leavesmc.leaves.protocol.jade;
 +
 +import com.mojang.logging.LogUtils;
@@ -245,7 +245,7 @@ index 0000000000000000000000000000000000000000..1cd839012f381db2984d9aead0ecb4bb
 +
 +    @Contract("_ -> new")
 +    public static @NotNull ResourceLocation mc_id(String path) {
-+        return new ResourceLocation(path);
++        return ResourceLocation.withDefaultNamespace(path);
 +    }
 +
 +    private static boolean isPrimaryKey(ResourceLocation key) {
@@ -312,8 +312,9 @@ index 0000000000000000000000000000000000000000..1cd839012f381db2984d9aead0ecb4bb
 +
 +        try {
 +            shearableBlocks = Collections.unmodifiableList(LootTableMineableCollector.execute(
-+                    MinecraftServer.getServer().reloadableRegistries().get().registryOrThrow(Registries.LOOT_TABLE),
-+                    Items.SHEARS.getDefaultInstance()));
++                    MinecraftServer.getServer().reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE),
++                    Items.SHEARS.getDefaultInstance()
++            ));
 +        } catch (Throwable ignore) {
 +            shearableBlocks = List.of();
 +            LOGGER.error("Failed to collect shearable blocks");
@@ -671,7 +672,7 @@ index 0000000000000000000000000000000000000000..14613e35a6785fc599b1520a667e1311
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/provider/ItemStorageExtensionProvider.java b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/ItemStorageExtensionProvider.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2702121daf6b2358202e9a19b4833acf2b00b928
+index 0000000000000000000000000000000000000000..c79750213f1024389fc6a726791434ab3a86deef
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/ItemStorageExtensionProvider.java
 @@ -0,0 +1,143 @@
@@ -730,7 +731,7 @@ index 0000000000000000000000000000000000000000..2702121daf6b2358202e9a19b4833acf
 +            case RandomizableContainer te when te.getLootTable() != null -> {
 +                return List.of();
 +            }
-+            case ContainerEntity containerEntity when containerEntity.getLootTable() != null -> {
++            case ContainerEntity containerEntity when containerEntity.getContainerLootTable() != null -> {
 +                return List.of();
 +            }
 +            default -> {
@@ -960,7 +961,7 @@ index 0000000000000000000000000000000000000000..fd4112ed1911171b3c6b5840b7184b5f
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/CampfireProvider.java b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/CampfireProvider.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d22013480b53017db71697af37c0b3daa19c7ac5
+index 0000000000000000000000000000000000000000..a1a479987f2c0b6ff4cfd511cbcac1ea7b1c247b
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/CampfireProvider.java
 @@ -0,0 +1,52 @@
@@ -1000,7 +1001,7 @@ index 0000000000000000000000000000000000000000..d22013480b53017db71697af37c0b3da
 +                stack = stack.copy();
 +
 +                CustomData customData = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-+                    .update(COOKING_TIME_CODEC, campfire.cookingTime[i] - campfire.cookingProgress[i])
++                    .update(NbtOps.INSTANCE, COOKING_TIME_CODEC, campfire.cookingTime[i] - campfire.cookingProgress[i])
 +                    .getOrThrow();
 +                stack.set(DataComponents.CUSTOM_DATA, customData);
 +
@@ -1239,13 +1240,14 @@ index 0000000000000000000000000000000000000000..ea6cf2482807b327d8ff10f0aa117b9b
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/MobSpawnerCooldownProvider.java b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/MobSpawnerCooldownProvider.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..63af91ae159cdcdb1195d98530f6e779449fb60b
+index 0000000000000000000000000000000000000000..caf550cd07faeb1efdee0cbf3e48cb1f0d4a2c7f
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/provider/block/MobSpawnerCooldownProvider.java
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,33 @@
 +package org.leavesmc.leaves.protocol.jade.provider.block;
 +
 +import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity;
 +import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerData;
@@ -1263,7 +1265,7 @@ index 0000000000000000000000000000000000000000..63af91ae159cdcdb1195d98530f6e779
 +    public void saveData(DataAccessor data, BlockAccessor request) {
 +        if (request.target() instanceof TrialSpawnerBlockEntity spawner) {
 +            TrialSpawnerData spawnerData = spawner.getTrialSpawner().getData();
-+            Level level = request.world();
++            ServerLevel level = ((ServerLevel) request.world());
 +            if (spawner.getTrialSpawner().canSpawnInLevel(level) && level.getGameTime() < spawnerData.cooldownEndsAt) {
 +                data.putInt("Cooldown", (int) (spawnerData.cooldownEndsAt - level.getGameTime()));
 +            }
@@ -2245,15 +2247,16 @@ index 0000000000000000000000000000000000000000..4d65e9a8b5224bd268b1bf18bc39a58d
 +}
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/util/LootTableMineableCollector.java b/src/main/java/org/leavesmc/leaves/protocol/jade/util/LootTableMineableCollector.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f979ebceb9
+index 0000000000000000000000000000000000000000..c73a7c90121e3c6c404f4c0c1d26174445c9738c
 --- /dev/null
 +++ b/src/main/java/org/leavesmc/leaves/protocol/jade/util/LootTableMineableCollector.java
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,109 @@
 +package org.leavesmc.leaves.protocol.jade.util;
 +
 +import com.google.common.collect.Lists;
 +import net.minecraft.advancements.critereon.ItemPredicate;
-+import net.minecraft.core.Registry;
++import net.minecraft.core.Holder;
++import net.minecraft.core.HolderGetter;
 +import net.minecraft.core.registries.BuiltInRegistries;
 +import net.minecraft.world.item.ItemStack;
 +import net.minecraft.world.level.block.Block;
@@ -2265,22 +2268,24 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 +import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 +import net.minecraft.world.level.storage.loot.predicates.MatchTool;
++import org.jetbrains.annotations.NotNull;
 +import org.leavesmc.leaves.protocol.jade.tool.ShearsToolHandler;
 +
 +import java.util.List;
++import java.util.Optional;
 +import java.util.function.Function;
 +
 +public class LootTableMineableCollector {
 +
-+    private final Registry<LootTable> lootRegistry;
++    private final HolderGetter<LootTable> lootRegistry;
 +    private final ItemStack toolItem;
 +
-+    public LootTableMineableCollector(Registry<LootTable> lootRegistry, ItemStack toolItem) {
++    public LootTableMineableCollector(HolderGetter<LootTable> lootRegistry, ItemStack toolItem) {
 +        this.lootRegistry = lootRegistry;
 +        this.toolItem = toolItem;
 +    }
 +
-+    public static List<Block> execute(Registry<LootTable> lootRegistry, ItemStack toolItem) {
++    public static @NotNull List<Block> execute(HolderGetter<LootTable> lootRegistry, ItemStack toolItem) {
 +        LootTableMineableCollector collector = new LootTableMineableCollector(lootRegistry, toolItem);
 +        List<Block> list = Lists.newArrayList();
 +        for (Block block : BuiltInRegistries.BLOCK) {
@@ -2288,9 +2293,11 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +                continue;
 +            }
 +
-+            LootTable lootTable = lootRegistry.get(block.getLootTable());
-+            if (collector.doLootTable(lootTable)) {
-+                list.add(block);
++            if (block.getLootTable().isPresent()) {
++                LootTable lootTable = lootRegistry.get(block.getLootTable().get()).map(Holder::value).orElse(null);
++                if (collector.doLootTable(lootTable)) {
++                    list.add(block);
++                }
 +            }
 +        }
 +        return list;
@@ -2309,7 +2316,7 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +        return false;
 +    }
 +
-+    private boolean doLootPool(LootPool lootPool) {
++    private boolean doLootPool(@NotNull LootPool lootPool) {
 +        for (LootPoolEntryContainer entry : lootPool.entries) {
 +            if (doLootPoolEntry(entry)) {
 +                return true;
@@ -2326,7 +2333,7 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +                }
 +            }
 +        } else if (entry instanceof NestedLootTable nestedLootTable) {
-+            LootTable lootTable = nestedLootTable.contents.map(lootRegistry::get, Function.identity());
++            LootTable lootTable = nestedLootTable.contents.map($ -> lootRegistry.get($).map(Holder::value).orElse(null), Function.identity());
 +            return doLootTable(lootTable);
 +        } else {
 +            return isCorrectConditions(entry.conditions, toolItem);
@@ -2334,14 +2341,14 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +        return false;
 +    }
 +
-+    public static boolean isCorrectConditions(List<LootItemCondition> conditions, ItemStack toolItem) {
++    public static boolean isCorrectConditions(@NotNull List<LootItemCondition> conditions, ItemStack toolItem) {
 +        if (conditions.size() != 1) {
 +            return false;
 +        }
 +
 +        LootItemCondition condition = conditions.getFirst();
-+        if (condition instanceof MatchTool matchTool) {
-+            ItemPredicate itemPredicate = matchTool.predicate().orElse(null);
++        if (condition instanceof MatchTool(Optional<ItemPredicate> predicate)) {
++            ItemPredicate itemPredicate = predicate.orElse(null);
 +            return itemPredicate != null && itemPredicate.test(toolItem);
 +        } else if (condition instanceof AnyOfCondition anyOfCondition) {
 +            for (LootItemCondition child : anyOfCondition.terms) {
@@ -2353,6 +2360,7 @@ index 0000000000000000000000000000000000000000..c811f89295964b1cb86c3eea39cd20f9
 +        return false;
 +    }
 +}
+\ No newline at end of file
 diff --git a/src/main/java/org/leavesmc/leaves/protocol/jade/util/PairHierarchyLookup.java b/src/main/java/org/leavesmc/leaves/protocol/jade/util/PairHierarchyLookup.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..ff8a457aed356a2c209c13a6f5bf2c81ee10ca07

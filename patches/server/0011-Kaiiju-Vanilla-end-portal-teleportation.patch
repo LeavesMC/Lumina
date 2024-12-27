@@ -7,7 +7,7 @@ This patch is Powered by Kaiiju(https://github.com/KaiijuMC/Kaiiju)
 License: GPL-3.0 (https://www.gnu.org/licenses/gpl-3.0.html) (https://github.com/KaiijuMC/Kaiiju?tab=GPL-3.0-1-ov-file)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index f324fc896b3dddb8a473323c82a9e9c639a99e00..a4d3557bd654f15469d8d460ff1ae920903ad14b 100644
+index de5c353c918a3e80ec5f5e783a2d9ef60b8d078d..ba812363d1524406f034ac814e167858f128b09f 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -4457,13 +4457,18 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -36,7 +36,7 @@ index f324fc896b3dddb8a473323c82a9e9c639a99e00..a4d3557bd654f15469d8d460ff1ae920
              return false;
          }
 +        // Kaiiju start - sync end platform spawning & entity teleportation
-+        final java.util.function.Consumer<Entity> tpComplete = type == PortalType.END && destination.getTypeKey() == LevelStem.END ?
++        final java.util.function.Consumer<Entity> tpComplete = type == PortalType.END && destination.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END ?
 +            e -> net.minecraft.world.level.levelgen.feature.EndPlatformFeature.createEndPlatform(destination, ServerLevel.END_SPAWN_POINT.below(), true, null) : teleportComplete;
 +        // Kaiiju end
  
