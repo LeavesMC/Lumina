@@ -19,6 +19,10 @@ Lumina - 流明
 
 **[未完成]尽管 Lumina 移植了大多数的 Carpet 特性，但是仍然有部分特性不被支持，详见[被移除的 Carpet 特性](docs/RemovedCarpetFeatures_ZH.md)**
 
+## 特别感谢：
+
+[LuminolMC/Luminol](https://github.com/LuminolMC/Luminol)：没有 Luminol ，Lumina 的开发速度会降低极多。
+
 ### 一些梗图 by Sun_HE
 ![meme2.jpg](docs/images/meme2.jpg)
 **下图并无任何种族歧视倾向 | There is no racial discrimination in the picture below**
