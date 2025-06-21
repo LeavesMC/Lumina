@@ -28,7 +28,7 @@ jobs:
           git config --global user.email "ci@leavesmc.org"
           git config --global user.name "LeavesMC CI"
       - name: Apply Patches
-        run: ./gradlew applyPatches
+        run: ./gradlew applyAllPatches
       - name: Create Leavesclip Jar
         run: ./gradlew createMojmapLeavesclipJar
       - name: Move Jar
