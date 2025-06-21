@@ -1,5 +1,3 @@
-import java.util.Locale
-
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -9,12 +7,9 @@ pluginManagement {
 }
 
 plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version("0.8.0")
+    id("org.gradle.toolchains.foojay-resolver-convention") version("0.9.0")
 }
 
 rootProject.name = "Lumina"
-for (name in listOf("Lumina-API", "Lumina-Server")) {
-    val projName = name.lowercase(Locale.ENGLISH)
-    include(projName)
-    findProject(":$projName")!!.projectDir = file(name)
-}
+
+include("lumina-api", "lumina-server")

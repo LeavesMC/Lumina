@@ -1,0 +1,58 @@
+--- a/folia-server/build.gradle.kts
++++ b/folia-server/build.gradle.kts
+@@ -1,22 +_,20 @@
+ import io.papermc.paperweight.attribute.DevBundleOutput
+-import io.papermc.paperweight.util.*
+-import io.papermc.paperweight.util.data.FileEntry
+-import paper.libs.com.google.gson.annotations.SerializedName
++import io.papermc.paperweight.util.Git
++import io.papermc.paperweight.util.path
+ import java.time.Instant
+-import kotlin.io.path.readText
+ 
+ plugins {
+     `java-library`
+     `maven-publish`
+     idea
+-    id("io.papermc.paperweight.core")
++    id("org.leavesmc.leavesweight.core")
+ }
+ 
+ val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
+ 
+ dependencies {
+     mache("io.papermc:mache:1.21.5+build.2")
+-    paperclip("io.papermc:paperclip:3.0.3")
++    leavesclip("io.papermc:paperclip:3.0.3")
+     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+ }
+ 
+@@ -153,7 +_,7 @@
+ }
+ 
+ dependencies {
+-    implementation(project(":folia-api"))
++    implementation(project(":lumina-api"))
+     implementation("ca.spottedleaf:concurrentutil:0.0.3")
+     implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
+     implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
+@@ -383,13 +_,13 @@
+     classpath(tasks.createReobfBundlerJar.flatMap { it.outputZip })
+     mainClass.set(null as String?)
+ }
+-tasks.registerRunTask("runPaperclip") {
+-    description = "Spin up a test server from the Mojang mapped Paperclip jar"
+-    classpath(tasks.createMojmapPaperclipJar.flatMap { it.outputZip })
++tasks.registerRunTask("runLeavesclip") {
++    description = "Spin up a test server from the Mojang mapped Leavesclip jar"
++    classpath(tasks.createMojmapLeavesclipJar.flatMap { it.outputZip })
+     mainClass.set(null as String?)
+ }
+-tasks.registerRunTask("runReobfPaperclip") {
+-    description = "Spin up a test server from the reobf Paperclip jar"
+-    classpath(tasks.createReobfPaperclipJar.flatMap { it.outputZip })
++tasks.registerRunTask("runReobfLeavesclip") {
++    description = "Spin up a test server from the reobf Leavesclip jar"
++    classpath(tasks.createReobfLeavesclipJar.flatMap { it.outputZip })
+     mainClass.set(null as String?)
+ }
